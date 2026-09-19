@@ -37,7 +37,7 @@ param(
   [switch]$SinRepo,
   [switch]$SinLocal,
   [switch]$AbrirDrive,
-  [string[]]$Protegidos = @("DesdeMovil")
+  [string[]]$Protegidos = @("prueba")
 )
 
 # "Continue" a proposito: en Windows PowerShell 5.1, con "Stop", cualquier linea

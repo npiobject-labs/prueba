@@ -1,4 +1,4 @@
-# DesdeMovil
+# prueba
 
 Plantilla del método "PC arranca, móvil continúa":
 

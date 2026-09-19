@@ -2,7 +2,7 @@
 # Uso: pwsh -File tools\estado.ps1
 #      pwsh -File tools\estado.ps1 -Proyecto MiProyecto -Root 'D:\dev\MiProyecto'
 param(
-  [string]$Proyecto = 'DesdeMovil',
+  [string]$Proyecto = 'prueba',
 
   [string]$Root = (Join-Path $env:USERPROFILE "C - Desarrollo\$Proyecto"),
   [string]$Rama = 'main'

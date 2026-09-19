@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Crea un proyecto nuevo desde la plantilla DesdeMovil: repositorio de GitHub,
+  Crea un proyecto nuevo desde la plantilla prueba: repositorio de GitHub,
   Pages, app de Fly.io y clon local, con los parametros anotados en CLAUDE.md.
 
   Lo que el script genera: el repositorio y la app de Fly.
@@ -43,8 +43,8 @@
 param(
   [Parameter(Position = 0)][string]$Nombre = "",
   [string]$Owner        = "npiobject-labs",
-  [string]$Plantilla    = "npiobject-labs/DesdeMovil",
-  [string]$FlyOrg       = "desdemovil",
+  [string]$Plantilla    = "npiobject-labs/prueba",
+  [string]$FlyOrg       = "prueba",
   [string]$DriveId      = "",
   [string]$Local        = "",
   [string]$Descripcion  = "",
@@ -179,7 +179,7 @@ function Comprueba-Url([string]$url, [string]$contiene = "", [int]$intentos = 3)
 function Titulo() {
   Write-Host ""
   Write-Host "  +-------------------------------------------------------+" -ForegroundColor Cyan
-  Write-Host "  |  DesdeMovil  ::  crear un proyecto nuevo         (V1)  |" -ForegroundColor Cyan
+  Write-Host "  |  prueba  ::  crear un proyecto nuevo         (V1)  |" -ForegroundColor Cyan
   Write-Host "  +-------------------------------------------------------+" -ForegroundColor Cyan
   Write-Host "  |  Lo hace el script : repo de GitHub + Pages + Fly.io   |" -ForegroundColor DarkGray
   Write-Host "  |  Lo pones tu       : carpeta de Drive + carpeta local  |" -ForegroundColor DarkGray
