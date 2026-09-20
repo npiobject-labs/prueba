@@ -1,0 +1,36 @@
+{
+  "fecha": "2026-09-20T18:30:00+02:00",
+  "titulo": "El botón estaba publicado pero el móvil servía la versión vieja",
+  "objetivo": "Que una publicación nueva se vea en el móvil, y que el workflow compruebe lo que el sitio sirve de verdad.",
+  "prompts": [
+    {
+      "texto": "No veo botón de descargar todo el contenido",
+      "nota": "El botón de exportar estaba en main y el run de Pages en verde; lo que fallaba era que la app instalada seguía sirviendo la versión anterior."
+    }
+  ],
+  "cambios": [
+    "docs/index.html: busca versión nueva al abrir y al volver a la app, banda «Hay una versión nueva · Actualizar», y en Ajustes el build a la vista con botón para forzar la comprobación",
+    ".github/workflows/pages.yml: paso nuevo que hace curl al sitio publicado y falla si el build servido no es el del commit, o si sirve el README",
+    "docs/sw.js: caché al build nuevo",
+    "docs/mocks/012-notas-exportar.html: mock 11 archivado",
+    "CLAUDE.md y docs/planificacion/plan-notas.md: F12 anotada"
+  ],
+  "sha": "e9f6d7c",
+  "sha_completo": "e9f6d7c52d0d006c2beace0bfec11d6e7a2d2d8d",
+  "mock": "mocks/012-notas-exportar.html",
+  "build": "PR-B1-20260920-014",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Probar el dictado arreglado en el móvil de verdad.",
+    "Elegir el modelo que redacta los documentos: definir la variable de repositorio LLM_MODELO_DOCUMENTO y relanzar deploy.yml a mano."
+  ],
+  "enlaces": [
+    {
+      "texto": "PR #24",
+      "url": "https://github.com/npiobject-labs/prueba/pull/24"
+    }
+  ],
+  "notas": "Hasta ahora el workflow daba por bueno el despliegue con el artefacto subido, que no prueba que el sitio lo esté sirviendo. Desde este cambio lo comprueba con curl, que es lo que CLAUDE.md pedía y lo que habría hecho visible este fallo sin esperar a que el usuario lo notara. El run de este cambio ya lo comprobó: el sitio sirvió el build 014 al primer intento, así que lo publicado era correcto y lo que fallaba era la copia guardada en el móvil.",
+  "run": "35528224169"
+}
