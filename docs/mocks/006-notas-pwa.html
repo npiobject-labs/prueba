@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-008">
+  <meta name="build" content="PR-B1-20260920-007">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 6</title>
+  <title>Notas · mock 5</title>
   <style>
     :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; }
     @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
@@ -28,7 +28,6 @@
     .chip { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:999px; padding:.25rem .7rem; font-size:.85rem; cursor:pointer; }
     .chip.on { background:var(--acc); border-color:var(--acc); color:#fff; }
     .chip.et { background:var(--acc2); border-color:transparent; color:var(--acc); cursor:default; font-size:.75rem; padding:.15rem .55rem; }
-    .chip.pend { background:transparent; border:1px dashed var(--mut); color:var(--mut); }
     .nota { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; }
     .nota { position:relative; padding-right:3rem; }
     .nota h2 { font-size:1rem; margin:0 0 .25rem; }
@@ -68,7 +67,7 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 6 · conectando…</small><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 5 · conectando…</small><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -88,7 +87,6 @@
     <label>Backend</label>
     <code id="aApi"></code>
     <p class="aviso" id="aEstado"></p>
-    <p class="aviso" id="aIa"></p>
     <label for="aToken">Token de acceso (secreto <code>TOKEN_API</code> de Fly; vacío si la API está abierta)</label>
     <input id="aToken" type="password" autocomplete="off" placeholder="Pega aquí el token">
     <div class="acciones">
@@ -107,7 +105,7 @@
       <button class="btn pri" id="guardar" type="button">Guardar</button>
     </div>
     <p class="aviso" id="avisoMic"></p>
-    <p class="aviso">Al guardar, el backend pide el título y las etiquetas al LLM (servicio <code>openrouter</code>). Si tarda o falla, la nota se guarda igual con un título provisional que puedes reintentar.</p>
+    <p class="aviso">Al guardar, el backend pone el título (F1: primera frase) y en F2 el LLM pondrá título y etiquetas.</p>
   </section>
 
   <section id="detalle" class="hidden detalle">
@@ -116,13 +114,10 @@
     <time id="dFecha" style="color:var(--mut);font-size:.85rem"></time>
     <div class="chips" id="dEtiquetas"></div>
     <article id="dContenido"></article>
-    <div class="acciones">
-      <button class="btn" id="dReintentar" type="button">Reintentar título y etiquetas</button>
-      <button class="btn peligro" id="borrar" type="button">Borrar nota</button>
-    </div>
+    <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260920-008</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-007</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -207,7 +202,6 @@
       d.querySelector('time').textContent = fmt(n.creada_en);
       d.querySelector('p').textContent = n.contenido;
       n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; d.querySelector('.chips').appendChild(s); });
-      if (n.pendiente_ia) { const s = document.createElement('span'); s.className = 'chip pend'; s.textContent = 'título provisional'; d.querySelector('.chips').appendChild(s); }
       d.onclick = () => abrir(n);
       l.appendChild(d);
     });
@@ -226,7 +220,7 @@
       if (mia !== cargaActual) return;
       notas = ns; etiquetas = es;
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
-      estado(`mock 6 · ${API.replace('https://', '')}`);
+      estado(`mock 5 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -239,25 +233,8 @@
     $('dTitulo').textContent = n.titulo; $('dFecha').textContent = fmt(n.creada_en); $('dContenido').textContent = n.contenido;
     const c = $('dEtiquetas'); c.innerHTML = '';
     n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; c.appendChild(s); });
-    if (n.pendiente_ia) { const s = document.createElement('span'); s.className = 'chip pend'; s.textContent = 'título provisional'; c.appendChild(s); }
-    // El reintento (D6) solo tiene sentido en la nota que se quedó sin IA.
-    $('dReintentar').classList.toggle('hidden', !n.pendiente_ia);
-    $('dReintentar').disabled = false; $('dReintentar').textContent = 'Reintentar título y etiquetas';
     ver('detalle');
   }
-
-  // Vuelve a pasar la nota por el LLM. 503 = el backend no tiene servicio LLM configurado.
-  $('dReintentar').onclick = async () => {
-    if (!actual) return;
-    $('dReintentar').disabled = true; $('dReintentar').textContent = 'Pensando…';
-    try {
-      const n = await api('/notas/' + actual.id + '/reintentar-ia', { method: 'POST' });
-      abrir(n); cargar();
-    } catch (e) {
-      $('dReintentar').disabled = false;
-      $('dReintentar').textContent = e.message.includes('503') ? 'El backend no tiene LLM' : 'No pudo titularla: reintentar';
-    }
-  };
 
   // --- Editor y dictado ---
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -286,15 +263,13 @@
     const contenido = $('texto').value.trim();
     if (!contenido) { $('texto').focus(); return; }
     $('guardar').disabled = true; $('guardar').textContent = 'Guardando…';
-    // El backend espera al LLM hasta 8 s antes de quedarse con el título provisional (D6).
-    const pensando = setTimeout(() => { $('guardar').textContent = 'Poniendo título…'; }, 1500);
     try {
       await api('/notas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contenido }) });
       ver('lista'); cargar();
     } catch (e) {
       $('avisoMic').textContent = 'No se pudo guardar (' + e.message + '). El texto sigue aquí: pulsa Guardar otra vez.';
       estado('sin conexión con ' + API, true);
-    } finally { clearTimeout(pensando); $('guardar').disabled = false; $('guardar').textContent = 'Guardar'; }
+    } finally { $('guardar').disabled = false; $('guardar').textContent = 'Guardar'; }
   };
   $('volver').onclick = () => ver('lista');
 
@@ -335,14 +310,6 @@
     $('aEstado').classList.toggle('error', !!msg);
     $('aToken').value = leerToken();
     ver('ajustes');
-    // /salud no pide token: dice de paso si el backend tiene LLM (secreto LLM_CLAVE).
-    $('aIa').textContent = 'Comprobando el backend…';
-    fetch(API + '/salud', { signal: AbortSignal.timeout(ESPERA) })
-      .then(r => r.json())
-      .then(s => { $('aIa').textContent = s.ia
-        ? 'Título y etiquetas por IA: activos (servicio openrouter).'
-        : 'Título y etiquetas por IA: apagados. Falta el secreto LLM_CLAVE en el backend; las notas se guardan con título provisional.'; })
-      .catch(() => { $('aIa').textContent = 'No se pudo leer /salud.'; });
   }
   $('ajustesBtn').onclick = () => abrirAjustes('');
   $('volverAjustes').onclick = () => { ver('lista'); cargar(); };

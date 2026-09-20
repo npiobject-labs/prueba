@@ -3,11 +3,16 @@
 # Uso: pwsh -File tools\arrancar.ps1
 #      pwsh -File tools\arrancar.ps1 -PuertoApi 9080 -PuertoWeb 9081
 #      pwsh -File tools\arrancar.ps1 -Release -SinNavegador
+#      pwsh -File tools\arrancar.ps1 -LlmClave 'sk-app-...'   (titulo y etiquetas por IA)
 param(
   [int]$PuertoApi = 8080,
   [int]$PuertoWeb = 8081,
   [switch]$Release,
-  [switch]$SinNavegador
+  [switch]$SinNavegador,
+  # Clave de aplicacion del servicio openrouter. Sin ella, titulo de respaldo (D6).
+  [string]$LlmClave = $env:LLM_CLAVE,
+  [string]$LlmUrl = $env:LLM_URL,
+  [string]$LlmModelo = $env:LLM_MODELO
 )
 $ErrorActionPreference = 'Stop'
 
@@ -50,6 +55,16 @@ if ($LASTEXITCODE -ne 0 -or -not $sha) { $sha = 'sin-git' }
 
 $env:BUILD_ID = "local-$sha"
 $env:PUERTO   = $PuertoApi
+# La clave nunca se imprime; solo se dice si hay IA o no.
+if ($LlmClave)  { $env:LLM_CLAVE = $LlmClave } else { Remove-Item Env:LLM_CLAVE -ErrorAction SilentlyContinue }
+if ($LlmUrl)    { $env:LLM_URL = $LlmUrl }
+if ($LlmModelo) { $env:LLM_MODELO = $LlmModelo }
+if ($LlmClave) {
+  $destino = if ($LlmUrl) { $LlmUrl } else { 'https://apisor.oracle402.com' }
+  Write-Host "arrancar : titulo y etiquetas por IA via $destino"
+} else {
+  Write-Host "arrancar : sin -LlmClave, las notas se guardan con titulo de respaldo."
+}
 $backend = Start-Process -FilePath $binario -PassThru -NoNewWindow
 
 # El puerto tarda un instante en abrirse: se espera antes de anunciar nada.
