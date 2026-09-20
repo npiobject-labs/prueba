@@ -6,11 +6,12 @@
 //! | Variable        | Por defecto             | Qué es |
 //! |-----------------|-------------------------|--------|
 //! | `LLM_URL`       | —                       | Endpoint completo. Vacío = IA apagada (D6: título de respaldo). |
-//! | `LLM_MODELO`    | `openai/gpt-4o-mini`    | Identificador del modelo que espera el proveedor. |
+//! | `LLM_MODELO`    | (no se envía)           | Identificador del modelo. Si la pasarela ya lo decide, se deja vacío. |
 //! | `LLM_API_KEY`   | —                       | Clave. Nunca se imprime. |
 //! | `LLM_CABECERA`  | `Authorization`         | Cabecera donde va la clave. |
 //! | `LLM_PREFIJO`   | `Bearer ` si la cabecera es `Authorization`, si no vacío | Prefijo del valor. |
 //! | `LLM_ESPERA`    | `8`                     | Segundos de espera máxima (D6). |
+//! | `LLM_OPERACION` | `notas-titulo`          | Etiqueta de la llamada, en la cabecera `X-Operacion` que usa la pasarela. |
 //!
 //! Petición estilo OpenAI (`{model, messages}`), que es lo que expone OpenRouter y sus
 //! pasarelas. La lectura de la respuesta es tolerante: vale `choices[].message.content`
@@ -58,7 +59,6 @@ Reutiliza las etiquetas existentes que encajen antes de inventar otras nuevas.";
 /// quien llama se queda con el título de respaldo y `pendiente_ia` (D6).
 pub async fn sugerir(contenido: &str, etiquetas_existentes: &[String]) -> Option<Sugerencia> {
     let url = var("LLM_URL")?;
-    let modelo = var("LLM_MODELO").unwrap_or_else(|| "openai/gpt-4o-mini".to_string());
     let cabecera = var("LLM_CABECERA").unwrap_or_else(|| "Authorization".to_string());
     let prefijo = var("LLM_PREFIJO").unwrap_or_else(|| {
         if cabecera.eq_ignore_ascii_case("authorization") {
@@ -75,8 +75,7 @@ pub async fn sugerir(contenido: &str, etiquetas_existentes: &[String]) -> Option
     } else {
         etiquetas_existentes.join(", ")
     };
-    let peticion = json!({
-        "model": modelo,
+    let mut peticion = json!({
         "temperature": 0.2,
         "max_tokens": 200,
         "messages": [
@@ -84,6 +83,10 @@ pub async fn sugerir(contenido: &str, etiquetas_existentes: &[String]) -> Option
             { "role": "user", "content": format!("Etiquetas existentes: {existentes}\n\nNota:\n{recorte}") }
         ]
     });
+    // Solo se manda "model" si hay uno fijado: hay pasarelas que eligen ellas el modelo.
+    if let Some(modelo) = var("LLM_MODELO") {
+        peticion["model"] = Value::String(modelo);
+    }
 
     let mut cabeceras = reqwest::header::HeaderMap::new();
     if let Some(clave) = var("LLM_API_KEY") {
@@ -91,6 +94,13 @@ pub async fn sugerir(contenido: &str, etiquetas_existentes: &[String]) -> Option
         let mut valor = reqwest::header::HeaderValue::from_str(&format!("{prefijo}{clave}")).ok()?;
         valor.set_sensitive(true);
         cabeceras.insert(nombre, valor);
+    }
+
+    // La pasarela traza cada llamada por esta cabecera.
+    if let Ok(valor) = reqwest::header::HeaderValue::from_str(
+        &var("LLM_OPERACION").unwrap_or_else(|| "notas-titulo".to_string()),
+    ) {
+        cabeceras.insert("X-Operacion", valor);
     }
 
     let cliente = reqwest::Client::builder()

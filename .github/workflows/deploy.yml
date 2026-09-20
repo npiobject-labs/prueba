@@ -118,11 +118,12 @@ jobs:
           LLM_CABECERA: ${{ vars.LLM_CABECERA }}
           LLM_PREFIJO: ${{ vars.LLM_PREFIJO }}
           LLM_ESPERA: ${{ vars.LLM_ESPERA }}
+          LLM_OPERACION: ${{ vars.LLM_OPERACION }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
         run: |
           # Un secreto por llamada: los valores pueden llevar espacios (p. ej. "Bearer ").
           # --stage acumula sin desplegar; el deploy posterior los aplica de una vez.
-          for par in LLM_URL LLM_MODELO LLM_CABECERA LLM_PREFIJO LLM_ESPERA LLM_API_KEY; do
+          for par in LLM_URL LLM_MODELO LLM_CABECERA LLM_PREFIJO LLM_ESPERA LLM_OPERACION LLM_API_KEY; do
             valor="$(printenv "${par}" || true)"
             if [ -n "${LLM_URL}" ] && [ -n "${valor}" ]; then
               flyctl secrets set "${par}=${valor}" --app "${FLY_APP}" --stage

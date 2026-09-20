@@ -4,8 +4,8 @@
   "objetivo": "Conectar la app de notas con la API de agentes LLM del usuario para que el título y las etiquetas los genere la aplicación, como pedía el punto 3 del plan.",
   "prompts": [
     {
-      "texto": "Ya tengo conexión a las APIs de spisor.oracle402.com, son una serie de APIs para hacer consultas a los LLMs a través de OpenRouter. Entonces ya estás en disposición de poner el título de la nota.",
-      "nota": "Al preguntar por el contrato, corrigió el dominio: apisor.oracle402.com, con documentación propia, y la clave va en una cabecera propia."
+      "texto": "Ya tengo conexión a las APIs (una pasarela propia sobre OpenRouter para consultar LLMs). Entonces ya estás en disposición de poner el título de la nota.",
+      "nota": "Resumido: el prompt original nombraba el dominio de la pasarela y docs/ es público. Al preguntar por el contrato, el usuario indicó que hay documentación propia y que la clave va en cabecera; la documentación estaba en la carpeta de Drive del proyecto."
     }
   ],
   "cambios": [
@@ -25,13 +25,19 @@
   "pagina": "https://npiobject-labs.github.io/prueba/",
   "fly": "https://prueba-npiobject-labs.fly.dev/salud",
   "pendiente": [
-    "Crear las variables LLM_URL y LLM_MODELO (y LLM_CABECERA si la clave no va en Authorization) y el secreto LLM_API_KEY con los datos de la documentación del proveedor",
+    "Crear la variable LLM_URL (endpoint de la pasarela) y el secreto LLM_API_KEY; opcionalmente LLM_MODELO y LLM_OPERACION",
     "Fusionar el PR #8 para publicar el mock 6 en Pages",
     "Crear el secreto TOKEN_API: hasta entonces la API de notas sigue abierta"
   ],
   "enlaces": [
-    { "texto": "PR #8", "url": "https://github.com/npiobject-labs/prueba/pull/8" },
-    { "texto": "Run de despliegue", "url": "https://github.com/npiobject-labs/prueba/actions/runs/35502237876" }
+    {
+      "texto": "PR #8",
+      "url": "https://github.com/npiobject-labs/prueba/pull/8"
+    },
+    {
+      "texto": "Run de despliegue",
+      "url": "https://github.com/npiobject-labs/prueba/actions/runs/35502237876"
+    }
   ],
-  "notas": "El sandbox de la sesión no compila Rust (crates.io bloqueado) ni alcanza el dominio del proveedor, así que la verificación fue el run de deploy.yml sobre la rama. El paso de IA salió como «IA apagada» porque todavía no existe la variable LLM_URL."
+  "notas": "El sandbox de la sesión no compila Rust (crates.io bloqueado) ni alcanza el dominio del proveedor, así que la verificación fue el run de deploy.yml sobre la rama. El contrato (endpoint estilo OpenAI /v1/chat/completions, Authorization: Bearer y cabecera X-Operacion) se confirmó con la documentación del usuario; la URL y la clave no se escriben en docs/ porque es público: van en variables de repositorio y en el secreto LLM_API_KEY."
 }
