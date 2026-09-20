@@ -4,6 +4,11 @@ name: Diagnostico del backend en Fly.io
 # ultimos logs y una llamada real a /salud y /notas con tiempos.
 on:
   workflow_dispatch:
+    inputs:
+      destino:
+        description: 'URL a probar desde la maquina de Fly (por defecto, la variable LLM_URL)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -47,6 +52,38 @@ jobs:
           head -c 400 /tmp/cuerpo; echo
           id="$(sed -n 's/.*"id":"\([^"]*\)".*/\1/p' /tmp/cuerpo)"
           [ -n "${id}" ] && curl -sS --max-time 60 -o /dev/null -w 'DELETE http=%{http_code}\n' -X DELETE -H "${auth}" "${base}/notas/${id}" || true
+
+      # ¿Sale la maquina de Fly hacia la pasarela del LLM? DNS + TCP 443 bastan para
+      # responder sin gastar credenciales: un 401 o un TCP_443_OK ya demuestran ruta;
+      # un fallo de DNS o un timeout, que no la hay. La URL no se escribe aqui: sale de
+      # la variable de repositorio LLM_URL o del campo de arranque.
+      - name: Salida hacia la pasarela del LLM
+        env:
+          DESTINO: ${{ inputs.destino || vars.LLM_URL }}
+        run: |
+          if [ -z "${DESTINO}" ]; then
+            echo "Sin variable LLM_URL ni campo 'destino': nada que probar."
+            exit 0
+          fi
+          host="$(printf '%s' "${DESTINO}" | sed -E 's#^[a-z]+://##; s#[/?].*$##; s#:[0-9]+$##')"
+          echo "Destino: ${DESTINO} (host ${host})"
+
+          # La maquina se suspende sin trafico: una llamada a /salud la despierta antes del ssh.
+          curl -sS --max-time 60 -o /dev/null "https://${FLY_APP}.fly.dev/salud" || true
+
+          # Sin comillas simples dentro: el guion viaja entero entre comillas simples en -C.
+          guion="getent hosts ${host} >/dev/null && echo DNS_OK || echo DNS_FALLO; (exec 3<>/dev/tcp/${host}/443) 2>/dev/null && echo TCP_443_OK || echo TCP_443_FALLO; command -v curl >/dev/null && curl -s -o /dev/null -m 15 -w HTTP=%{http_code} ${DESTINO}; echo"
+          salida="$(flyctl ssh console --app "${FLY_APP}" -C "/bin/bash -c '${guion}'" 2>&1)" || true
+          echo "${salida}"
+
+          if printf '%s' "${salida}" | grep -q 'TCP_443_OK'; then
+            echo "OK: la maquina de Fly alcanza ${host} por 443." >> "$GITHUB_STEP_SUMMARY"
+          elif printf '%s' "${salida}" | grep -qE 'TCP_443_FALLO|DNS_FALLO'; then
+            echo "::warning::La maquina de Fly NO alcanza ${host}: revisar DNS o salida de red."
+            echo "FALLO: la maquina de Fly no alcanza ${host} (ver logs del paso)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::No se pudo ejecutar la comprobacion por ssh; revisar la salida de arriba."
+          fi
 
       - name: Estado tras las llamadas
         run: flyctl machines list --app "${FLY_APP}" --json | jq '.[] | {id, state}' || true

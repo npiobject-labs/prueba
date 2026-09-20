@@ -74,6 +74,8 @@ Pages está siempre activo. Fly también: `FLY_API_TOKEN` es un secreto de la or
 
 No anuncies "puedes probarlo" hasta confirmar por la API de GitHub Actions que el run del workflow para el SHA que acabas de enviar está en `success`. Si en 5 minutos no está, avisa del fallo con la causa leída en los logs, no del éxito. Al avisar, da siempre: SHA, URL y número de `build`.
 
+`diagnostico-fly.yml` (a mano) añade el paso **Salida hacia la pasarela del LLM**: entra por `flyctl ssh console` en la máquina desplegada y comprueba DNS y TCP 443 contra el host de `LLM_URL` (o el que se pase en el campo `destino`), sin gastar credenciales. Es la forma de responder «¿llega Fly al VPS?» sin la clave.
+
 Si necesitas comprobar algo desde la sesión, hazlo contra la API de GitHub (`https://api.github.com/repos/npiobject-labs/prueba/actions/runs/...`), que sí es accesible.
 
 `pages.yml` solo se puede validar en `main`: el entorno `github-pages` únicamente despliega desde la rama por defecto, así que un `workflow_dispatch` sobre una rama de trabajo no sirve de verificación. `deploy.yml` sí acepta cualquier rama.
