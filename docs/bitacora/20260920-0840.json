@@ -1,0 +1,35 @@
+{
+  "fecha": "2026-09-20T08:40:00+02:00",
+  "titulo": "Plan y mock 1 de la app de notas dictadas",
+  "objetivo": "Recoger los requisitos dictados, escribir la planificación (repo + Drive) y publicar un mock navegable para probar la UX desde el móvil.",
+  "prompts": [
+    { "texto": "Te voy a dar una serie de notas; solo recógelas, no hagas nada hasta que diga 'prepara planificación' o 'lanza proyecto'." },
+    { "texto": "Quiero montar una aplicación para recoger notas: dicto o escribo la nota partiendo de un botón 'nueva nota' o un icono de más; al terminar pulso finalizar/grabar y la nota se almacena con un título y el día y la hora a la que se ha guardado." },
+    { "texto": "Las notas se deben clasificar con etiquetas para poder buscar por ellas; también se podrá buscar por fecha o por una palabra, que busque en títulos y contenidos y muestre las notas que la contienen." },
+    { "texto": "El título y el etiquetado los ha de generar la aplicación; si necesita agente, tengo una API de agentes LLM." },
+    { "texto": "Genera una planificación y un mock: la planificación se guarda en Drive y el mock en el repo para que lo pueda ver." }
+  ],
+  "cambios": [
+    "docs/planificacion/plan-notas.md: requisitos, decisiones D1-D10 con supuestos y plan B, modelo de datos, API /notas y fases F0-F4.",
+    "docs/index.html: mock 1 funcional sin backend (localStorage): nueva nota, dictado Web Speech API, título y etiquetas simulados, búsqueda por texto, etiqueta y fecha.",
+    "docs/mocks/001-inicio.html: archivado el mock 0.",
+    "Build actualizado a PR-B1-20260920-003."
+  ],
+  "sha": "f706e25",
+  "sha_completo": "f706e256ae6be508a8a846b666ecccb78b0504f4",
+  "run": "",
+  "mock": "mocks/001-inicio.html",
+  "build": "PR-B1-20260920-003",
+  "pagina": "index.html",
+  "fly": null,
+  "pendiente": [
+    "Datos de la API de agentes LLM: URL, formato y nombre del secreto (D5)",
+    "Confirmar SQLite en volumen de Fly (D3) y un solo usuario con token (D8)",
+    "Validar el mock desde el móvil y fusionar el PR #1 en main para que Pages lo publique",
+    "F1: backend CRUD de notas en app/"
+  ],
+  "enlaces": [
+    { "texto": "PR #1", "url": "https://github.com/npiobject-labs/prueba/pull/1" }
+  ],
+  "notas": "Prompts dictados por voz: transcripción aproximada, limpiada de errores de dictado. El trabajo va en la rama claude/gallant-heisenberg-lf8dpg (PR de borrador); Pages solo publica al fusionar en main. La hora de la entrada es aproximada."
+}
