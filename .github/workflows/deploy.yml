@@ -107,6 +107,37 @@ jobs:
             echo "AVISO: sin secreto TOKEN_API, la API de notas queda abierta."
           fi
 
+      # LLM que titula y etiqueta (F2, D5/D9): clave en secreto, resto en variables de repositorio.
+      # Sin LLM_URL la IA queda apagada y las notas usan el titulo de respaldo (D6).
+      - name: Fijar credenciales del LLM si existen
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+          LLM_URL: ${{ vars.LLM_URL }}
+          LLM_MODELO: ${{ vars.LLM_MODELO }}
+          LLM_CABECERA: ${{ vars.LLM_CABECERA }}
+          LLM_PREFIJO: ${{ vars.LLM_PREFIJO }}
+          LLM_ESPERA: ${{ vars.LLM_ESPERA }}
+          LLM_OPERACION: ${{ vars.LLM_OPERACION }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          # Un secreto por llamada: los valores pueden llevar espacios (p. ej. "Bearer ").
+          # --stage acumula sin desplegar; el deploy posterior los aplica de una vez.
+          for par in LLM_URL LLM_MODELO LLM_CABECERA LLM_PREFIJO LLM_ESPERA LLM_OPERACION LLM_API_KEY; do
+            valor="$(printenv "${par}" || true)"
+            if [ -n "${LLM_URL}" ] && [ -n "${valor}" ]; then
+              flyctl secrets set "${par}=${valor}" --app "${FLY_APP}" --stage
+            else
+              flyctl secrets unset "${par}" --app "${FLY_APP}" --stage 2>/dev/null || true
+            fi
+          done
+          if [ -n "${LLM_URL}" ]; then
+            echo "IA configurada en ${LLM_URL} (clave oculta)."
+          else
+            echo "AVISO: sin variable LLM_URL, las notas se guardan con titulo de respaldo (D6)." >> "$GITHUB_STEP_SUMMARY"
+            echo "AVISO: sin variable LLM_URL, las notas se guardan con titulo de respaldo (D6)."
+          fi
+
       - name: Fijar BUILD_ID con el SHA del commit
         if: steps.fly.outputs.configurado == 'true'
         env:
@@ -182,6 +213,34 @@ jobs:
           curl -fsS --max-time 20 -o /dev/null -w '%{http_code}\n' -X DELETE -H "${auth}" "${base}/notas/${id}" | grep -q '^204$' \
             || { echo "::error::DELETE /notas/${id} no devolvio 204"; exit 1; }
           echo "OK: /notas crea, busca sin acentos y borra"
+
+      # F2: si /salud dice que hay IA, el titulo lo pone el LLM. Un fallo del proveedor
+      # no tumba el despliegue (D6: la nota se guarda igual), pero queda avisado.
+      - name: Verificar titulo por IA
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+          TOKEN_API: ${{ secrets.TOKEN_API }}
+        run: |
+          base="https://${FLY_APP}.fly.dev"
+          auth="Authorization: Bearer ${TOKEN_API}"
+          if ! curl -fsS --max-time 20 "${base}/salud" | grep -q '"ia":true'; then
+            echo "IA apagada (sin variable LLM_URL): no hay nada que verificar."
+            exit 0
+          fi
+          texto="Mañana a las nueve tengo revisión del dentista en la calle Mayor; llevar la cartilla."
+          nota="$(curl -fsS --max-time 40 -X POST "${base}/notas" -H 'Content-Type: application/json' -H "${auth}" \
+            -d "{\"contenido\":\"${texto}\"}")"
+          echo "Creada: ${nota}"
+          id="$(printf '%s' "${nota}" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')"
+          [ -n "${id}" ] || { echo "::error::POST /notas no devolvio id"; exit 1; }
+          curl -fsS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/notas/${id}" || true
+          if printf '%s' "${nota}" | grep -q '"pendiente_ia":false'; then
+            echo "OK: el LLM tituló la nota."
+          else
+            echo "::warning::La IA no respondió a tiempo: la nota quedó con título de respaldo (D6)."
+            echo "AVISO: la IA no respondió a tiempo; revisar LLM_URL/LLM_API_KEY y los logs de Fly." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Resumen del despliegue
         if: success() && steps.fly.outputs.configurado == 'true'

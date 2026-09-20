@@ -1,0 +1,48 @@
+{
+  "fecha": "2026-09-20T11:27:00+02:00",
+  "titulo": "F2: el LLM pone el título y las etiquetas",
+  "objetivo": "Conectar la app de notas con la API de agentes LLM del usuario para que el título y las etiquetas los genere la aplicación, como pedía el punto 3 del plan.",
+  "prompts": [
+    {
+      "texto": "Ya tengo conexión a las APIs (una pasarela propia sobre OpenRouter para consultar LLMs). Entonces ya estás en disposición de poner el título de la nota.",
+      "nota": "Resumido: el prompt original nombraba el dominio de la pasarela y docs/ es público. Al preguntar por el contrato, el usuario indicó que hay documentación propia y que la clave va en cabecera; la documentación estaba en la carpeta de Drive del proyecto."
+    }
+  ],
+  "cambios": [
+    "app/src/llm.rs: cliente del LLM con prompt cerrado en español, espera de 8 s, lectura tolerante de la respuesta y validación de título y etiquetas",
+    "POST /notas guarda primero con título de respaldo y titula después (D6); el candado de SQLite no cruza el await",
+    "POST /notas/{id}/reintentar-ia para las notas que quedaron pendientes",
+    "GET /salud publica \"ia\"",
+    "Mock 6: distintivo «⏳ sin titular» en la lista y botón «✨ Titular con IA» en el detalle",
+    "deploy.yml: pasa las variables LLM_* a Fly y verifica el título por IA sin tumbar el despliegue",
+    "Plan v4 y CLAUDE.md al día; mock 5 archivado en docs/mocks/006-notas-pwa.html",
+    "Ajuste al contrato documentado: model opcional, cabecera X-Operacion y la URL fuera de docs/"
+  ],
+  "sha": "083ff6d",
+  "sha_completo": "083ff6dded67e9abe696c6c282a591086b347d77",
+  "run": "35502444594",
+  "mock": "mocks/006-notas-pwa.html",
+  "build": "PR-B1-20260920-008",
+  "pagina": "https://npiobject-labs.github.io/prueba/",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Crear la variable LLM_URL (endpoint de la pasarela) y el secreto LLM_API_KEY; opcionalmente LLM_MODELO y LLM_OPERACION",
+    "Fusionar el PR #8 para publicar el mock 6 en Pages",
+    "Crear el secreto TOKEN_API: hasta entonces la API de notas sigue abierta"
+  ],
+  "enlaces": [
+    {
+      "texto": "PR #8",
+      "url": "https://github.com/npiobject-labs/prueba/pull/8"
+    },
+    {
+      "texto": "Run de despliegue",
+      "url": "https://github.com/npiobject-labs/prueba/actions/runs/35502237876"
+    },
+    {
+      "texto": "Run de despliegue (ajuste)",
+      "url": "https://github.com/npiobject-labs/prueba/actions/runs/35502444594"
+    }
+  ],
+  "notas": "El sandbox de la sesión no compila Rust (crates.io bloqueado) ni alcanza el dominio del proveedor, así que la verificación fue el run de deploy.yml sobre la rama. El contrato (endpoint estilo OpenAI /v1/chat/completions, Authorization: Bearer y cabecera X-Operacion) se confirmó con la documentación del usuario; la URL y la clave no se escriben en docs/ porque es público: van en variables de repositorio y en el secreto LLM_API_KEY."
+}

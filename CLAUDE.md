@@ -49,6 +49,7 @@ Pages está siempre activo. Fly también: `FLY_API_TOKEN` es un secreto de la or
 - Notas (F1): `GET/POST /notas`, `GET/DELETE /notas/{id}`, `GET /etiquetas`, en SQLite (`rusqlite` bundled). Ruta de la base: `RUTA_DB`, si no `/data/notas.db` cuando existe `/data` (volumen `datos` de Fly, `[mounts]` en `fly.toml`, creado por `deploy.yml`) y si no `./notas.db` en el PC. CORS abierto para todo con `CorsLayer::permissive()`.
 - Búsqueda (F3): `q` va contra la tabla FTS5 `notas_fts` (sin acentos, por prefijo, AND implícito), mantenida por triggers y reconstruida al arrancar si el recuento no cuadra.
 - Token (F4, D8): si existe el secreto `TOKEN_API` en Fly, `/notas*` y `/etiquetas` exigen `Authorization: Bearer <token>` (401 si falta); `/salud` y `/holamundo` no. `deploy.yml` lo fija desde el secreto de repositorio `TOKEN_API` (y lo quita si no existe). La app lo guarda en `localStorage` (⚙ Ajustes).
+- IA (F2): `app/src/llm.rs` pone título y etiquetas al guardar (`POST /notas`) y en `POST /notas/{id}/reintentar-ia`. Se configura entera por entorno: `LLM_URL` (vacío = IA apagada), `LLM_MODELO`, `LLM_API_KEY`, `LLM_CABECERA` (por defecto `Authorization`), `LLM_PREFIJO` (`Bearer ` si la cabecera es esa), `LLM_ESPERA` (8 s). `deploy.yml` los fija en Fly desde las variables de repositorio del mismo nombre y el secreto `LLM_API_KEY`. Petición estilo OpenAI (`{model, messages}`); la respuesta se lee de forma tolerante. Si el LLM falla o tarda, la nota se guarda igual con título de respaldo y `pendiente_ia=true` (D6), y `/salud` publica `"ia"`.
 - PWA (F4): `docs/manifest.webmanifest`, `docs/icono-192.png`, `docs/icono-512.png` y `docs/sw.js`. El service worker cachea la carcasa con el nombre `notas-<build>`: al cambiar el build del mock, cambia también `CACHE` en `sw.js`.
 - `app/fly.toml` no lleva clave `app`: el nombre se pasa con `--app` desde `deploy.yml`.
 - El backend escucha en 8080, que es lo que espera Fly; la variable de entorno `PUERTO` solo la usa `tools/arrancar.ps1` para probar en el PC.
@@ -72,6 +73,8 @@ Pages está siempre activo. Fly también: `FLY_API_TOKEN` es un secreto de la or
 - `deploy.yml` tiene un paso final que hace `curl` a `/salud` y falla el run si la respuesta no contiene el SHA del commit.
 
 No anuncies "puedes probarlo" hasta confirmar por la API de GitHub Actions que el run del workflow para el SHA que acabas de enviar está en `success`. Si en 5 minutos no está, avisa del fallo con la causa leída en los logs, no del éxito. Al avisar, da siempre: SHA, URL y número de `build`.
+
+`diagnostico-fly.yml` (a mano) añade el paso **Salida hacia la pasarela del LLM**: entra por `flyctl ssh console` en la máquina desplegada y comprueba DNS y TCP 443 contra el host de `LLM_URL` (o el que se pase en el campo `destino`), sin gastar credenciales. Es la forma de responder «¿llega Fly al VPS?» sin la clave.
 
 Si necesitas comprobar algo desde la sesión, hazlo contra la API de GitHub (`https://api.github.com/repos/npiobject-labs/prueba/actions/runs/...`), que sí es accesible.
 
