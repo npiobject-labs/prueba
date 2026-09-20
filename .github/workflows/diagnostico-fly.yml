@@ -1,0 +1,50 @@
+name: Diagnostico del backend en Fly.io
+
+# A mano, cuando el backend no responde desde Pages: estado de las maquinas,
+# ultimos logs y una llamada real a /salud y /notas con tiempos.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnosticar:
+    name: Estado, logs y llamadas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      FLY_APP: ${{ vars.FLY_APP || 'prueba-npiobject-labs' }}
+    steps:
+      - name: Instalar flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Estado de la app y maquinas
+        run: |
+          flyctl status --app "${FLY_APP}" || true
+          echo "--- maquinas (json) ---"
+          flyctl machines list --app "${FLY_APP}" --json | jq '.[] | {id, state, region, image: .config.image, mounts: .config.mounts, checks}' || true
+          echo "--- volumenes ---"
+          flyctl volumes list --app "${FLY_APP}" || true
+
+      - name: Ultimos logs
+        run: flyctl logs --app "${FLY_APP}" --no-tail 2>&1 | tail -80 || true
+
+      - name: Llamadas reales con tiempos
+        run: |
+          base="https://${FLY_APP}.fly.dev"
+          for ruta in /salud /notas; do
+            echo "--- GET ${ruta}"
+            curl -sS --max-time 60 -o /tmp/cuerpo -w 'http=%{http_code} total=%{time_total}s\n' "${base}${ruta}" || echo "curl fallo: $?"
+            head -c 400 /tmp/cuerpo; echo
+          done
+          echo "--- POST /notas"
+          curl -sS --max-time 60 -o /tmp/cuerpo -w 'http=%{http_code} total=%{time_total}s\n' -X POST "${base}/notas" \
+            -H 'Content-Type: application/json' -d '{"contenido":"Diagnostico desde Actions. Se borra sola."}' || echo "curl fallo: $?"
+          head -c 400 /tmp/cuerpo; echo
+          id="$(sed -n 's/.*"id":"\([^"]*\)".*/\1/p' /tmp/cuerpo)"
+          [ -n "${id}" ] && curl -sS --max-time 60 -o /dev/null -w 'DELETE http=%{http_code}\n' -X DELETE "${base}/notas/${id}" || true
+
+      - name: Estado tras las llamadas
+        run: flyctl machines list --app "${FLY_APP}" --json | jq '.[] | {id, state}' || true
