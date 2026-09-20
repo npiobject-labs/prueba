@@ -1,6 +1,6 @@
 # Plan — app de notas dictadas
 
-Fecha: 2026-09-20 · Estado: v6, F0 a F6 hechas: notas dictadas, tituladas por IA, buscables, con token, y documentos generados a partir de una selección de notas · Fuente de verdad: este fichero (la copia en Drive es solo copia).
+Fecha: 2026-09-20 · Estado: v7, F0 a F7 hechas: notas dictadas, tituladas por IA, buscables, con token, y documentos generados a partir de una selección de notas · Fuente de verdad: este fichero (la copia en Drive es solo copia).
 
 ## 1. Qué se pide (notas del usuario, en sus términos)
 
@@ -84,6 +84,7 @@ CREATE TABLE documento_notas (
 | **F4** ✅ | `manifest.webmanifest`, iconos 192/512, `sw.js` (carcasa en caché, red primero; la API nunca), banda «sin conexión» con Guardar bloqueado, pantalla Ajustes con token (D8) y botón «Instalar» cuando el navegador lo ofrece. Backend: `TOKEN_API` opcional, 401 sin él. | Instalar en pantalla de inicio; recarga sin red muestra la carcasa; 401 abre Ajustes. |
 | **F5** ✅ | Backend de documentos (D11/D12): tablas `documentos` y `documento_notas`, las seis rutas de la tabla de arriba, `llm.rs` crece con `documentar()` y su modelo propio (D13), generación en segundo plano con `tokio::spawn` y rescate al arrancar de lo que quedara a medias por un reinicio de la máquina. | `deploy.yml` crea dos notas, genera un documento real, espera a que esté listo y comprueba que trae sus secciones y sus notas de origen; sin clave de IA, comprueba que la ruta contesta 503. Probado antes en local contra un servicio simulado: deduplicación de la selección, orden cronológico, edición, regeneración, y que borrar una nota deja el documento en pie. |
 | **F6** ✅ | Mock 7 (`PR-B1-20260920-009`): modo selección (botón ☑ o pulsación larga) que **sobrevive a los filtros**, contador de notas y caracteres, hoja de instrucción opcional, pantalla de documentos, detalle con el texto editable y Copiar / Compartir / Descargar `.md` / Regenerar / Borrar, y chips que llevan de la nota al documento y del documento a la nota. | Probado con Chromium a 390×844: ciclo entero sin un solo error de consola, incluida la selección mantenida al filtrar y el sondeo hasta que el documento queda listo. Falta la prueba en el móvil de verdad. |
+| **F7** ✅ | Mock 8 (`PR-B1-20260920-010`): botón de tema en la cabecera con tres estados (automático, claro, oscuro), guardado en `localStorage` y aplicado antes del primer pintado para que no haya destello. El `theme-color` de la barra del navegador sigue al tema elegido. | Probado con Chromium a 390×844 con el sistema en claro y en oscuro: los tres estados dan el fondo y la barra correctos en ambos casos, la elección aguanta al recargar y al cambiar de pantalla, y la cabecera no desborda con los cuatro iconos. |
 
 Cada fase termina con push, verificación por workflow, entrada en bitácora y resumen de sesión, como marca `CLAUDE.md`.
 
