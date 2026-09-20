@@ -46,6 +46,7 @@ Pages está siempre activo. Fly también: `FLY_API_TOKEN` es un secreto de la or
 - Backend en `app/` (Rust, axum + tokio). `GET /` devuelve texto plano; `GET /salud` devuelve `{"ok":true,"build":"<BUILD_ID>"}`, donde `BUILD_ID` es el SHA que inyecta el workflow.
 - `GET /holamundo` devuelve `holamundo` en texto plano; `/holamundo` y `/salud` llevan `Access-Control-Allow-Origin: *` porque los consume `docs/holamundo.html` desde Pages (otro origen). Si añades más rutas para el frontend, ponles la misma cabecera. `deploy.yml` verifica las dos rutas y falla si cambian.
 - `docs/holamundo.html` toma el nombre de la app de Fly del `<meta name="fly-app">` (`<repo>-<owner>`, como lo deriva `deploy.yml`). Si el proyecto define `FLY_APP` con otro nombre, actualiza ese `content` en el mismo commit.
+- Notas (F1): `GET/POST /notas`, `GET/DELETE /notas/{id}`, `GET /etiquetas`, en SQLite (`rusqlite` bundled). Ruta de la base: `RUTA_DB`, si no `/data/notas.db` cuando existe `/data` (volumen `datos` de Fly, `[mounts]` en `fly.toml`, creado por `deploy.yml`) y si no `./notas.db` en el PC. CORS abierto para todo con `CorsLayer::permissive()`.
 - `app/fly.toml` no lleva clave `app`: el nombre se pasa con `--app` desde `deploy.yml`.
 - El backend escucha en 8080, que es lo que espera Fly; la variable de entorno `PUERTO` solo la usa `tools/arrancar.ps1` para probar en el PC.
 - Mocks estáticos en `docs/`. `docs/index.html` es el mock vivo; los anteriores se archivan en `docs/mocks/NNN-nombre.html`.

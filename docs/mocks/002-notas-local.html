@@ -3,10 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-004">
-  <meta name="fly-app" content="prueba-npiobject-labs">
+  <meta name="build" content="PR-B1-20260920-003">
   <meta name="theme-color" content="#0b6e7a">
-  <title>Notas · mock 2</title>
+  <title>Notas · mock 1</title>
   <style>
     :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; }
     @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
@@ -28,8 +27,6 @@
     .nota time { color:var(--mut); font-size:.8rem; }
     .nota p { margin:.4rem 0 0; color:var(--mut); font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .vacio { text-align:center; color:var(--mut); padding:3rem 1rem; }
-    .error { color:var(--danger); }
-    button:disabled { opacity:.5; }
     .fab { position:fixed; right:1.25rem; bottom:calc(1.25rem + env(safe-area-inset-bottom)); width:3.5rem; height:3.5rem; border-radius:50%; border:0; background:var(--acc); color:#fff; font-size:2rem; line-height:1; box-shadow:0 4px 14px rgba(0,0,0,.25); cursor:pointer; }
     .btn { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:8px; padding:.6rem 1rem; font:inherit; cursor:pointer; }
     .btn.pri { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
@@ -48,7 +45,7 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><small id="estado">mock 2 · conectando…</small></h1>
+  <h1><span id="cab">Notas</span><small>mock 1 · sin backend</small></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -69,7 +66,7 @@
       <button class="btn pri" id="guardar" type="button">Guardar</button>
     </div>
     <p class="aviso" id="avisoMic"></p>
-    <p class="aviso">Al guardar, el backend pone el título (F1: primera frase) y en F2 el LLM pondrá título y etiquetas.</p>
+    <p class="aviso">Al guardar, la app pone el título y las etiquetas (aquí simulado; en la app real lo hará el LLM).</p>
   </section>
 
   <section id="detalle" class="hidden detalle">
@@ -81,30 +78,37 @@
     <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260920-004</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-003</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <button class="fab" id="nueva" title="Nueva nota" aria-label="Nueva nota">+</button>
 
 <script>
 (() => {
+  const CLAVE = 'notas-mock-v1';
   const $ = id => document.getElementById(id);
-  // Base de la API como en holamundo.html: en localhost el backend local (?api=puerto); en Pages, Fly.
-  const parametros = new URLSearchParams(location.search);
-  const app = parametros.get('app') || document.querySelector('meta[name="fly-app"]').content;
-  const enLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
-  const API = enLocal ? `${location.protocol}//${location.hostname}:${parametros.get('api') || '8080'}` : `https://${app}.fly.dev`;
-  // La máquina de Fly se apaga sin tráfico: la primera llamada puede tardar unos segundos.
-  const opciones = { signal: AbortSignal.timeout(30000) };
-  async function api(ruta, init = {}) {
-    const r = await fetch(API + ruta, { ...opciones, ...init });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.status === 204 ? null : r.json();
+  const cargar = () => { try { return JSON.parse(localStorage.getItem(CLAVE)) || []; } catch { return []; } };
+  const persistir = () => { try { localStorage.setItem(CLAVE, JSON.stringify(notas)); } catch {} };
+  let notas = cargar();
+  let etiquetaActiva = null;
+  let actual = null;
+
+  // --- Simulación de lo que hará el LLM: título y etiquetas a partir del texto ---
+  const STOP = new Set('a al algo ante bajo cada como con contra cuando de del desde donde durante e el ella ellas ellos en entre era eran es esa ese eso esta estas este esto estos fue ha hacia han hasta hay la las le les lo los más me mi mis muy nada ni no nos o os otra otro para pero poco por porque que qué se sea ser si sí sin sobre su sus también tan te tengo tiene tienen tu tus un una unas uno unos y ya yo hoy mañana ayer hacer hace luego bien hola bueno pues entonces ahora'.split(' '));
+  const normalizar = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  function titular(texto) {
+    const primera = texto.trim().split(/[.!?\n]/)[0].trim();
+    const t = primera.length > 60 ? primera.slice(0, 57).replace(/\s+\S*$/, '') + '…' : primera;
+    return t ? t[0].toUpperCase() + t.slice(1) : 'Nota sin título';
   }
-  const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); };
+  function etiquetar(texto) {
+    const existentes = new Map(notas.flatMap(n => n.etiquetas).map(e => [normalizar(e), e]));
+    const f = new Map();
+    for (const p of normalizar(texto).match(/[a-zñ]{4,}/g) || []) if (!STOP.has(p)) f.set(p, (f.get(p) || 0) + 1);
+    return [...f.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3).map(([p]) => existentes.get(p) || p);
+  }
 
-  let notas = [], etiquetas = [], etiquetaActiva = null, actual = null;
-
+  // --- Vistas ---
   const vistas = ['lista', 'editor', 'detalle'];
   function ver(v) {
     vistas.forEach(x => $(x).classList.toggle('hidden', x !== v));
@@ -114,25 +118,29 @@
     window.scrollTo(0, 0);
   }
   const fmt = iso => new Date(iso).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
-  // Día local → rango UTC (D7).
-  function rangoDia(ymd) {
-    const [a, m, d] = ymd.split('-').map(Number);
-    return { desde: new Date(a, m - 1, d).toISOString(), hasta: new Date(a, m - 1, d + 1).toISOString() };
-  }
+  const mismoDia = (iso, ymd) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` === ymd; };
 
   function pintarChips() {
+    const cont = new Map();
+    notas.forEach(n => n.etiquetas.forEach(e => cont.set(e, (cont.get(e) || 0) + 1)));
     const c = $('chips'); c.innerHTML = '';
-    etiquetas.forEach(({ etiqueta, notas: k }) => {
+    [...cont.entries()].sort((a, b) => b[1] - a[1]).forEach(([e, k]) => {
       const b = document.createElement('button'); b.type = 'button';
-      b.className = 'chip' + (etiquetaActiva === etiqueta ? ' on' : ''); b.textContent = `${etiqueta} · ${k}`;
-      b.onclick = () => { etiquetaActiva = etiquetaActiva === etiqueta ? null : etiqueta; cargar(); };
+      b.className = 'chip' + (etiquetaActiva === e ? ' on' : ''); b.textContent = `${e} · ${k}`;
+      b.onclick = () => { etiquetaActiva = etiquetaActiva === e ? null : e; pintar(); };
       c.appendChild(b);
     });
   }
-  function pintarLista(filtrando) {
+  function pintar() {
+    pintarChips();
+    const q = normalizar($('q').value.trim()), ymd = $('fecha').value;
+    const res = notas.filter(n =>
+      (!q || normalizar(n.titulo + ' ' + n.contenido).includes(q)) &&
+      (!etiquetaActiva || n.etiquetas.includes(etiquetaActiva)) &&
+      (!ymd || mismoDia(n.creada_en, ymd)));
     const l = $('lista'); l.innerHTML = '';
-    if (!notas.length) { l.innerHTML = `<p class="vacio">${filtrando ? 'Nada coincide con el filtro.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`; return; }
-    notas.forEach(n => {
+    if (!res.length) { l.innerHTML = `<p class="vacio">${notas.length ? 'Nada coincide con el filtro.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`; return; }
+    res.forEach(n => {
       const d = document.createElement('div'); d.className = 'nota';
       d.innerHTML = `<h2></h2><time></time><div class="chips"></div><p></p>`;
       d.querySelector('h2').textContent = n.titulo;
@@ -142,27 +150,6 @@
       d.onclick = () => abrir(n);
       l.appendChild(d);
     });
-  }
-  let cargaActual = 0;
-  async function cargar() {
-    const p = new URLSearchParams();
-    const q = $('q').value.trim(), ymd = $('fecha').value;
-    if (q) p.set('q', q);
-    if (etiquetaActiva) p.set('etiqueta', etiquetaActiva);
-    if (ymd) { const r = rangoDia(ymd); p.set('desde', r.desde); p.set('hasta', r.hasta); }
-    const mia = ++cargaActual;
-    estado('cargando…');
-    try {
-      const [ns, es] = await Promise.all([api('/notas?' + p), api('/etiquetas')]);
-      if (mia !== cargaActual) return;
-      notas = ns; etiquetas = es;
-      pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
-      estado(`mock 2 · ${API.replace('https://', '')}`);
-    } catch (e) {
-      if (mia !== cargaActual) return;
-      $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).<br>Vuelve a intentarlo en unos segundos.</p>`;
-      estado('sin conexión con ' + API, true);
-    }
   }
   function abrir(n) {
     actual = n;
@@ -192,30 +179,20 @@
       $('mic').classList.add('rec'); $('mic').textContent = '■ Parar';
     };
   }
-  $('nueva').onclick = () => { $('texto').value = ''; base = ''; if (SR) $('avisoMic').textContent = ''; ver('editor'); $('texto').focus(); };
+  $('nueva').onclick = () => { $('texto').value = ''; base = ''; $('avisoMic').textContent = SR ? '' : $('avisoMic').textContent; ver('editor'); $('texto').focus(); };
   $('cancelar').onclick = () => { rec && rec.stop(); ver('lista'); };
-  $('guardar').onclick = async () => {
+  $('guardar').onclick = () => {
     rec && rec.stop();
     const contenido = $('texto').value.trim();
     if (!contenido) { $('texto').focus(); return; }
-    $('guardar').disabled = true; $('guardar').textContent = 'Guardando…';
-    try {
-      await api('/notas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contenido }) });
-      ver('lista'); cargar();
-    } catch (e) {
-      $('avisoMic').textContent = 'No se pudo guardar (' + e.message + '). El texto sigue aquí; prueba otra vez.';
-    } finally { $('guardar').disabled = false; $('guardar').textContent = 'Guardar'; }
+    notas.unshift({ id: Date.now().toString(36), titulo: titular(contenido), contenido, etiquetas: etiquetar(contenido), creada_en: new Date().toISOString() });
+    persistir(); pintar(); ver('lista');
   };
   $('volver').onclick = () => ver('lista');
-  $('borrar').onclick = async () => {
-    if (!confirm('¿Borrar esta nota?')) return;
-    try { await api('/notas/' + actual.id, { method: 'DELETE' }); etiquetaActiva = null; ver('lista'); cargar(); }
-    catch (e) { alert('No se pudo borrar (' + e.message + ')'); }
-  };
-  let t; $('q').oninput = () => { clearTimeout(t); t = setTimeout(cargar, 250); };
-  $('fecha').onchange = cargar;
+  $('borrar').onclick = () => { if (!confirm('¿Borrar esta nota?')) return; notas = notas.filter(n => n !== actual); if (etiquetaActiva && !notas.some(n => n.etiquetas.includes(etiquetaActiva))) etiquetaActiva = null; persistir(); pintar(); ver('lista'); };
+  $('q').oninput = pintar; $('fecha').onchange = pintar;
 
-  ver('lista'); cargar();
+  pintar(); ver('lista');
 })();
 </script>
 </body>

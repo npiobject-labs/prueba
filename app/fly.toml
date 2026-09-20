@@ -3,6 +3,11 @@
 # Region de Fly.io. "mad" esta deprecada; alternativas europeas: cdg, ams, lhr.
 primary_region = "cdg"
 
+# Volumen para la base SQLite (D3). deploy.yml lo crea si no existe.
+[mounts]
+  source = "datos"
+  destination = "/data"
+
 [build]
   dockerfile = "Dockerfile"
 

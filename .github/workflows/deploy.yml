@@ -78,6 +78,19 @@ jobs:
           FLY_APP: ${{ steps.app.outputs.app }}
         run: flyctl apps create "${FLY_APP}" --org desdemovil || true
 
+      # Volumen para SQLite (app/fly.toml, [mounts]): se crea una sola vez.
+      - name: Crear el volumen de datos si no existe
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+        run: |
+          region="$(sed -n 's/^primary_region *= *"\(.*\)"/\1/p' app/fly.toml)"
+          if flyctl volumes list --app "${FLY_APP}" --json | grep -q '"name": *"datos"'; then
+            echo "Volumen datos ya existe."
+          else
+            flyctl volumes create datos --app "${FLY_APP}" --region "${region}" --size 1 --yes
+          fi
+
       - name: Fijar BUILD_ID con el SHA del commit
         if: steps.fly.outputs.configurado == 'true'
         env:
@@ -127,6 +140,25 @@ jobs:
             || { echo "::error::/holamundo sin cabecera CORS"; exit 1; }
           echo "OK: /holamundo responde 'holamundo' con CORS"
 
+      # CRUD de notas (F1): crear, leer, listar con filtro y borrar.
+      - name: Verificar /notas
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+        run: |
+          base="https://${FLY_APP}.fly.dev"
+          marca="verificacion-deploy-${GITHUB_SHA:0:7}"
+          nota="$(curl -fsS --max-time 20 -X POST "${base}/notas" -H 'Content-Type: application/json' \
+            -d "{\"contenido\":\"Nota de ${marca}. Se borra sola.\"}")"
+          echo "Creada: ${nota}"
+          id="$(printf '%s' "${nota}" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')"
+          [ -n "${id}" ] || { echo "::error::POST /notas no devolvio id"; exit 1; }
+          curl -fsS --max-time 20 "${base}/notas?q=${marca}" | grep -q "\"id\":\"${id}\"" \
+            || { echo "::error::GET /notas?q= no encuentra la nota ${id}"; exit 1; }
+          curl -fsS --max-time 20 -o /dev/null -w '%{http_code}\n' -X DELETE "${base}/notas/${id}" | grep -q '^204$' \
+            || { echo "::error::DELETE /notas/${id} no devolvio 204"; exit 1; }
+          echo "OK: /notas crea, busca y borra"
+
       - name: Resumen del despliegue
         if: success() && steps.fly.outputs.configurado == 'true'
         env:
@@ -140,6 +172,7 @@ jobs:
             echo "- URL: https://${FLY_APP}.fly.dev/"
             echo "- Salud: https://${FLY_APP}.fly.dev/salud"
             echo "- Hola mundo: https://${FLY_APP}.fly.dev/holamundo"
+            echo "- Notas: https://${FLY_APP}.fly.dev/notas"
             echo "- Comprobacion desde Pages: https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/holamundo.html"
             echo "- Build (SHA): \`${GITHUB_SHA}\`"
           } >> "$GITHUB_STEP_SUMMARY"
