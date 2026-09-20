@@ -1,9 +1,10 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, Query, Request, State},
     http::{header, StatusCode},
-    response::IntoResponse,
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
     routing::get,
     Json, Router,
 };
@@ -52,11 +53,57 @@ fn abrir_db() -> Connection {
            etiqueta TEXT NOT NULL,
            PRIMARY KEY (nota_id, etiqueta)
          );
-         CREATE INDEX IF NOT EXISTS etiquetas_etiqueta ON etiquetas(etiqueta);",
+         CREATE INDEX IF NOT EXISTS etiquetas_etiqueta ON etiquetas(etiqueta);
+         CREATE VIRTUAL TABLE IF NOT EXISTS notas_fts USING fts5(
+           id UNINDEXED, titulo, contenido,
+           tokenize = 'unicode61 remove_diacritics 2'
+         );
+         CREATE TRIGGER IF NOT EXISTS notas_fts_ins AFTER INSERT ON notas BEGIN
+           INSERT INTO notas_fts (id, titulo, contenido) VALUES (new.id, new.titulo, new.contenido);
+         END;
+         CREATE TRIGGER IF NOT EXISTS notas_fts_del AFTER DELETE ON notas BEGIN
+           DELETE FROM notas_fts WHERE id = old.id;
+         END;
+         CREATE TRIGGER IF NOT EXISTS notas_fts_upd AFTER UPDATE OF titulo, contenido ON notas BEGIN
+           DELETE FROM notas_fts WHERE id = old.id;
+           INSERT INTO notas_fts (id, titulo, contenido) VALUES (new.id, new.titulo, new.contenido);
+         END;",
     )
     .expect("no se pudo crear el esquema");
+    // Notas anteriores al indice (o indice desincronizado): se reconstruye entero, es barato.
+    let (n_notas, n_fts): (i64, i64) = con
+        .query_row(
+            "SELECT (SELECT COUNT(*) FROM notas), (SELECT COUNT(*) FROM notas_fts)",
+            [],
+            |f| Ok((f.get(0)?, f.get(1)?)),
+        )
+        .expect("no se pudo contar el indice");
+    if n_notas != n_fts {
+        con.execute_batch(
+            "DELETE FROM notas_fts;
+             INSERT INTO notas_fts (id, titulo, contenido) SELECT id, titulo, contenido FROM notas;",
+        )
+        .expect("no se pudo reconstruir el indice");
+        println!("indice de busqueda reconstruido: {n_notas} notas");
+    }
     println!("base de datos en {ruta}");
     con
+}
+
+// Texto libre -> consulta FTS5: cada palabra entre comillas (sin sintaxis especial) y con
+// prefijo, unidas por AND implicito. Acentos y mayusculas los iguala el tokenizador.
+fn consulta_fts(q: &str) -> Option<String> {
+    let terminos: Vec<String> = q
+        .split_whitespace()
+        .map(|p| p.trim_matches(|c: char| !c.is_alphanumeric()))
+        .filter(|p| !p.is_empty())
+        .map(|p| format!("\"{}\"*", p.replace('"', "\"\"")))
+        .collect();
+    if terminos.is_empty() {
+        None
+    } else {
+        Some(terminos.join(" "))
+    }
 }
 
 #[derive(Serialize)]
@@ -172,11 +219,10 @@ async fn listar_notas(State(db): State<Db>, Query(f): Query<Filtro>) -> Respuest
     let con = db.lock().unwrap();
     let mut sql = String::from("SELECT id FROM notas n WHERE 1=1");
     let mut args: Vec<String> = vec![];
-    if let Some(q) = f.q.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-        // Búsqueda por palabra en título y contenido. Acentos y prefijos: F3 (FTS5).
-        args.push(format!("%{}%", q.replace('%', "\\%").replace('_', "\\_")));
-        let i = args.len();
-        sql.push_str(&format!(" AND (n.titulo LIKE ?{i} ESCAPE '\\' OR n.contenido LIKE ?{i} ESCAPE '\\')"));
+    if let Some(consulta) = f.q.as_deref().and_then(consulta_fts) {
+        // Búsqueda por palabra en título y contenido: FTS5, sin acentos y por prefijo.
+        args.push(consulta);
+        sql.push_str(&format!(" AND n.id IN (SELECT id FROM notas_fts WHERE notas_fts MATCH ?{})", args.len()));
     }
     if let Some(e) = f.etiqueta.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
         args.push(e.to_string());
@@ -242,6 +288,34 @@ async fn listar_etiquetas(State(db): State<Db>) -> Respuesta<Json<serde_json::Va
     }
 }
 
+// Token de acceso (D8): secreto TOKEN_API en Fly. Sin el, la API queda abierta (aviso en /salud).
+fn token_api() -> Option<&'static str> {
+    static TOKEN: OnceLock<Option<String>> = OnceLock::new();
+    TOKEN
+        .get_or_init(|| std::env::var("TOKEN_API").ok().map(|t| t.trim().to_string()).filter(|t| !t.is_empty()))
+        .as_deref()
+}
+
+fn iguales_en_tiempo_constante(a: &str, b: &str) -> bool {
+    a.len() == b.len() && a.bytes().zip(b.bytes()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+async fn exigir_token(req: Request, next: Next) -> Response {
+    if let Some(esperado) = token_api() {
+        let valido = req
+            .headers()
+            .get(header::AUTHORIZATION)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bearer "))
+            .map(|v| iguales_en_tiempo_constante(v.trim(), esperado))
+            .unwrap_or(false);
+        if !valido {
+            return (StatusCode::UNAUTHORIZED, Json(json!({ "error": "token de acceso requerido" }))).into_response();
+        }
+    }
+    next.run(req).await
+}
+
 async fn raiz() -> &'static str {
     "prueba backend"
 }
@@ -254,7 +328,10 @@ async fn holamundo() -> impl IntoResponse {
 // /salud tambien se lee desde Pages (docs/holamundo.html): misma cabecera.
 async fn salud() -> impl IntoResponse {
     let build = std::env::var("BUILD_ID").unwrap_or_else(|_| "dev".to_string());
-    ([(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")], Json(json!({ "ok": true, "build": build })))
+    (
+        [(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")],
+        Json(json!({ "ok": true, "build": build, "token": token_api().is_some() })),
+    )
 }
 
 #[tokio::main]
@@ -262,15 +339,23 @@ async fn main() {
     let db: Db = Arc::new(Mutex::new(abrir_db()));
 
     // Todo lo consume docs/ desde Pages (otro origen): CORS abierto, con preflight para POST/DELETE.
+    // Las rutas de datos exigen el token si TOKEN_API esta definido; /salud y /holamundo no.
+    let protegidas = Router::new()
+        .route("/notas", get(listar_notas).post(crear_nota))
+        .route("/notas/{id}", get(ver_nota).delete(borrar_nota))
+        .route("/etiquetas", get(listar_etiquetas))
+        .route_layer(middleware::from_fn(exigir_token));
     let app = Router::new()
         .route("/", get(raiz))
         .route("/salud", get(salud))
         .route("/holamundo", get(holamundo))
-        .route("/notas", get(listar_notas).post(crear_nota))
-        .route("/notas/{id}", get(ver_nota).delete(borrar_nota))
-        .route("/etiquetas", get(listar_etiquetas))
+        .merge(protegidas)
         .layer(CorsLayer::permissive())
         .with_state(db);
+    match token_api() {
+        Some(_) => println!("token de acceso activo"),
+        None => println!("AVISO: sin TOKEN_API, la API de notas queda abierta"),
+    }
 
     let direccion = format!("0.0.0.0:{}", puerto());
     let listener = tokio::net::TcpListener::bind(&direccion)

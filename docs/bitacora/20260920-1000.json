@@ -1,0 +1,34 @@
+{
+  "fecha": "2026-09-20T10:00:00+02:00",
+  "titulo": "F3: búsqueda FTS5 sin acentos · F4: PWA instalable y token de acceso",
+  "objetivo": "Búsqueda por palabra tolerante a acentos y prefijos, y app instalable en el móvil con aviso sin conexión y token de acceso al backend.",
+  "prompts": [
+    { "texto": "Adelante con F3." },
+    { "texto": "Y también con F4." }
+  ],
+  "cambios": [
+    "app/src/main.rs: tabla FTS5 notas_fts (unicode61 remove_diacritics 2) con triggers y reconstrucción al arrancar; q por prefijo con AND implícito; token opcional TOKEN_API con 401; /salud indica si el token está activo.",
+    ".github/workflows/deploy.yml: fija o quita TOKEN_API en Fly según el secreto de repositorio; verifica 401 sin token y búsqueda sin acentos.",
+    ".github/workflows/diagnostico-fly.yml: usa el token si existe.",
+    "docs/index.html: mock 5 con Ajustes (token, instalar), banda sin conexión, registro del service worker y manifest.",
+    "docs/manifest.webmanifest, docs/icono-192.png, docs/icono-512.png, docs/sw.js: PWA.",
+    "docs/mocks/005-notas-reintento.html: archivado el mock 4.",
+    "docs/planificacion/plan-notas.md (v3) y CLAUDE.md: F3 y F4 hechas, pasos para activar el token.",
+    "Build actualizado a PR-B1-20260920-007."
+  ],
+  "sha": "",
+  "sha_completo": "",
+  "run": "",
+  "mock": "mocks/005-notas-reintento.html",
+  "build": "PR-B1-20260920-007",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Crear el secreto de repositorio TOKEN_API y pegarlo en Ajustes de la app",
+    "F2 (LLM) aparcada: faltan URL, formato y secreto de la API de agentes"
+  ],
+  "enlaces": [
+    { "texto": "PR #7", "url": "https://github.com/npiobject-labs/prueba/pull/7" }
+  ],
+  "notas": "Verificado en Chromium contra el backend local: 401 abre Ajustes, token persistente, búsqueda «reunion» encuentra «Reunión», banda offline, service worker y recarga sin red."
+}
