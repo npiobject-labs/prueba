@@ -1,0 +1,36 @@
+{
+  "fecha": "2026-09-20T12:00:00+02:00",
+  "titulo": "F2: título y etiquetas de la nota por IA, a través del servicio openrouter",
+  "objetivo": "Que el título de la nota lo genere un LLM, usando el servicio propio openrouter (VPS o Fly) en vez de una API inventada.",
+  "prompts": [
+    { "texto": "Aquí puedes acceder a los proyectos prueba y openrouter. Lo que se trata es que prueba, para sacar el título de la nota, va a utilizar un agente, un LLM. Lo que quiero es que utilices la documentación que hay en openrouter y utilices el propio servicio de openrouter, que se puede utilizar a través de un VPS o a través de Fly. Mira la documentación de openrouter y dale solución al problema de generar el título de la nota.", "nota": "Transcripción aproximada del dictado." }
+  ],
+  "cambios": [
+    "app/src/llm.rs: cliente del servicio openrouter (POST /v1/chat/completions con clave de aplicación, X-Operacion: notas-titulo, response_format json_schema estricto), 8 s de espera, normalización de título y etiquetas y pruebas unitarias.",
+    "app/src/main.rs: la nota se guarda antes de llamar al LLM y se completa después en una transacción; etiquetas en uso como vocabulario; POST /notas/{id}/reintentar-ia (503 sin LLM, 502 si falla, 404 si no existe); /salud añade \"ia\".",
+    "app/Cargo.toml: reqwest con rustls para hablar con el servicio.",
+    ".github/workflows/deploy.yml: vuelca LLM_CLAVE (secreto) y LLM_URL/LLM_MODELO (variables) a Fly, y verifica que /salud y el secreto concuerdan y que la nota de prueba sale titulada.",
+    "docs/index.html: mock 6 con marca «título provisional», botón de reintento en el detalle, aviso «Poniendo título…» al guardar y estado de la IA en Ajustes.",
+    "docs/mocks/006-notas-pwa.html: archivado el mock 5. docs/sw.js: caché al build nuevo.",
+    "docs/planificacion/titulado-ia.md: decisión, funcionamiento, coste y puesta en marcha.",
+    "docs/planificacion/plan-notas.md (v4) y CLAUDE.md: F2 hecha, D5 y D9 resueltos.",
+    "tools/arrancar.ps1: -LlmClave, -LlmUrl y -LlmModelo para probar el titulado en el PC.",
+    "Build actualizado a PR-B1-20260920-008."
+  ],
+  "sha": "",
+  "sha_completo": "",
+  "run": "",
+  "mock": "mocks/006-notas-pwa.html",
+  "build": "PR-B1-20260920-008",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Dar de alta la aplicación notas en el servicio openrouter, ponerle presupuesto y guardar su clave como secreto de repositorio LLM_CLAVE",
+    "Crear el secreto de repositorio TOKEN_API y pegarlo en Ajustes de la app"
+  ],
+  "enlaces": [
+    { "texto": "Servicio openrouter (consola)", "url": "https://npiobject-labs.github.io/openrouter/consola.html" },
+    { "texto": "Contrato de la API del servicio", "url": "https://npiobject-labs.github.io/openrouter/api.html" }
+  ],
+  "notas": "Probado en local contra un doble del servicio: titulado correcto, etiquetas normalizadas y deduplicadas, reutilización del vocabulario existente, respaldo con pendiente_ia cuando el servicio no responde, y reintento devolviendo 502/404. Falta la clave real para verlo contra el VPS."
+}

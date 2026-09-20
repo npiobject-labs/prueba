@@ -107,6 +107,36 @@ jobs:
             echo "AVISO: sin secreto TOKEN_API, la API de notas queda abierta."
           fi
 
+      # Titulo y etiquetas por IA (F2): clave de aplicacion del servicio openrouter.
+      # Sin ella el backend guarda la nota con el titulo de respaldo (D6).
+      - name: Fijar la clave del servicio LLM si existe el secreto
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+          LLM_CLAVE: ${{ secrets.LLM_CLAVE }}
+          LLM_URL: ${{ vars.LLM_URL }}
+          LLM_MODELO: ${{ vars.LLM_MODELO }}
+        run: |
+          if [ -n "${LLM_CLAVE}" ]; then
+            flyctl secrets set "LLM_CLAVE=${LLM_CLAVE}" --app "${FLY_APP}" --stage
+            echo "Clave del servicio LLM configurada (valor oculto)."
+          else
+            flyctl secrets unset LLM_CLAVE --app "${FLY_APP}" --stage 2>/dev/null || true
+            echo "AVISO: sin secreto LLM_CLAVE, las notas se guardan con el titulo de respaldo." >> "$GITHUB_STEP_SUMMARY"
+            echo "AVISO: sin secreto LLM_CLAVE, las notas se guardan con el titulo de respaldo."
+          fi
+          # URL del servicio (VPS por defecto) y modelo: variables de repositorio, no secretos.
+          if [ -n "${LLM_URL}" ]; then
+            flyctl secrets set "LLM_URL=${LLM_URL}" --app "${FLY_APP}" --stage
+          else
+            flyctl secrets unset LLM_URL --app "${FLY_APP}" --stage 2>/dev/null || true
+          fi
+          if [ -n "${LLM_MODELO}" ]; then
+            flyctl secrets set "LLM_MODELO=${LLM_MODELO}" --app "${FLY_APP}" --stage
+          else
+            flyctl secrets unset LLM_MODELO --app "${FLY_APP}" --stage 2>/dev/null || true
+          fi
+
       - name: Fijar BUILD_ID con el SHA del commit
         if: steps.fly.outputs.configurado == 'true'
         env:
@@ -182,6 +212,41 @@ jobs:
           curl -fsS --max-time 20 -o /dev/null -w '%{http_code}\n' -X DELETE -H "${auth}" "${base}/notas/${id}" | grep -q '^204$' \
             || { echo "::error::DELETE /notas/${id} no devolvio 204"; exit 1; }
           echo "OK: /notas crea, busca sin acentos y borra"
+
+      # F2: con clave configurada, /salud lo dice y la nota de prueba sale ya titulada.
+      # El titulo lo pone un servicio externo: si no llega, se avisa pero no se falla el run,
+      # porque la nota se guarda igual (D6) y un VPS caido no debe bloquear el despliegue.
+      - name: Verificar el titulado por IA
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+          TOKEN_API: ${{ secrets.TOKEN_API }}
+          LLM_CLAVE: ${{ secrets.LLM_CLAVE }}
+        run: |
+          base="https://${FLY_APP}.fly.dev"
+          salud="$(curl -fsS --max-time 20 "${base}/salud")"
+          echo "Salud: ${salud}"
+          if [ -z "${LLM_CLAVE}" ]; then
+            printf '%s' "${salud}" | grep -q '"ia":false' \
+              || { echo "::error::/salud dice que hay IA sin secreto LLM_CLAVE"; exit 1; }
+            echo "Sin LLM_CLAVE: titulado por IA apagado, como se esperaba."
+            exit 0
+          fi
+          printf '%s' "${salud}" | grep -q '"ia":true' \
+            || { echo "::error::hay secreto LLM_CLAVE pero /salud responde ia:false"; exit 1; }
+          auth="Authorization: Bearer ${TOKEN_API}"
+          nota="$(curl -fsS --max-time 30 -X POST "${base}/notas" -H 'Content-Type: application/json' -H "${auth}" \
+            -d '{"contenido":"Verificacion del despliegue: llamar al electricista el martes para el cuadro de la obra."}')"
+          echo "Creada: ${nota}"
+          id="$(printf '%s' "${nota}" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')"
+          [ -n "${id}" ] || { echo "::error::POST /notas no devolvio id"; exit 1; }
+          if printf '%s' "${nota}" | grep -q '"pendiente_ia":false'; then
+            echo "OK: la nota salio titulada por el servicio LLM."
+          else
+            echo "AVISO: la nota se guardo con titulo de respaldo; el servicio LLM no contesto." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::la nota se guardo con titulo de respaldo; revisa el servicio LLM."
+          fi
+          curl -fsS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/notas/${id}"
 
       - name: Resumen del despliegue
         if: success() && steps.fly.outputs.configurado == 'true'
