@@ -2,26 +2,198 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="build" content="PR-B1-20260910-002">
-  <title>prueba · mock 0</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="build" content="PR-B1-20260920-003">
+  <meta name="theme-color" content="#0b6e7a">
+  <title>Notas · mock 1</title>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 2rem; background: #fafafa; color: #1a1a1a; }
-    main { max-width: 40rem; margin: 0 auto; }
-    h1 { font-size: 1.5rem; margin: 0 0 .5rem; }
-    p { color: #555; line-height: 1.5; }
-    code { background: #eee; padding: .15rem .35rem; border-radius: 3px; }
-    a { color: #0b6e7a; text-underline-offset: 2px; }
-    .enlaces { margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid #e2e2e2; }
+    :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--txt); }
+    header { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--line); padding:.75rem 1rem; z-index:2; }
+    header h1 { font-size:1.1rem; margin:0 0 .5rem; display:flex; justify-content:space-between; align-items:center; }
+    header h1 small { font-weight:400; color:var(--mut); font-size:.75rem; }
+    main { max-width:40rem; margin:0 auto; padding:1rem 1rem 6rem; }
+    input, textarea, select { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; width:100%; }
+    textarea { min-height:45vh; resize:vertical; line-height:1.5; }
+    .fila { display:flex; gap:.5rem; align-items:center; }
+    .chips { display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.5rem; }
+    .chip { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:999px; padding:.25rem .7rem; font-size:.85rem; cursor:pointer; }
+    .chip.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+    .chip.et { background:var(--acc2); border-color:transparent; color:var(--acc); cursor:default; font-size:.75rem; padding:.15rem .55rem; }
+    .nota { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; }
+    .nota h2 { font-size:1rem; margin:0 0 .25rem; }
+    .nota time { color:var(--mut); font-size:.8rem; }
+    .nota p { margin:.4rem 0 0; color:var(--mut); font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .vacio { text-align:center; color:var(--mut); padding:3rem 1rem; }
+    .fab { position:fixed; right:1.25rem; bottom:calc(1.25rem + env(safe-area-inset-bottom)); width:3.5rem; height:3.5rem; border-radius:50%; border:0; background:var(--acc); color:#fff; font-size:2rem; line-height:1; box-shadow:0 4px 14px rgba(0,0,0,.25); cursor:pointer; }
+    .btn { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:8px; padding:.6rem 1rem; font:inherit; cursor:pointer; }
+    .btn.pri { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
+    .btn.peligro { color:var(--danger); border-color:var(--danger); }
+    .btn.mic.rec { background:var(--danger); border-color:var(--danger); color:#fff; animation:pulso 1s infinite; }
+    @keyframes pulso { 50% { opacity:.6; } }
+    .acciones { display:flex; gap:.5rem; margin-top:.75rem; }
+    .acciones .btn { flex:1; }
+    .detalle h2 { margin:.25rem 0; }
+    .detalle article { white-space:pre-wrap; line-height:1.6; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1rem; margin-top:.75rem; }
+    .aviso { font-size:.8rem; color:var(--mut); margin-top:.5rem; }
+    .hidden { display:none !important; }
+    .enlaces { margin-top:2rem; padding-top:1rem; border-top:1px solid var(--line); font-size:.85rem; color:var(--mut); }
+    a { color:var(--acc); }
   </style>
 </head>
 <body>
-  <main>
-    <h1>prueba · mock 0</h1>
-    <p>Fase 0 del flujo «PC arranca, móvil continúa».</p>
-    <p>Build: <code>PR-B1-20260910-002</code></p>
-    <p class="enlaces"><a href="bitacora.html">Bitácora del proyecto</a> · cada sesión de trabajo, qué se pidió y qué cambió.<br>
-    <a href="holamundo.html">Comprobación del backend</a> · Pages llama a <code>/holamundo</code> y <code>/salud</code> en Fly.</p>
-  </main>
+<header>
+  <h1><span id="cab">Notas</span><small>mock 1 · sin backend</small></h1>
+  <div id="buscador">
+    <div class="fila">
+      <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
+      <input id="fecha" type="date" style="width:auto" title="Filtrar por día">
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+</header>
+
+<main>
+  <section id="lista"></section>
+
+  <section id="editor" class="hidden">
+    <textarea id="texto" placeholder="Dicta o escribe la nota…"></textarea>
+    <div class="acciones">
+      <button class="btn mic" id="mic" type="button">🎤 Dictar</button>
+      <button class="btn" id="cancelar" type="button">Cancelar</button>
+      <button class="btn pri" id="guardar" type="button">Guardar</button>
+    </div>
+    <p class="aviso" id="avisoMic"></p>
+    <p class="aviso">Al guardar, la app pone el título y las etiquetas (aquí simulado; en la app real lo hará el LLM).</p>
+  </section>
+
+  <section id="detalle" class="hidden detalle">
+    <button class="btn" id="volver" type="button">← Volver</button>
+    <h2 id="dTitulo"></h2>
+    <time id="dFecha" style="color:var(--mut);font-size:.85rem"></time>
+    <div class="chips" id="dEtiquetas"></div>
+    <article id="dContenido"></article>
+    <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
+  </section>
+
+  <p class="enlaces">Build <code>PR-B1-20260920-003</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+</main>
+
+<button class="fab" id="nueva" title="Nueva nota" aria-label="Nueva nota">+</button>
+
+<script>
+(() => {
+  const CLAVE = 'notas-mock-v1';
+  const $ = id => document.getElementById(id);
+  const cargar = () => { try { return JSON.parse(localStorage.getItem(CLAVE)) || []; } catch { return []; } };
+  const persistir = () => { try { localStorage.setItem(CLAVE, JSON.stringify(notas)); } catch {} };
+  let notas = cargar();
+  let etiquetaActiva = null;
+  let actual = null;
+
+  // --- Simulación de lo que hará el LLM: título y etiquetas a partir del texto ---
+  const STOP = new Set('a al algo ante bajo cada como con contra cuando de del desde donde durante e el ella ellas ellos en entre era eran es esa ese eso esta estas este esto estos fue ha hacia han hasta hay la las le les lo los más me mi mis muy nada ni no nos o os otra otro para pero poco por porque que qué se sea ser si sí sin sobre su sus también tan te tengo tiene tienen tu tus un una unas uno unos y ya yo hoy mañana ayer hacer hace luego bien hola bueno pues entonces ahora'.split(' '));
+  const normalizar = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  function titular(texto) {
+    const primera = texto.trim().split(/[.!?\n]/)[0].trim();
+    const t = primera.length > 60 ? primera.slice(0, 57).replace(/\s+\S*$/, '') + '…' : primera;
+    return t ? t[0].toUpperCase() + t.slice(1) : 'Nota sin título';
+  }
+  function etiquetar(texto) {
+    const existentes = new Map(notas.flatMap(n => n.etiquetas).map(e => [normalizar(e), e]));
+    const f = new Map();
+    for (const p of normalizar(texto).match(/[a-zñ]{4,}/g) || []) if (!STOP.has(p)) f.set(p, (f.get(p) || 0) + 1);
+    return [...f.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 3).map(([p]) => existentes.get(p) || p);
+  }
+
+  // --- Vistas ---
+  const vistas = ['lista', 'editor', 'detalle'];
+  function ver(v) {
+    vistas.forEach(x => $(x).classList.toggle('hidden', x !== v));
+    $('buscador').classList.toggle('hidden', v !== 'lista');
+    $('nueva').classList.toggle('hidden', v !== 'lista');
+    $('cab').textContent = { lista: 'Notas', editor: 'Nueva nota', detalle: 'Nota' }[v];
+    window.scrollTo(0, 0);
+  }
+  const fmt = iso => new Date(iso).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+  const mismoDia = (iso, ymd) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` === ymd; };
+
+  function pintarChips() {
+    const cont = new Map();
+    notas.forEach(n => n.etiquetas.forEach(e => cont.set(e, (cont.get(e) || 0) + 1)));
+    const c = $('chips'); c.innerHTML = '';
+    [...cont.entries()].sort((a, b) => b[1] - a[1]).forEach(([e, k]) => {
+      const b = document.createElement('button'); b.type = 'button';
+      b.className = 'chip' + (etiquetaActiva === e ? ' on' : ''); b.textContent = `${e} · ${k}`;
+      b.onclick = () => { etiquetaActiva = etiquetaActiva === e ? null : e; pintar(); };
+      c.appendChild(b);
+    });
+  }
+  function pintar() {
+    pintarChips();
+    const q = normalizar($('q').value.trim()), ymd = $('fecha').value;
+    const res = notas.filter(n =>
+      (!q || normalizar(n.titulo + ' ' + n.contenido).includes(q)) &&
+      (!etiquetaActiva || n.etiquetas.includes(etiquetaActiva)) &&
+      (!ymd || mismoDia(n.creada_en, ymd)));
+    const l = $('lista'); l.innerHTML = '';
+    if (!res.length) { l.innerHTML = `<p class="vacio">${notas.length ? 'Nada coincide con el filtro.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`; return; }
+    res.forEach(n => {
+      const d = document.createElement('div'); d.className = 'nota';
+      d.innerHTML = `<h2></h2><time></time><div class="chips"></div><p></p>`;
+      d.querySelector('h2').textContent = n.titulo;
+      d.querySelector('time').textContent = fmt(n.creada_en);
+      d.querySelector('p').textContent = n.contenido;
+      n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; d.querySelector('.chips').appendChild(s); });
+      d.onclick = () => abrir(n);
+      l.appendChild(d);
+    });
+  }
+  function abrir(n) {
+    actual = n;
+    $('dTitulo').textContent = n.titulo; $('dFecha').textContent = fmt(n.creada_en); $('dContenido').textContent = n.contenido;
+    const c = $('dEtiquetas'); c.innerHTML = '';
+    n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; c.appendChild(s); });
+    ver('detalle');
+  }
+
+  // --- Editor y dictado ---
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null, base = '';
+  if (!SR) { $('mic').disabled = true; $('avisoMic').textContent = 'Este navegador no tiene dictado web: usa el micrófono del teclado.'; }
+  else {
+    rec = new SR(); rec.lang = 'es-ES'; rec.continuous = true; rec.interimResults = true;
+    rec.onresult = ev => {
+      let fin = '', tmp = '';
+      for (let i = 0; i < ev.results.length; i++) (ev.results[i].isFinal ? fin += ev.results[i][0].transcript + ' ' : tmp += ev.results[i][0].transcript);
+      $('texto').value = base + fin + tmp;
+    };
+    rec.onend = () => { $('mic').classList.remove('rec'); $('mic').textContent = '🎤 Dictar'; base = $('texto').value; };
+    rec.onerror = e => { $('avisoMic').textContent = 'Dictado: ' + e.error; };
+    $('mic').onclick = () => {
+      if ($('mic').classList.contains('rec')) { rec.stop(); return; }
+      base = $('texto').value ? $('texto').value.replace(/\s*$/, ' ') : '';
+      $('avisoMic').textContent = ''; rec.start();
+      $('mic').classList.add('rec'); $('mic').textContent = '■ Parar';
+    };
+  }
+  $('nueva').onclick = () => { $('texto').value = ''; base = ''; $('avisoMic').textContent = SR ? '' : $('avisoMic').textContent; ver('editor'); $('texto').focus(); };
+  $('cancelar').onclick = () => { rec && rec.stop(); ver('lista'); };
+  $('guardar').onclick = () => {
+    rec && rec.stop();
+    const contenido = $('texto').value.trim();
+    if (!contenido) { $('texto').focus(); return; }
+    notas.unshift({ id: Date.now().toString(36), titulo: titular(contenido), contenido, etiquetas: etiquetar(contenido), creada_en: new Date().toISOString() });
+    persistir(); pintar(); ver('lista');
+  };
+  $('volver').onclick = () => ver('lista');
+  $('borrar').onclick = () => { if (!confirm('¿Borrar esta nota?')) return; notas = notas.filter(n => n !== actual); if (etiquetaActiva && !notas.some(n => n.etiquetas.includes(etiquetaActiva))) etiquetaActiva = null; persistir(); pintar(); ver('lista'); };
+  $('q').oninput = pintar; $('fecha').onchange = pintar;
+
+  pintar(); ver('lista');
+})();
+</script>
 </body>
 </html>
