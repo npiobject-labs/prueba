@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-014">
+  <meta name="build" content="PR-B1-20260920-013">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 12</title>
+  <title>Notas · mock 11</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -76,9 +76,6 @@
     .icono { border:0; background:transparent; color:var(--mut); font-size:1.3rem; cursor:pointer; padding:.2rem .4rem; border-radius:8px; }
     .icono:hover, .icono:focus-visible { background:var(--acc2); color:var(--acc); }
     .banda { background:var(--danger); color:#fff; text-align:center; font-size:.85rem; padding:.4rem 1rem; }
-    /* La version nueva es una novedad, no un problema: no va en rojo de error. */
-    .banda.aviso-version { background:var(--acc); display:flex; gap:.6rem; align-items:center; justify-content:center; }
-    .banda.aviso-version .btn { padding:.15rem .7rem; font-size:.85rem; background:transparent; border-color:rgba(255,255,255,.7); color:#fff; }
     .ajustes label { display:block; font-size:.85rem; color:var(--mut); margin:1rem 0 .3rem; }
     .ajustes code { background:var(--acc2); color:var(--acc); padding:.15rem .4rem; border-radius:4px; word-break:break-all; }
     /* Seleccion multiple para generar un documento (D11) */
@@ -105,7 +102,7 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 12 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 11 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -119,7 +116,6 @@
 </header>
 
 <div id="offline" class="banda hidden">Sin conexión: no se pueden cargar ni guardar notas hasta que vuelva la red.</div>
-<div id="nuevaVersion" class="banda aviso-version hidden">Hay una versión nueva de la app. <button class="btn" id="recargarVersion" type="button">Actualizar</button></div>
 
 <main>
   <section id="lista"></section>
@@ -166,9 +162,6 @@
     </div>
     <p class="aviso">Se guarda solo en este navegador. La app es instalable: en Chrome/Android «Añadir a pantalla de inicio»; en iOS, Compartir → «Añadir a pantalla de inicio».</p>
     <div class="acciones hidden" id="aInstalarFila"><button class="btn pri" id="aInstalar" type="button">Instalar la app</button></div>
-    <label>Versión</label>
-    <p class="aviso" id="aVersion"></p>
-    <div class="acciones"><button class="btn" id="aBuscarVersion" type="button">Buscar actualización</button></div>
     <label>Copia de seguridad</label>
     <div class="acciones">
       <button class="btn" id="aExportar" type="button">Exportar las notas (.md)</button>
@@ -199,7 +192,7 @@
     <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260920-014</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-013</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -450,7 +443,7 @@
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
       // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
       if (modoSel) pintarSeleccion();
-      estado(`mock 12 · ${API.replace('https://', '')}`);
+      estado(`mock 11 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -782,7 +775,6 @@
     $('aEstado').textContent = msg || '';
     $('aEstado').classList.toggle('error', !!msg);
     $('aToken').value = leerToken();
-    $('aVersion').textContent = 'Build ' + document.querySelector('meta[name="build"]').content + '.';
     $('aExportaAviso').textContent = 'Un fichero de texto con todas las notas: título, fecha, etiquetas y contenido.';
     $('aExportaAviso').classList.remove('error');
     $('aCompartirNotas').classList.add('hidden');
@@ -843,20 +835,6 @@
     } finally { b.disabled = false; b.textContent = 'Exportar las notas (.md)'; }
   }
   $('aExportar').onclick = exportarNotas;
-  const BUILD = document.querySelector('meta[name="build"]').content;
-  $('aBuscarVersion').onclick = async () => {
-    const b = $('aBuscarVersion');
-    b.disabled = true; b.textContent = 'Buscando…';
-    try {
-      if (registroSw) await registroSw.update();
-      // Si la hay, la banda ya habrá aparecido por su cuenta.
-      $('aVersion').textContent = $('nuevaVersion').classList.contains('hidden')
-        ? `Build ${BUILD}. Es la última publicada.`
-        : `Build ${BUILD}. Hay una versión nueva: pulsa Actualizar en la banda de arriba.`;
-    } catch {
-      $('aVersion').textContent = `Build ${BUILD}. No se pudo comprobar si hay una más nueva.`;
-    } finally { b.disabled = false; b.textContent = 'Buscar actualización'; }
-  };
   $('aCompartirNotas').onclick = async () => {
     if (!navigator.share || !notasExportadas) return;
     try { await navigator.share({ title: 'Notas', text: notasExportadas }); } catch { /* cancelar no es un error */ }
@@ -908,31 +886,7 @@
   pintarRed();
 
   // --- PWA: la carcasa se cachea para abrir sin red; la API nunca ---
-  // Con la app instalada, una publicacion nueva puede tardar en verse: el
-  // service worker ya trae lo que necesita y no hay motivo para ir a la red.
-  // Por eso se busca actualizacion al abrir y al volver a la app, y cuando hay
-  // una se avisa; recargar lo decide el usuario, que puede estar escribiendo.
-  let registroSw = null;
-  function avisarVersionNueva() { $('nuevaVersion').classList.remove('hidden'); }
-  $('recargarVersion').onclick = () => location.reload();
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(reg => {
-      registroSw = reg;
-      if (reg.waiting && navigator.serviceWorker.controller) avisarVersionNueva();
-      reg.addEventListener('updatefound', () => {
-        const nuevo = reg.installing;
-        if (!nuevo) return;
-        nuevo.addEventListener('statechange', () => {
-          // Sin controller es la primera visita: no hay nada viejo que sustituir.
-          if (nuevo.state === 'installed' && navigator.serviceWorker.controller) avisarVersionNueva();
-        });
-      });
-      reg.update().catch(() => {});
-    }).catch(() => {});
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && registroSw) registroSw.update().catch(() => {});
-    });
-  }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   ver('lista'); cargar();
 })();

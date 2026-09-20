@@ -171,3 +171,33 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      # deploy-pages solo prueba que el artefacto se subio. Esto comprueba lo
+      # que el sitio sirve de verdad, que es lo unico que ve el movil: el build
+      # publicado tiene que ser el de este commit. Tambien caza el Source mal
+      # configurado (Deploy from a branch), que deja los runs verdes sin efecto.
+      - name: Verificar lo que sirve Pages
+        env:
+          URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          esperado="$(sed -n 's/.*<meta name="build" content="\([^"]*\)".*/\1/p' docs/index.html | head -1)"
+          [ -n "${esperado}" ] || { echo "::error::docs/index.html no declara build"; exit 1; }
+          echo "Build de este commit: ${esperado}"
+          base="${URL%/}"
+          for intento in $(seq 1 12); do
+            # El parametro evita que conteste la cache de la CDN con lo anterior.
+            cuerpo="$(curl -fsSL --max-time 20 "${base}/index.html?v=${GITHUB_SHA}" || true)"
+            servido="$(printf '%s' "${cuerpo}" | sed -n 's/.*<meta name="build" content="\([^"]*\)".*/\1/p' | head -1)"
+            echo "Intento ${intento}/12: sirve '${servido:-<nada>}'"
+            if [ "${servido}" = "${esperado}" ]; then
+              echo "OK: ${base}/ sirve el build ${esperado}"
+              exit 0
+            fi
+            if [ -z "${servido}" ] && printf '%s' "${cuerpo}" | grep -qi '<h1>prueba\|README'; then
+              echo "::error::El sitio sirve el README, no docs/. Settings -> Pages -> Source: GitHub Actions."
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "::error::Tras dos minutos, ${base}/ sigue sin servir el build ${esperado} (ultimo: '${servido}')."
+          exit 1
