@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-009">
+  <meta name="build" content="PR-B1-20260920-008">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 7</title>
+  <title>Notas · mock 6</title>
   <style>
     :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; }
     @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
@@ -60,22 +60,6 @@
     .banda { background:var(--danger); color:#fff; text-align:center; font-size:.85rem; padding:.4rem 1rem; }
     .ajustes label { display:block; font-size:.85rem; color:var(--mut); margin:1rem 0 .3rem; }
     .ajustes code { background:var(--acc2); color:var(--acc); padding:.15rem .4rem; border-radius:4px; word-break:break-all; }
-    /* Seleccion multiple para generar un documento (D11) */
-    .nota.marcable { padding-left:2.9rem; }
-    .nota .casilla { position:absolute; left:.85rem; top:50%; transform:translateY(-50%); width:1.35rem; height:1.35rem; border:2px solid var(--line); border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:.9rem; line-height:1; }
-    .nota.sel { border-color:var(--acc); background:var(--acc2); }
-    .nota.sel .casilla { background:var(--acc); border-color:var(--acc); }
-    .barraSel { position:fixed; left:0; right:0; bottom:0; z-index:4; background:var(--panel); border-top:1px solid var(--line); padding:.75rem 1rem calc(.75rem + env(safe-area-inset-bottom)); display:flex; gap:.5rem; align-items:center; }
-    .barraSel small { flex:1; color:var(--mut); }
-    .doc { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; }
-    .doc h2 { font-size:1rem; margin:0 0 .25rem; }
-    .doc time { color:var(--mut); font-size:.8rem; }
-    .marca { display:inline-block; border-radius:999px; padding:.1rem .55rem; font-size:.75rem; border:1px solid var(--line); color:var(--mut); }
-    .marca.pendiente { background:var(--acc2); color:var(--acc); border-color:transparent; }
-    .marca.fallido { color:var(--danger); border-color:var(--danger); }
-    .md { min-height:55vh; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.85rem; }
-    .hoja textarea { min-height:5.5rem; }
-    .hoja p.libre { white-space:normal; overflow:visible; }
     .hidden { display:none !important; }
     .enlaces { margin-top:2rem; padding-top:1rem; border-top:1px solid var(--line); font-size:.85rem; color:var(--mut); }
     a { color:var(--acc); }
@@ -83,7 +67,7 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 7 · conectando…</small><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 6 · conectando…</small><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -97,35 +81,6 @@
 
 <main>
   <section id="lista"></section>
-
-  <!-- Documentos (D11): un encargo redactado a partir de varias notas -->
-  <section id="documentos" class="hidden">
-    <button class="btn" id="volverDocumentos" type="button">← Volver a las notas</button>
-    <div id="listaDocs"></div>
-  </section>
-
-  <section id="documento" class="hidden detalle">
-    <button class="btn" id="volverDocumento" type="button">← Volver</button>
-    <h2 id="gTitulo"></h2>
-    <time id="gFecha" style="color:var(--mut);font-size:.85rem"></time>
-    <p id="gEstado" class="aviso"></p>
-    <div class="chips" id="gNotas"></div>
-    <div id="gCuerpo">
-      <label for="gTexto" style="display:block;font-size:.85rem;color:var(--mut);margin:.75rem 0 .3rem">Documento (editable)</label>
-      <textarea id="gTexto" class="md" spellcheck="false"></textarea>
-      <div class="acciones">
-        <button class="btn pri" id="gCopiar" type="button">Copiar</button>
-        <button class="btn" id="gCompartir" type="button">Compartir</button>
-        <button class="btn" id="gDescargar" type="button">Descargar</button>
-      </div>
-      <div class="acciones">
-        <button class="btn" id="gGuardar" type="button" disabled>Guardar cambios</button>
-        <button class="btn" id="gRegenerar" type="button">Regenerar</button>
-        <button class="btn peligro" id="gBorrar" type="button">Borrar</button>
-      </div>
-      <p class="aviso" id="gAviso"></p>
-    </div>
-  </section>
 
   <section id="ajustes" class="hidden ajustes">
     <button class="btn" id="volverAjustes" type="button">← Volver</button>
@@ -159,12 +114,11 @@
     <time id="dFecha" style="color:var(--mut);font-size:.85rem"></time>
     <div class="chips" id="dEtiquetas"></div>
     <div id="dIa"></div>
-    <div id="dDocs"></div>
     <article id="dContenido"></article>
     <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260920-009</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-007</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -174,26 +128,6 @@
     <div class="acciones">
       <button class="btn" id="cNo" type="button">Cancelar</button>
       <button class="btn peligro solido" id="cSi" type="button">Borrar</button>
-    </div>
-  </div>
-</div>
-
-<div id="barraSel" class="barraSel hidden">
-  <small id="cuentaSel">Toca las notas que quieras incluir</small>
-  <button class="btn" id="salirSel" type="button">Cancelar</button>
-  <button class="btn pri" id="generarSel" type="button" disabled>Generar</button>
-</div>
-
-<!-- Instruccion opcional antes de generar (D11) -->
-<div id="hojaGen" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="gaTitulo">
-  <div class="hoja">
-    <h3 id="gaTitulo">Generar documento</h3>
-    <p class="libre" id="gaResumen"></p>
-    <label for="gaInstruccion" style="display:block;font-size:.85rem;color:var(--mut);margin-bottom:.3rem">Instrucción (opcional)</label>
-    <textarea id="gaInstruccion" placeholder="Por ejemplo: es un bug, céntrate en la API…"></textarea>
-    <div class="acciones">
-      <button class="btn" id="gaNo" type="button">Cancelar</button>
-      <button class="btn pri" id="gaSi" type="button">Generar</button>
     </div>
   </div>
 </div>
@@ -233,21 +167,13 @@
   const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); };
 
   let notas = [], etiquetas = [], etiquetaActiva = null, actual = null;
-  // Seleccion multiple (D11): se guarda la nota entera, no solo el id, para
-  // poder contar el material y enseñar los titulos aunque el filtro cambie.
-  let modoSel = false;
-  const seleccion = new Map();
-  const TOPE_NOTAS = 20, TOPE_CARACTERES = 30000;
 
-  const vistas = ['lista', 'editor', 'detalle', 'ajustes', 'documentos', 'documento'];
+  const vistas = ['lista', 'editor', 'detalle', 'ajustes'];
   function ver(v) {
     vistas.forEach(x => $(x).classList.toggle('hidden', x !== v));
     $('buscador').classList.toggle('hidden', v !== 'lista');
-    $('nueva').classList.toggle('hidden', v !== 'lista' || modoSel);
-    $('seleccionarBtn').classList.toggle('hidden', v !== 'lista');
-    $('documentosBtn').classList.toggle('hidden', v !== 'lista');
-    $('barraSel').classList.toggle('hidden', !(modoSel && v === 'lista'));
-    $('cab').textContent = { lista: modoSel ? 'Elegir' : 'Notas', editor: 'Nueva nota', detalle: 'Nota', ajustes: 'Ajustes', documentos: 'Documentos', documento: 'Documento' }[v];
+    $('nueva').classList.toggle('hidden', v !== 'lista');
+    $('cab').textContent = { lista: 'Notas', editor: 'Nueva nota', detalle: 'Nota', ajustes: 'Ajustes' }[v];
     window.scrollTo(0, 0);
   }
   const fmt = iso => new Date(iso).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
@@ -279,77 +205,10 @@
       n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; d.querySelector('.chips').appendChild(s); });
       // Sin IA la nota se guarda igual (D6); el distintivo dice que le falta su titulo bueno.
       if (n.pendiente_ia) { const s = document.createElement('span'); s.className = 'chip ia'; s.textContent = 'sin titular'; d.querySelector('.chips').appendChild(s); }
-      if (modoSel) {
-        d.classList.add('marcable');
-        const c = document.createElement('span'); c.className = 'casilla'; c.textContent = seleccion.has(n.id) ? '✓' : '';
-        d.prepend(c);
-        d.classList.toggle('sel', seleccion.has(n.id));
-        d.querySelector('.papelera').classList.add('hidden');
-        d.onclick = () => alternar(n);
-      } else {
-        d.onclick = () => abrir(n, true);
-        // Pulsacion larga: entra en modo seleccion con esa nota ya marcada.
-        let t = null;
-        const arranca = () => { t = setTimeout(() => { t = null; entrarSeleccion(n); }, 500); };
-        const para = () => { if (t) { clearTimeout(t); t = null; } };
-        d.addEventListener('touchstart', arranca, { passive: true });
-        ['touchend', 'touchmove', 'touchcancel'].forEach(ev => d.addEventListener(ev, para, { passive: true }));
-        d.addEventListener('contextmenu', ev => { ev.preventDefault(); entrarSeleccion(n); });
-      }
+      d.onclick = () => abrir(n);
       l.appendChild(d);
     });
   }
-
-  // --- Seleccion multiple y generacion del documento (D11) ---
-  function pintarSeleccion() {
-    const n = seleccion.size;
-    const caracteres = [...seleccion.values()].reduce((t, x) => t + x.contenido.length, 0);
-    const tamano = caracteres < 1000 ? `${caracteres} caracteres` : `${Math.round(caracteres / 1000)} mil caracteres`;
-    $('cuentaSel').textContent = n === 0 ? 'Toca las notas que quieras incluir'
-      : n > TOPE_NOTAS ? `${n} notas: el máximo es ${TOPE_NOTAS}` : `${n} nota${n === 1 ? '' : 's'} · ${tamano}`;
-    $('cuentaSel').classList.toggle('error', n > TOPE_NOTAS);
-    $('generarSel').disabled = n === 0 || n > TOPE_NOTAS;
-  }
-  function alternar(n) {
-    seleccion.has(n.id) ? seleccion.delete(n.id) : seleccion.set(n.id, n);
-    pintarSeleccion(); pintarLista(false);
-  }
-  function entrarSeleccion(n) {
-    modoSel = true;
-    if (n) seleccion.set(n.id, n);
-    pintarSeleccion(); ver('lista'); pintarLista(false);
-  }
-  function salirSeleccion() {
-    modoSel = false; seleccion.clear();
-    pintarSeleccion(); ver('lista'); pintarLista(false);
-  }
-  $('seleccionarBtn').onclick = () => modoSel ? salirSeleccion() : entrarSeleccion(null);
-  $('salirSel').onclick = salirSeleccion;
-  $('generarSel').onclick = () => {
-    const caracteres = [...seleccion.values()].reduce((t, x) => t + x.contenido.length, 0);
-    const n = seleccion.size;
-    $('gaResumen').textContent = `${n} nota${n === 1 ? '' : 's'} seleccionada${n === 1 ? '' : 's'}.`
-      + (caracteres > TOPE_CARACTERES ? ' Son muchas letras: el servidor recortará las notas más largas y lo dirá en el documento.' : '');
-    $('gaInstruccion').value = '';
-    $('hojaGen').classList.remove('hidden');
-    $('gaInstruccion').focus();
-  };
-  const cerrarHojaGen = () => $('hojaGen').classList.add('hidden');
-  $('gaNo').onclick = cerrarHojaGen;
-  $('hojaGen').onclick = ev => { if (ev.target === $('hojaGen')) cerrarHojaGen(); };
-  $('gaSi').onclick = async () => {
-    $('gaSi').disabled = true; $('gaSi').textContent = 'Generando…';
-    try {
-      const doc = await api('/documentos', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notas: [...seleccion.keys()], instruccion: $('gaInstruccion').value.trim() })
-      });
-      cerrarHojaGen(); salirSeleccion(); abrirDocumento(doc);
-    } catch (e) {
-      $('gaResumen').textContent = 'No se pudo generar (' + e.message + '). La selección sigue aquí.';
-      $('gaResumen').classList.add('error');
-    } finally { $('gaSi').disabled = false; $('gaSi').textContent = 'Generar'; }
-  };
   let cargaActual = 0;
   async function cargar() {
     const p = new URLSearchParams();
@@ -364,7 +223,7 @@
       if (mia !== cargaActual) return;
       notas = ns; etiquetas = es;
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
-      estado(`mock 7 · ${API.replace('https://', '')}`);
+      estado(`mock 6 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -372,34 +231,13 @@
       estado('sin conexión con ' + API, true);
     }
   }
-  function abrir(n, refrescar = false) {
+  function abrir(n) {
     actual = n;
     $('dTitulo').textContent = n.titulo; $('dFecha').textContent = fmt(n.creada_en); $('dContenido').textContent = n.contenido;
     const c = $('dEtiquetas'); c.innerHTML = '';
     n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; c.appendChild(s); });
     pintarReintento(n);
-    pintarDocumentosDeNota(n);
     ver('detalle');
-    if (refrescar) api('/notas/' + encodeURIComponent(n.id))
-      .then(f => { if (actual && actual.id === f.id && !$('detalle').classList.contains('hidden')) abrir(f); })
-      .catch(() => {});
-  }
-
-  // Rastro nota -> documento (D12): desde la nota se llega a lo que salio de ella.
-  function pintarDocumentosDeNota(n) {
-    const zona = $('dDocs'); zona.innerHTML = '';
-    if (!n.documentos || !n.documentos.length) return;
-    zona.appendChild(Object.assign(document.createElement('p'), { className: 'aviso', textContent: 'En estos documentos:' }));
-    const c = document.createElement('div'); c.className = 'chips';
-    n.documentos.forEach(d => {
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = d.titulo;
-      b.onclick = async () => {
-        try { abrirDocumento(await api('/documentos/' + encodeURIComponent(d.id))); }
-        catch (e) { estado('no se pudo abrir el documento', true); }
-      };
-      c.appendChild(b);
-    });
-    zona.appendChild(c);
   }
 
   // Reintento de la IA (D6): solo aparece si a la nota le falta su titulo bueno.
@@ -424,143 +262,6 @@
     };
     zona.appendChild(b);
   }
-
-  // --- Documentos: lista, detalle, sondeo mientras se genera ---
-  let docActual = null, sondeo = null;
-
-  async function cargarDocumentos() {
-    const l = $('listaDocs');
-    l.innerHTML = '<p class="vacio">cargando…</p>';
-    ver('documentos');
-    try {
-      const docs = await api('/documentos');
-      l.innerHTML = '';
-      if (!docs.length) {
-        l.innerHTML = '<p class="vacio">Sin documentos. Elige varias notas con ☑ y pulsa Generar.</p>';
-        return;
-      }
-      docs.forEach(d => {
-        const e = document.createElement('div'); e.className = 'doc';
-        e.innerHTML = '<h2></h2><time></time><div class="chips"></div>';
-        e.querySelector('h2').textContent = d.titulo;
-        e.querySelector('time').textContent = fmt(d.creado_en) + ' · ' + d.notas.length + ' nota' + (d.notas.length === 1 ? '' : 's');
-        const c = e.querySelector('.chips');
-        if (d.estado !== 'listo') c.appendChild(marca(d.estado === 'pendiente' ? 'generando…' : 'falló', d.estado));
-        if (d.editado) c.appendChild(marca('editado', ''));
-        e.onclick = () => abrirDocumento(d);
-        l.appendChild(e);
-      });
-    } catch (e) {
-      l.innerHTML = `<p class="vacio error">No se pudieron cargar los documentos (${e.message}).</p>`;
-    }
-  }
-  function marca(texto, clase) {
-    const s = document.createElement('span');
-    s.className = 'marca' + (clase ? ' ' + clase : '');
-    s.textContent = texto;
-    return s;
-  }
-
-  function abrirDocumento(d) {
-    docActual = d;
-    $('gTitulo').textContent = d.titulo;
-    $('gFecha').textContent = fmt(d.creado_en);
-    $('gTexto').value = d.texto;
-    $('gAviso').textContent = '';
-    $('gGuardar').disabled = true;
-    const pendiente = d.estado === 'pendiente';
-    $('gCuerpo').classList.toggle('hidden', pendiente);
-    $('gEstado').textContent = pendiente
-      ? 'Redactando el documento… puede tardar hasta dos minutos. Puedes cerrar la app: sigue generándose.'
-      : d.estado === 'fallido' ? 'No se pudo generar: ' + (d.error || 'sin detalle') + ' Pulsa Regenerar para volver a intentarlo.'
-      : d.editado ? 'Editado a mano después de generarlo.' : '';
-    $('gEstado').classList.toggle('error', d.estado === 'fallido');
-    // Si fallo, el cuerpo se enseña igual para poder regenerar o borrar.
-    if (d.estado === 'fallido') $('gCuerpo').classList.remove('hidden');
-
-    const c = $('gNotas'); c.innerHTML = '';
-    d.notas.forEach(n => {
-      const b = document.createElement(n.existe ? 'button' : 'span');
-      b.className = 'chip'; b.textContent = n.titulo;
-      if (n.existe) { b.type = 'button'; b.onclick = () => irANota(n.id); }
-      else { b.title = 'La nota se borró; el documento la conserva'; b.style.opacity = '.6'; }
-      c.appendChild(b);
-    });
-    ver('documento');
-    vigilar(d);
-  }
-
-  // Mientras el servidor redacta, se pregunta cada tres segundos. Es el precio
-  // de generar en segundo plano, y evita que cerrar la app pierda el trabajo.
-  function vigilar(d) {
-    clearTimeout(sondeo); sondeo = null;
-    if (d.estado !== 'pendiente') return;
-    sondeo = setTimeout(async () => {
-      try {
-        const fresco = await api('/documentos/' + encodeURIComponent(d.id));
-        if (docActual && docActual.id === fresco.id && !$('documento').classList.contains('hidden')) abrirDocumento(fresco);
-      } catch { vigilar(d); }
-    }, 3000);
-  }
-
-  async function irANota(id) {
-    try { abrir(await api('/notas/' + encodeURIComponent(id))); }
-    catch (e) { $('gAviso').textContent = 'No se pudo abrir la nota (' + e.message + ').'; }
-  }
-
-  $('documentosBtn').onclick = cargarDocumentos;
-  $('volverDocumentos').onclick = () => { ver('lista'); cargar(); };
-  $('volverDocumento').onclick = () => { clearTimeout(sondeo); cargarDocumentos(); };
-  $('gTexto').oninput = () => { $('gGuardar').disabled = !docActual || $('gTexto').value.trim() === docActual.texto.trim(); };
-
-  $('gCopiar').onclick = async () => {
-    const texto = $('gTexto').value;
-    try {
-      await navigator.clipboard.writeText(texto);
-      $('gAviso').textContent = 'Copiado. Pégalo en Claude Code.';
-    } catch {
-      // Sin permiso de portapapeles (o sin HTTPS): al menos se selecciona.
-      $('gTexto').select();
-      $('gAviso').textContent = 'Este navegador no deja copiar solo: el texto está seleccionado, copia a mano.';
-    }
-  };
-  $('gCompartir').onclick = async () => {
-    if (!navigator.share) { $('gAviso').textContent = 'Este navegador no tiene compartir; usa Copiar o Descargar.'; return; }
-    try { await navigator.share({ title: docActual.titulo, text: $('gTexto').value }); }
-    catch { /* cancelar no es un error */ }
-  };
-  $('gDescargar').onclick = () => {
-    const nombre = (docActual.titulo || 'documento').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'documento';
-    const url = URL.createObjectURL(new Blob([$('gTexto').value], { type: 'text/markdown;charset=utf-8' }));
-    const a = document.createElement('a'); a.href = url; a.download = nombre + '.md'; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
-  $('gGuardar').onclick = async () => {
-    $('gGuardar').disabled = true; $('gAviso').textContent = 'guardando…';
-    try {
-      abrirDocumento(await api('/documentos/' + encodeURIComponent(docActual.id), {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texto: $('gTexto').value })
-      }));
-      $('gAviso').textContent = 'Cambios guardados.';
-    } catch (e) { $('gGuardar').disabled = false; $('gAviso').textContent = 'No se pudo guardar (' + e.message + ').'; }
-  };
-  $('gRegenerar').onclick = async () => {
-    const instruccion = prompt('Instrucción para volver a redactarlo (deja vacío para repetir igual):', docActual.instruccion || '');
-    if (instruccion === null) return;
-    $('gRegenerar').disabled = true; $('gAviso').textContent = '';
-    try {
-      abrirDocumento(await api('/documentos/' + encodeURIComponent(docActual.id) + '/regenerar', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instruccion })
-      }));
-    } catch (e) { $('gAviso').textContent = 'No se pudo regenerar (' + e.message + ').'; }
-    finally { $('gRegenerar').disabled = false; }
-  };
-  $('gBorrar').onclick = async () => {
-    if (!confirm('¿Borrar este documento? Las notas no se tocan.')) return;
-    try { await api('/documentos/' + encodeURIComponent(docActual.id), { method: 'DELETE' }); cargarDocumentos(); }
-    catch (e) { $('gAviso').textContent = 'No se pudo borrar (' + e.message + ').'; }
-  };
 
   // --- Editor y dictado ---
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -597,7 +298,7 @@
       estado('sin conexión con ' + API, true);
     } finally { $('guardar').disabled = false; $('guardar').textContent = 'Guardar'; }
   };
-  $('volver').onclick = () => { ver('lista'); cargar(); };
+  $('volver').onclick = () => ver('lista');
 
   // --- Borrado con confirmación (hoja propia: el confirm() nativo falla en algunos webviews) ---
   let aBorrar = null;
@@ -611,12 +312,7 @@
   const cerrarConfirmacion = () => { $('confirmar').classList.add('hidden'); aBorrar = null; };
   $('cNo').onclick = cerrarConfirmacion;
   $('confirmar').onclick = ev => { if (ev.target === $('confirmar')) cerrarConfirmacion(); };
-  document.addEventListener('keydown', ev => {
-    if (ev.key !== 'Escape') return;
-    if (aBorrar) cerrarConfirmacion();
-    else if (!$('hojaGen').classList.contains('hidden')) cerrarHojaGen();
-    else if (modoSel) salirSeleccion();
-  });
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && aBorrar) cerrarConfirmacion(); });
   $('cSi').onclick = async () => {
     if (!aBorrar) return;
     $('cSi').disabled = true; $('cSi').textContent = 'Borrando…';
