@@ -14,7 +14,9 @@ primary_region = "cdg"
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = true
+  # "suspend" en vez de parar: reanuda en milisegundos y evita el arranque en frio que
+  # hacia saltar el timeout del navegador. Si Fly no puede suspender, para como antes.
+  auto_stop_machines = "suspend"
   auto_start_machines = true
   min_machines_running = 0
   processes = ["app"]

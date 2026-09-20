@@ -1,0 +1,32 @@
+{
+  "fecha": "2026-09-20T09:35:00+02:00",
+  "titulo": "Arreglar «No funciona Guardar»: arranque en frío del backend",
+  "objetivo": "Entender por qué Guardar daba «signal timed out» desde el móvil y dejar el mock resistente al arranque en frío de Fly.",
+  "prompts": [
+    { "texto": "No funciona Guardar.", "nota": "Con captura del móvil: «sin conexión con https://prueba-npiobject-labs.fly.dev» y «No se pudo guardar (signal timed out)»." }
+  ],
+  "cambios": [
+    ".github/workflows/diagnostico-fly.yml: workflow manual con estado de máquinas, logs y llamadas reales a /salud y /notas.",
+    "app/fly.toml: auto_stop_machines = \"suspend\" en vez de parar la máquina.",
+    "docs/index.html: espera de 45 s, reintento automático, aviso de arranque, botón Reintentar y texto conservado al fallar el guardado.",
+    "docs/mocks/004-notas-borrado.html: archivado el mock 3.",
+    "Build actualizado a PR-B1-20260920-006."
+  ],
+  "sha": "",
+  "sha_completo": "",
+  "run": "",
+  "mock": "mocks/004-notas-borrado.html",
+  "build": "PR-B1-20260920-006",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Confirmar con el diagnóstico que la máquina se suspende y reanuda rápido",
+    "F2 (LLM) aparcada; F3 (FTS5); F4 (PWA + token)"
+  ],
+  "enlaces": [
+    { "texto": "PR #5 (diagnóstico)", "url": "https://github.com/npiobject-labs/prueba/pull/5" },
+    { "texto": "PR #6 (arreglo)", "url": "https://github.com/npiobject-labs/prueba/pull/6" },
+    { "texto": "Run de diagnóstico", "url": "https://github.com/npiobject-labs/prueba/actions/runs/35496874342" }
+  ],
+  "notas": "Causa: la máquina se autoapaga a los ~6 min sin tráfico y el proxy de Fly tardó en arrancarla más que los 30 s de timeout del navegador; la nota «Nota uno» de las 09:05 sí se guardó."
+}

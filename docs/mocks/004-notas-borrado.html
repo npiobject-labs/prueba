@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-006">
+  <meta name="build" content="PR-B1-20260920-005">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
-  <title>Notas · mock 4</title>
+  <title>Notas · mock 3</title>
   <style>
     :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; }
     @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
@@ -57,7 +57,7 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><small id="estado">mock 4 · conectando…</small></h1>
+  <h1><span id="cab">Notas</span><small id="estado">mock 3 · conectando…</small></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -90,7 +90,7 @@
     <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260920-006</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-005</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -114,20 +114,12 @@
   const app = parametros.get('app') || document.querySelector('meta[name="fly-app"]').content;
   const enLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
   const API = enLocal ? `${location.protocol}//${location.hostname}:${parametros.get('api') || '8080'}` : `https://${app}.fly.dev`;
-  // La máquina de Fly se suspende sin tráfico y el proxy tarda a veces en despertarla:
-  // 45 s de espera y un reintento automático, avisando en la cabecera.
-  const ESPERA = 45000;
-  async function api(ruta, init = {}, intento = 1) {
-    let avisador = setTimeout(() => estado('arrancando el backend, puede tardar un minuto…'), 4000);
-    try {
-      const r = await fetch(API + ruta, { ...init, signal: AbortSignal.timeout(ESPERA) });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.status === 204 ? null : r.json();
-    } catch (e) {
-      const cortada = e.name === 'TimeoutError' || e.name === 'AbortError' || e.name === 'TypeError';
-      if (cortada && intento < 2) { estado('sin respuesta, reintentando…'); return api(ruta, init, intento + 1); }
-      throw e;
-    } finally { clearTimeout(avisador); }
+  // La máquina de Fly se apaga sin tráfico: la primera llamada puede tardar unos segundos.
+  const opciones = { signal: AbortSignal.timeout(30000) };
+  async function api(ruta, init = {}) {
+    const r = await fetch(API + ruta, { ...opciones, ...init });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.status === 204 ? null : r.json();
   }
   const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); };
 
@@ -186,11 +178,10 @@
       if (mia !== cargaActual) return;
       notas = ns; etiquetas = es;
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
-      estado(`mock 4 · ${API.replace('https://', '')}`);
+      estado(`mock 3 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
-      $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
-      $('reintentar').onclick = cargar;
+      $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).<br>Vuelve a intentarlo en unos segundos.</p>`;
       estado('sin conexión con ' + API, true);
     }
   }
@@ -233,8 +224,7 @@
       await api('/notas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contenido }) });
       ver('lista'); cargar();
     } catch (e) {
-      $('avisoMic').textContent = 'No se pudo guardar (' + e.message + '). El texto sigue aquí: pulsa Guardar otra vez.';
-      estado('sin conexión con ' + API, true);
+      $('avisoMic').textContent = 'No se pudo guardar (' + e.message + '). El texto sigue aquí; prueba otra vez.';
     } finally { $('guardar').disabled = false; $('guardar').textContent = 'Guardar'; }
   };
   $('volver').onclick = () => ver('lista');
