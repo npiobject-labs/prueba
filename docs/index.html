@@ -37,6 +37,12 @@
     textarea { min-height:45vh; resize:vertical; line-height:1.5; }
     .fila { display:flex; gap:.5rem; align-items:center; }
     .chips { display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.5rem; }
+    /* Las etiquetas se pliegan: con muchas se comian media pantalla en el movil. */
+    .chipsBtn { display:flex; align-items:center; gap:.35rem; width:100%; margin-top:.5rem; padding:.3rem 0; border:0; background:transparent; color:var(--mut); font:inherit; font-size:.85rem; text-align:left; cursor:pointer; }
+    .chipsBtn .flecha { font-size:.7rem; }
+    .chipsBtn .cuantas { color:var(--mut); }
+    .chipsBtn .activa { color:var(--acc); font-weight:600; }
+    #chips { margin-top:.35rem; }
     .chip { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:999px; padding:.25rem .7rem; font-size:.85rem; cursor:pointer; }
     .chip.on { background:var(--acc); border-color:var(--acc); color:#fff; }
     .chip.et { background:var(--acc2); border-color:transparent; color:var(--acc); cursor:default; font-size:.75rem; padding:.15rem .55rem; }
@@ -102,7 +108,10 @@
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
       <input id="fecha" type="date" style="width:auto" title="Filtrar por día">
     </div>
-    <div class="chips" id="chips"></div>
+    <button class="chipsBtn hidden" id="chipsBtn" type="button" aria-expanded="false" aria-controls="chips">
+      <span id="chipsTxt">Etiquetas</span><span class="flecha" id="chipsFlecha" aria-hidden="true">▾</span>
+    </button>
+    <div class="chips hidden" id="chips"></div>
   </div>
 </header>
 
@@ -271,6 +280,9 @@
     return { desde: new Date(a, m - 1, d).toISOString(), hasta: new Date(a, m - 1, d + 1).toISOString() };
   }
 
+  // Plegado de las etiquetas: por defecto cerradas, la eleccion se recuerda.
+  const CLAVE_CHIPS = 'notas-etiquetas';
+  let chipsAbiertos = (() => { try { return localStorage.getItem(CLAVE_CHIPS) === '1'; } catch { return false; } })();
   function pintarChips() {
     const c = $('chips'); c.innerHTML = '';
     etiquetas.forEach(({ etiqueta, notas: k }) => {
@@ -279,7 +291,25 @@
       b.onclick = () => { etiquetaActiva = etiquetaActiva === etiqueta ? null : etiqueta; cargar(); };
       c.appendChild(b);
     });
+    // Cerrado, el boton tiene que decir si hay un filtro puesto: si no, el usuario
+    // ve una lista recortada sin nada a la vista que lo explique.
+    const hay = etiquetas.length > 0;
+    const t = $('chipsTxt'); t.textContent = 'Etiquetas';
+    const marca = document.createElement('span');
+    marca.className = etiquetaActiva ? 'activa' : 'cuantas';
+    marca.textContent = etiquetaActiva || String(etiquetas.length);
+    t.append(' · ', marca);
+    const abierto = chipsAbiertos && hay;
+    $('chipsBtn').classList.toggle('hidden', !hay);
+    $('chipsBtn').setAttribute('aria-expanded', String(abierto));
+    $('chipsFlecha').textContent = abierto ? '▴' : '▾';
+    c.classList.toggle('hidden', !abierto);
   }
+  $('chipsBtn').onclick = () => {
+    chipsAbiertos = !chipsAbiertos;
+    try { localStorage.setItem(CLAVE_CHIPS, chipsAbiertos ? '1' : '0'); } catch {}
+    pintarChips();
+  };
   function pintarLista(filtrando) {
     const l = $('lista'); l.innerHTML = '';
     if (!notas.length) { l.innerHTML = `<p class="vacio">${filtrando ? 'Nada coincide con el filtro.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`; return; }

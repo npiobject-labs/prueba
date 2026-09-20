@@ -1,0 +1,30 @@
+{
+  "fecha": "2026-09-20T19:15:00+02:00",
+  "titulo": "Las etiquetas del buscador se pliegan",
+  "objetivo": "La tira de chips de etiquetas ocupaba media pantalla en el móvil: esconderla tras un desplegable.",
+  "prompts": [
+    {
+      "texto": "La sección de etiquetas poner un icono de desplegable, en la sección de etiquetas poner un icono de desplegable. Ahora ocupa mucho espacio."
+    }
+  ],
+  "cambios": [
+    "docs/index.html: botón «Etiquetas · N ▾» que pliega y despliega la tira de chips, cerrado por defecto y recordado en localStorage",
+    "docs/index.html: con filtro puesto el botón enseña la etiqueta activa en vez del recuento; sin etiquetas el botón no aparece",
+    "CLAUDE.md y docs/planificacion/plan-notas.md: F10 anotada"
+  ],
+  "sha": "pendiente",
+  "run": null,
+  "mock": "mocks/010-notas-dictado.html",
+  "build": "PR-B1-20260920-012",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Mergear el PR #20: lleva F9 y F10 y hasta que no entre en main no hay run de pages.yml que verifique nada.",
+    "Probar el dictado en el móvil de verdad: sigue pendiente desde la sesión anterior.",
+    "Elegir el modelo que redacta los documentos: definir la variable de repositorio LLM_MODELO_DOCUMENTO y relanzar deploy.yml a mano."
+  ],
+  "enlaces": [
+    { "texto": "PR #20", "url": "https://github.com/npiobject-labs/prueba/pull/20" }
+  ],
+  "notas": "Continúa la entrada de las 19:00 de la misma sesión: el mismo mock 10 y el mismo build, porque el PR sigue en borrador y nada se ha publicado todavía. Con 15 etiquetas la cabecera baja de 295 a 139 px. Probado con Chromium a 390×844 contra un backend simulado."
+}
