@@ -52,11 +52,57 @@ fn abrir_db() -> Connection {
            etiqueta TEXT NOT NULL,
            PRIMARY KEY (nota_id, etiqueta)
          );
-         CREATE INDEX IF NOT EXISTS etiquetas_etiqueta ON etiquetas(etiqueta);",
+         CREATE INDEX IF NOT EXISTS etiquetas_etiqueta ON etiquetas(etiqueta);
+         CREATE VIRTUAL TABLE IF NOT EXISTS notas_fts USING fts5(
+           id UNINDEXED, titulo, contenido,
+           tokenize = 'unicode61 remove_diacritics 2'
+         );
+         CREATE TRIGGER IF NOT EXISTS notas_fts_ins AFTER INSERT ON notas BEGIN
+           INSERT INTO notas_fts (id, titulo, contenido) VALUES (new.id, new.titulo, new.contenido);
+         END;
+         CREATE TRIGGER IF NOT EXISTS notas_fts_del AFTER DELETE ON notas BEGIN
+           DELETE FROM notas_fts WHERE id = old.id;
+         END;
+         CREATE TRIGGER IF NOT EXISTS notas_fts_upd AFTER UPDATE OF titulo, contenido ON notas BEGIN
+           DELETE FROM notas_fts WHERE id = old.id;
+           INSERT INTO notas_fts (id, titulo, contenido) VALUES (new.id, new.titulo, new.contenido);
+         END;",
     )
     .expect("no se pudo crear el esquema");
+    // Notas anteriores al indice (o indice desincronizado): se reconstruye entero, es barato.
+    let (n_notas, n_fts): (i64, i64) = con
+        .query_row(
+            "SELECT (SELECT COUNT(*) FROM notas), (SELECT COUNT(*) FROM notas_fts)",
+            [],
+            |f| Ok((f.get(0)?, f.get(1)?)),
+        )
+        .expect("no se pudo contar el indice");
+    if n_notas != n_fts {
+        con.execute_batch(
+            "DELETE FROM notas_fts;
+             INSERT INTO notas_fts (id, titulo, contenido) SELECT id, titulo, contenido FROM notas;",
+        )
+        .expect("no se pudo reconstruir el indice");
+        println!("indice de busqueda reconstruido: {n_notas} notas");
+    }
     println!("base de datos en {ruta}");
     con
+}
+
+// Texto libre -> consulta FTS5: cada palabra entre comillas (sin sintaxis especial) y con
+// prefijo, unidas por AND implicito. Acentos y mayusculas los iguala el tokenizador.
+fn consulta_fts(q: &str) -> Option<String> {
+    let terminos: Vec<String> = q
+        .split_whitespace()
+        .map(|p| p.trim_matches(|c: char| !c.is_alphanumeric()))
+        .filter(|p| !p.is_empty())
+        .map(|p| format!("\"{}\"*", p.replace('"', "\"\"")))
+        .collect();
+    if terminos.is_empty() {
+        None
+    } else {
+        Some(terminos.join(" "))
+    }
 }
 
 #[derive(Serialize)]
@@ -172,11 +218,10 @@ async fn listar_notas(State(db): State<Db>, Query(f): Query<Filtro>) -> Respuest
     let con = db.lock().unwrap();
     let mut sql = String::from("SELECT id FROM notas n WHERE 1=1");
     let mut args: Vec<String> = vec![];
-    if let Some(q) = f.q.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
-        // Búsqueda por palabra en título y contenido. Acentos y prefijos: F3 (FTS5).
-        args.push(format!("%{}%", q.replace('%', "\\%").replace('_', "\\_")));
-        let i = args.len();
-        sql.push_str(&format!(" AND (n.titulo LIKE ?{i} ESCAPE '\\' OR n.contenido LIKE ?{i} ESCAPE '\\')"));
+    if let Some(consulta) = f.q.as_deref().and_then(consulta_fts) {
+        // Búsqueda por palabra en título y contenido: FTS5, sin acentos y por prefijo.
+        args.push(consulta);
+        sql.push_str(&format!(" AND n.id IN (SELECT id FROM notas_fts WHERE notas_fts MATCH ?{})", args.len()));
     }
     if let Some(e) = f.etiqueta.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
         args.push(e.to_string());
