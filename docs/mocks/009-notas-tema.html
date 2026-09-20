@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-011">
+  <meta name="build" content="PR-B1-20260920-010">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 9</title>
+  <title>Notas · mock 8</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -95,7 +95,7 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 9 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 8 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -176,7 +176,7 @@
     <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260920-011</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-010</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -391,7 +391,7 @@
       if (mia !== cargaActual) return;
       notas = ns; etiquetas = es;
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
-      estado(`mock 9 · ${API.replace('https://', '')}`);
+      estado(`mock 8 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -586,91 +586,28 @@
 
   // --- Editor y dictado ---
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let rec = null, base = '', dictando = false, trozos = [], parcial = '';
-  // Chrome en Android no actualiza el resultado interino en su sitio: va
-  // creando uno nuevo con la frase un poco mas larga («si», «si para», «si
-  // para jugar»...). Recorrerlos todos y sumarlos, que es lo que hacia esto
-  // antes, escribia la frase entera repetida palabra a palabra. Ahora cada
-  // trozo se guarda por separado, el interino no se acumula, y un trozo que
-  // solo alarga al anterior lo sustituye en vez de sumarse.
-  // La fusion solo se aplica a lo que llega pegado a lo anterior: el motor
-  // reemite en milisegundos, una persona que repite «si... si» tarda mas. Sin
-  // esta ventana, dictar dos veces la misma frase perderia la segunda.
-  const VENTANA_FUSION = 2000;
-  let ultimoTrozoEn = 0;
-  function anadirTrozo(t) {
-    const ultimo = trozos[trozos.length - 1];
-    const seguido = Date.now() - ultimoTrozoEn < VENTANA_FUSION;
-    ultimoTrozoEn = Date.now();
-    if (ultimo && seguido) {
-      if (ultimo === t || ultimo.startsWith(t)) return;
-      if (t.startsWith(ultimo)) { trozos[trozos.length - 1] = t; return; }
-    }
-    trozos.push(t);
-  }
-  function pintarDictado() {
-    const dicho = trozos.concat(parcial ? [parcial] : []).filter(Boolean).join(' ');
-    $('texto').value = base + dicho;
-  }
-  function micParado() {
-    $('mic').classList.remove('rec'); $('mic').textContent = '🎤 Dictar';
-  }
+  let rec = null, base = '';
   if (!SR) { $('mic').disabled = true; $('avisoMic').textContent = 'Este navegador no tiene dictado web: usa el micrófono del teclado.'; }
   else {
-    rec = new SR(); rec.lang = 'es-ES'; rec.interimResults = true; rec.maxAlternatives = 1;
-    // `continuous` es justo lo que Android lleva mal. Se deja en false y el
-    // dictado largo se consigue rearrancando en cada `onend`, que ademas
-    // recupera el micro cuando el navegador lo corta solo tras una pausa.
-    rec.continuous = false;
+    rec = new SR(); rec.lang = 'es-ES'; rec.continuous = true; rec.interimResults = true;
     rec.onresult = ev => {
-      parcial = '';
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const t = (ev.results[i][0].transcript || '').trim();
-        if (!t) continue;
-        if (ev.results[i].isFinal) anadirTrozo(t);
-        else parcial = t;
-      }
-      pintarDictado();
+      let fin = '', tmp = '';
+      for (let i = 0; i < ev.results.length; i++) (ev.results[i].isFinal ? fin += ev.results[i][0].transcript + ' ' : tmp += ev.results[i][0].transcript);
+      $('texto').value = base + fin + tmp;
     };
-    rec.onend = () => {
-      // Lo que quedara a medias al cortar cuenta como dicho.
-      if (parcial) { anadirTrozo(parcial); parcial = ''; pintarDictado(); }
-      if (!dictando) { micParado(); base = $('texto').value; return; }
-      // Rearranque: con un respiro, que en algunos moviles start() inmediato
-      // despues de end() lanza InvalidStateError.
-      setTimeout(() => {
-        if (!dictando) return;
-        try { rec.start(); } catch { dictando = false; micParado(); base = $('texto').value; }
-      }, 250);
-    };
-    rec.onerror = ev => {
-      // Sin voz o sin habla detectada no es un fallo: el rearranque sigue.
-      if (ev.error === 'no-speech' || ev.error === 'aborted') return;
-      dictando = false;
-      $('avisoMic').textContent = ev.error === 'not-allowed' || ev.error === 'service-not-allowed'
-        ? 'El navegador no da permiso para el micrófono: actívalo en los ajustes del sitio, o usa el micrófono del teclado.'
-        : 'Dictado: ' + ev.error;
-    };
+    rec.onend = () => { $('mic').classList.remove('rec'); $('mic').textContent = '🎤 Dictar'; base = $('texto').value; };
+    rec.onerror = e => { $('avisoMic').textContent = 'Dictado: ' + e.error; };
     $('mic').onclick = () => {
-      if (dictando) { dictando = false; rec.stop(); return; }
-      // Lo ya escrito se respeta: el dictado se añade detrás.
-      base = $('texto').value ? $('texto').value.replace(/\s*$/, '') + ' ' : '';
-      trozos = []; parcial = ''; ultimoTrozoEn = 0;
-      $('avisoMic').textContent = '';
-      dictando = true;
-      try { rec.start(); } catch { dictando = false; return; }
+      if ($('mic').classList.contains('rec')) { rec.stop(); return; }
+      base = $('texto').value ? $('texto').value.replace(/\s*$/, ' ') : '';
+      $('avisoMic').textContent = ''; rec.start();
       $('mic').classList.add('rec'); $('mic').textContent = '■ Parar';
     };
   }
-  $('nueva').onclick = () => {
-    $('texto').value = ''; base = ''; trozos = []; parcial = '';
-    if (SR) $('avisoMic').textContent = '';
-    ver('editor'); $('texto').focus();
-  };
-  const cortarDictado = () => { if (rec) { dictando = false; try { rec.stop(); } catch {} } micParado(); };
-  $('cancelar').onclick = () => { cortarDictado(); ver('lista'); };
+  $('nueva').onclick = () => { $('texto').value = ''; base = ''; if (SR) $('avisoMic').textContent = ''; ver('editor'); $('texto').focus(); };
+  $('cancelar').onclick = () => { rec && rec.stop(); ver('lista'); };
   $('guardar').onclick = async () => {
-    cortarDictado();
+    rec && rec.stop();
     const contenido = $('texto').value.trim();
     if (!contenido) { $('texto').focus(); return; }
     $('guardar').disabled = true; $('guardar').textContent = 'Guardando…';
