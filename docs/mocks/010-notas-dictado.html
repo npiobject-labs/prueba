@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-012">
+  <meta name="build" content="PR-B1-20260920-011">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 10</title>
+  <title>Notas · mock 9</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -37,12 +37,6 @@
     textarea { min-height:45vh; resize:vertical; line-height:1.5; }
     .fila { display:flex; gap:.5rem; align-items:center; }
     .chips { display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.5rem; }
-    /* Las etiquetas se pliegan: con muchas se comian media pantalla en el movil. */
-    .chipsBtn { display:flex; align-items:center; gap:.35rem; width:100%; margin-top:.5rem; padding:.3rem 0; border:0; background:transparent; color:var(--mut); font:inherit; font-size:.85rem; text-align:left; cursor:pointer; }
-    .chipsBtn .flecha { font-size:.7rem; }
-    .chipsBtn .cuantas { color:var(--mut); }
-    .chipsBtn .activa { color:var(--acc); font-weight:600; }
-    #chips { margin-top:.35rem; }
     .chip { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:999px; padding:.25rem .7rem; font-size:.85rem; cursor:pointer; }
     .chip.on { background:var(--acc); border-color:var(--acc); color:#fff; }
     .chip.et { background:var(--acc2); border-color:transparent; color:var(--acc); cursor:default; font-size:.75rem; padding:.15rem .55rem; }
@@ -83,9 +77,8 @@
     .nota .casilla { position:absolute; left:.85rem; top:50%; transform:translateY(-50%); width:1.35rem; height:1.35rem; border:2px solid var(--line); border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:.9rem; line-height:1; }
     .nota.sel { border-color:var(--acc); background:var(--acc2); }
     .nota.sel .casilla { background:var(--acc); border-color:var(--acc); }
-    .barraSel { position:fixed; left:0; right:0; bottom:0; z-index:4; background:var(--panel); border-top:1px solid var(--line); padding:.75rem 1rem calc(.75rem + env(safe-area-inset-bottom)); display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; }
-    .barraSel small { flex:1 1 100%; color:var(--mut); }
-    .barraSel .btn { flex:1; padding:.6rem .5rem; white-space:nowrap; }
+    .barraSel { position:fixed; left:0; right:0; bottom:0; z-index:4; background:var(--panel); border-top:1px solid var(--line); padding:.75rem 1rem calc(.75rem + env(safe-area-inset-bottom)); display:flex; gap:.5rem; align-items:center; }
+    .barraSel small { flex:1; color:var(--mut); }
     .doc { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; }
     .doc h2 { font-size:1rem; margin:0 0 .25rem; }
     .doc time { color:var(--mut); font-size:.8rem; }
@@ -102,16 +95,13 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 10 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 9 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
       <input id="fecha" type="date" style="width:auto" title="Filtrar por día">
     </div>
-    <button class="chipsBtn hidden" id="chipsBtn" type="button" aria-expanded="false" aria-controls="chips">
-      <span id="chipsTxt">Etiquetas</span><span class="flecha" id="chipsFlecha" aria-hidden="true">▾</span>
-    </button>
-    <div class="chips hidden" id="chips"></div>
+    <div class="chips" id="chips"></div>
   </div>
 </header>
 
@@ -186,7 +176,7 @@
     <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260920-012</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-011</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -202,7 +192,6 @@
 
 <div id="barraSel" class="barraSel hidden">
   <small id="cuentaSel">Toca las notas que quieras incluir</small>
-  <button class="btn" id="todasSel" type="button">Todas</button>
   <button class="btn" id="salirSel" type="button">Cancelar</button>
   <button class="btn pri" id="generarSel" type="button" disabled>Generar</button>
 </div>
@@ -280,9 +269,6 @@
     return { desde: new Date(a, m - 1, d).toISOString(), hasta: new Date(a, m - 1, d + 1).toISOString() };
   }
 
-  // Plegado de las etiquetas: por defecto cerradas, la eleccion se recuerda.
-  const CLAVE_CHIPS = 'notas-etiquetas';
-  let chipsAbiertos = (() => { try { return localStorage.getItem(CLAVE_CHIPS) === '1'; } catch { return false; } })();
   function pintarChips() {
     const c = $('chips'); c.innerHTML = '';
     etiquetas.forEach(({ etiqueta, notas: k }) => {
@@ -291,25 +277,7 @@
       b.onclick = () => { etiquetaActiva = etiquetaActiva === etiqueta ? null : etiqueta; cargar(); };
       c.appendChild(b);
     });
-    // Cerrado, el boton tiene que decir si hay un filtro puesto: si no, el usuario
-    // ve una lista recortada sin nada a la vista que lo explique.
-    const hay = etiquetas.length > 0;
-    const t = $('chipsTxt'); t.textContent = 'Etiquetas';
-    const marca = document.createElement('span');
-    marca.className = etiquetaActiva ? 'activa' : 'cuantas';
-    marca.textContent = etiquetaActiva || String(etiquetas.length);
-    t.append(' · ', marca);
-    const abierto = chipsAbiertos && hay;
-    $('chipsBtn').classList.toggle('hidden', !hay);
-    $('chipsBtn').setAttribute('aria-expanded', String(abierto));
-    $('chipsFlecha').textContent = abierto ? '▴' : '▾';
-    c.classList.toggle('hidden', !abierto);
   }
-  $('chipsBtn').onclick = () => {
-    chipsAbiertos = !chipsAbiertos;
-    try { localStorage.setItem(CLAVE_CHIPS, chipsAbiertos ? '1' : '0'); } catch {}
-    pintarChips();
-  };
   function pintarLista(filtrando) {
     const l = $('lista'); l.innerHTML = '';
     if (!notas.length) { l.innerHTML = `<p class="vacio">${filtrando ? 'Nada coincide con el filtro.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`; return; }
@@ -353,17 +321,6 @@
       : n > TOPE_NOTAS ? `${n} notas: el máximo es ${TOPE_NOTAS}` : `${n} nota${n === 1 ? '' : 's'} · ${tamano}`;
     $('cuentaSel').classList.toggle('error', n > TOPE_NOTAS);
     $('generarSel').disabled = n === 0 || n > TOPE_NOTAS;
-    // El boton refleja lo que hara: marcar las visibles o vaciar la seleccion.
-    $('todasSel').textContent = todasVisibles() ? 'Ninguna' : 'Todas';
-    $('todasSel').disabled = !notas.length;
-  }
-  // "Todas" opera sobre las notas que hay en pantalla, no sobre la base entera:
-  // con filtro de etiqueta o busqueda activos marca justo lo que se esta viendo.
-  const todasVisibles = () => notas.length > 0 && notas.every(n => seleccion.has(n.id));
-  function alternarTodas() {
-    if (todasVisibles()) seleccion.clear();
-    else notas.forEach(n => seleccion.set(n.id, n));
-    pintarSeleccion(); pintarLista(false);
   }
   function alternar(n) {
     seleccion.has(n.id) ? seleccion.delete(n.id) : seleccion.set(n.id, n);
@@ -379,7 +336,6 @@
     pintarSeleccion(); ver('lista'); pintarLista(false);
   }
   $('seleccionarBtn').onclick = () => modoSel ? salirSeleccion() : entrarSeleccion(null);
-  $('todasSel').onclick = alternarTodas;
   $('salirSel').onclick = salirSeleccion;
   $('generarSel').onclick = () => {
     const caracteres = [...seleccion.values()].reduce((t, x) => t + x.contenido.length, 0);
@@ -435,9 +391,7 @@
       if (mia !== cargaActual) return;
       notas = ns; etiquetas = es;
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
-      // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
-      if (modoSel) pintarSeleccion();
-      estado(`mock 10 · ${API.replace('https://', '')}`);
+      estado(`mock 9 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;

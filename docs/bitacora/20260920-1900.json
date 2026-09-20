@@ -1,0 +1,38 @@
+{
+  "fecha": "2026-09-20T19:00:00+02:00",
+  "titulo": "Seleccionar todas las notas de una vez",
+  "objetivo": "Dar al modo selección un botón que marque de golpe lo que hay en pantalla, en vez de obligar a ir nota a nota.",
+  "prompts": [
+    {
+      "texto": "Se puede cambiar el nombre \"prueba\" por \"misnotas\" en toda la app, local, github, drive, fly, etc.?",
+      "nota": "Solo era una pregunta: se contestó con el reparto de trabajo y los tres avisos (Fly no se renombra y habría que migrar el volumen, la URL de Pages cambia, el orden es mergear y luego renombrar) y se dejó sin hacer a petición suya."
+    },
+    {
+      "texto": "En la app prueba, cuando se listan todas las notas con check para selecionar cada nota, pon una opción de seleccionar todas las notas."
+    }
+  ],
+  "cambios": [
+    "docs/index.html: botón Todas / Ninguna en la barra del modo selección, que marca o vacía solo las notas visibles y respeta el filtro de etiqueta y la búsqueda",
+    "docs/index.html: la etiqueta del botón se recalcula también al cambiar el filtro, y queda deshabilitado con la lista vacía",
+    "docs/index.html: la barra de selección pasa a dos filas (contador arriba, tres botones abajo) para que quepan en 390 px",
+    "docs/sw.js: caché al build nuevo",
+    "docs/mocks/010-notas-dictado.html: mock 9 archivado",
+    "CLAUDE.md y docs/planificacion/plan-notas.md: F9 anotada"
+  ],
+  "sha": "723e8f0",
+  "sha_completo": "723e8f0",
+  "run": null,
+  "mock": "mocks/010-notas-dictado.html",
+  "build": "PR-B1-20260920-012",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Mergear el PR #20: hasta que no entre en main no hay run de pages.yml que verifique el despliegue.",
+    "Probar el dictado en el móvil de verdad: sigue pendiente desde la sesión anterior.",
+    "Elegir el modelo que redacta los documentos: definir la variable de repositorio LLM_MODELO_DOCUMENTO y relanzar deploy.yml a mano."
+  ],
+  "enlaces": [
+    { "texto": "PR #20", "url": "https://github.com/npiobject-labs/prueba/pull/20" }
+  ],
+  "notas": "El sha es el del commit en la rama de trabajo, no en main: el PR se queda en borrador. Probado con Chromium a 390×844 contra un backend simulado, porque el sandbox no alcanza Fly."
+}
