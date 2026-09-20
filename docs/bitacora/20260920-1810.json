@@ -1,0 +1,34 @@
+{
+  "fecha": "2026-09-20T18:10:00+02:00",
+  "titulo": "Exportar todas las notas a un fichero markdown",
+  "objetivo": "Poder sacar el contenido de todas las notas, con su título, en un .md.",
+  "prompts": [
+    {
+      "texto": "Vuelca el contenido de todas las notas con el título, en un .md"
+    }
+  ],
+  "cambios": [
+    "docs/index.html: botón «Exportar las notas (.md)» en Ajustes, con Compartir donde el navegador lo ofrece; la descarga de documentos y esta comparten función",
+    "docs/sw.js: caché al build nuevo",
+    "docs/mocks/011-notas-seleccion.html: mock 10 archivado",
+    "CLAUDE.md y docs/planificacion/plan-notas.md: F11 anotada"
+  ],
+  "sha": "b181704",
+  "sha_completo": "b181704dc479589ebf1ccb17ce615d9b54bdccfb",
+  "mock": "mocks/011-notas-seleccion.html",
+  "build": "PR-B1-20260920-013",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Probar el dictado arreglado en el móvil de verdad.",
+    "Elegir el modelo que redacta los documentos: definir la variable de repositorio LLM_MODELO_DOCUMENTO y relanzar deploy.yml a mano."
+  ],
+  "enlaces": [
+    {
+      "texto": "PR #21",
+      "url": "https://github.com/npiobject-labs/prueba/pull/21"
+    }
+  ],
+  "notas": "La sesión no puede leer las notas: el sandbox no alcanza Fly, así que el volcado lo hace el navegador del usuario con su token y los datos no pasan por ningún sitio más. Esta rama se creó antes de que se mergeara el PR #20, hecho en otra sesión en paralelo, que ya usaba el build 012 y archivaba el mismo mock; se corrigió la numeración a build 013, mock 11 y fase F11 antes de subir.",
+  "run": "35527468418"
+}
