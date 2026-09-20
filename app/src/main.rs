@@ -1,3 +1,5 @@
+mod llm;
+
 use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::{
@@ -5,7 +7,7 @@ use axum::{
     http::{header, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use rusqlite::{params, Connection, OptionalExtension};
@@ -190,27 +192,93 @@ fn leer_nota(con: &Connection, id: &str) -> rusqlite::Result<Option<Nota>> {
     }
 }
 
+fn insertar_nota(db: &Db, contenido: &str) -> rusqlite::Result<String> {
+    let con = db.lock().unwrap();
+    // id aleatorio y fecha UTC los pone SQLite: sin dependencias extra.
+    con.query_row(
+        "INSERT INTO notas (id, titulo, contenido, creada_en, pendiente_ia)
+         VALUES (lower(hex(randomblob(8))), ?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1)
+         RETURNING id",
+        params![titulo_respaldo(contenido), contenido],
+        |f| f.get(0),
+    )
+}
+
+fn leer(db: &Db, id: &str) -> rusqlite::Result<Option<Nota>> {
+    let con = db.lock().unwrap();
+    leer_nota(&con, id)
+}
+
+// Vocabulario ya usado, para que el LLM reutilice antes de inventar (D5).
+fn etiquetas_frecuentes(db: &Db) -> Vec<String> {
+    let con = db.lock().unwrap();
+    con.prepare_cached(
+        "SELECT etiqueta FROM etiquetas GROUP BY etiqueta ORDER BY COUNT(*) DESC, etiqueta LIMIT 40",
+    )
+    .and_then(|mut s| s.query_map([], |f| f.get(0))?.collect())
+    .unwrap_or_default()
+}
+
+fn guardar_sugerencia(db: &Db, id: &str, s: &llm::Sugerencia) -> rusqlite::Result<()> {
+    let mut con = db.lock().unwrap();
+    let tx = con.transaction()?;
+    tx.execute("UPDATE notas SET titulo = ?1, pendiente_ia = 0 WHERE id = ?2", params![s.titulo, id])?;
+    tx.execute("DELETE FROM etiquetas WHERE nota_id = ?1", [id])?;
+    for e in &s.etiquetas {
+        tx.execute(
+            "INSERT OR IGNORE INTO etiquetas (nota_id, etiqueta) VALUES (?1, ?2)",
+            params![id, e],
+        )?;
+    }
+    tx.commit()
+}
+
+// Titula y etiqueta con el LLM. Si no hay IA, falla o tarda mas de LLM_ESPERA, la nota se
+// queda con el titulo de respaldo y pendiente_ia = 1 (D6): nunca se pierde por culpa de la IA.
+// El candado de SQLite no cruza el await: cada paso lo toma y lo suelta.
+async fn completar_con_ia(db: &Db, id: &str, contenido: &str) {
+    if !llm::configurada() {
+        return;
+    }
+    let existentes = etiquetas_frecuentes(db);
+    if let Some(sugerencia) = llm::sugerir(contenido, &existentes).await {
+        if let Err(e) = guardar_sugerencia(db, id, &sugerencia) {
+            eprintln!("sqlite: no se pudo guardar la sugerencia: {e}");
+        }
+    }
+}
+
 async fn crear_nota(State(db): State<Db>, Json(nueva): Json<NuevaNota>) -> Respuesta<impl IntoResponse> {
     let contenido = nueva.contenido.trim().to_string();
     if contenido.is_empty() {
         return error(StatusCode::BAD_REQUEST, "contenido vacío");
     }
-    let con = db.lock().unwrap();
-    let titulo = titulo_respaldo(&contenido);
-    // id aleatorio y fecha UTC los pone SQLite: sin dependencias extra.
-    let id: String = match con.query_row(
-        "INSERT INTO notas (id, titulo, contenido, creada_en, pendiente_ia)
-         VALUES (lower(hex(randomblob(8))), ?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1)
-         RETURNING id",
-        params![titulo, contenido],
-        |f| f.get(0),
-    ) {
+    let id = match insertar_nota(&db, &contenido) {
         Ok(id) => id,
         Err(e) => return interno(e),
     };
-    match leer_nota(&con, &id) {
+    completar_con_ia(&db, &id, &contenido).await;
+    match leer(&db, &id) {
         Ok(Some(n)) => Ok((StatusCode::CREATED, Json(n))),
         Ok(None) => error(StatusCode::INTERNAL_SERVER_ERROR, "la nota no se guardó"),
+        Err(e) => interno(e),
+    }
+}
+
+// Segunda oportunidad para las notas que quedaron pendientes_ia (D6).
+async fn reintentar_ia(State(db): State<Db>, Path(id): Path<String>) -> Respuesta<Json<Nota>> {
+    if !llm::configurada() {
+        return error(StatusCode::SERVICE_UNAVAILABLE, "IA no configurada");
+    }
+    let contenido = match leer(&db, &id) {
+        Ok(Some(n)) => n.contenido,
+        Ok(None) => return error(StatusCode::NOT_FOUND, "nota no encontrada"),
+        Err(e) => return interno(e),
+    };
+    completar_con_ia(&db, &id, &contenido).await;
+    match leer(&db, &id) {
+        Ok(Some(n)) => Ok(Json(n)),
+        Ok(None) => error(StatusCode::NOT_FOUND, "nota no encontrada"),
         Err(e) => interno(e),
     }
 }
@@ -330,7 +398,7 @@ async fn salud() -> impl IntoResponse {
     let build = std::env::var("BUILD_ID").unwrap_or_else(|_| "dev".to_string());
     (
         [(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")],
-        Json(json!({ "ok": true, "build": build, "token": token_api().is_some() })),
+        Json(json!({ "ok": true, "build": build, "token": token_api().is_some(), "ia": llm::configurada() })),
     )
 }
 
@@ -343,6 +411,7 @@ async fn main() {
     let protegidas = Router::new()
         .route("/notas", get(listar_notas).post(crear_nota))
         .route("/notas/{id}", get(ver_nota).delete(borrar_nota))
+        .route("/notas/{id}/reintentar-ia", post(reintentar_ia))
         .route("/etiquetas", get(listar_etiquetas))
         .route_layer(middleware::from_fn(exigir_token));
     let app = Router::new()
@@ -352,6 +421,10 @@ async fn main() {
         .merge(protegidas)
         .layer(CorsLayer::permissive())
         .with_state(db);
+    match llm::configurada() {
+        true => println!("IA activa: el LLM pone titulo y etiquetas"),
+        false => println!("AVISO: sin LLM_URL, las notas se guardan con titulo de respaldo"),
+    }
     match token_api() {
         Some(_) => println!("token de acceso activo"),
         None => println!("AVISO: sin TOKEN_API, la API de notas queda abierta"),
