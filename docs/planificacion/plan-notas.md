@@ -63,6 +63,6 @@ Cada fase termina con push, verificación por workflow, entrada en bitácora y r
 
 ## 6. Pendiente del usuario
 
-- **Activar el token (D8)**: crear el secreto de repositorio `TOKEN_API` (GitHub → Settings → Secrets and variables → Actions) con un valor largo y aleatorio; el siguiente run de `deploy.yml` lo pasa a Fly. Después, en la app, ⚙ Ajustes → pegar el token → Guardar. Hasta entonces la API sigue abierta.
+- **Activar el token (D8), ahora urgente**: desde F2 cada `POST /notas` llama a un modelo y gasta dinero real, así que una API abierta ya no son solo notas basura. El tope de la aplicación en el servicio acota el daño a 2 $ por día y 25 llamadas por minuto, pero el secreto deja de ser opcional. Crear el secreto de repositorio `TOKEN_API` (GitHub → Settings → Secrets and variables → Actions) con un valor largo y aleatorio; el siguiente run de `deploy.yml` lo pasa a Fly. Después, en la app, ⚙ Ajustes → pegar el token → Guardar. Hasta entonces la API sigue abierta.
 - **Activar la IA (D5/D9)**: crear el secreto de repositorio `LLM_API_KEY` con la clave de la aplicación `prueba` en el servicio `openrouter` (se obtiene en su consola, panel Aplicaciones, y solo se enseña al crearla). El siguiente run de `deploy.yml` la pasa a Fly y verifica que titula. Hasta entonces las notas se guardan con título de respaldo y sin etiquetas, que es el modo previsto en D6.
 - Instalar la app en el móvil y decir qué cambia.
