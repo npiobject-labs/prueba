@@ -1,6 +1,6 @@
 # Plan — app de notas dictadas
 
-Fecha: 2026-09-20 · Estado: propuesta v1 · Fuente de verdad: este fichero (la copia en Drive es solo copia).
+Fecha: 2026-09-20 · Estado: v2, F0 y F1 hechas · Fuente de verdad: este fichero (la copia en Drive es solo copia).
 
 ## 1. Qué se pide (notas del usuario, en sus términos)
 
@@ -15,7 +15,7 @@ Fecha: 2026-09-20 · Estado: propuesta v1 · Fuente de verdad: este fichero (la 
 |---|---|---|
 | D1 | Frontend: PWA estática en `docs/` (Pages), mobile-first, sin framework. Es lo que ya publica `pages.yml` y lo que el usuario abre desde el móvil. | Decidido |
 | D2 | Backend: el `app/` existente (Rust, axum) crece con una API REST `/notas`. Un solo binario en Fly. | Decidido |
-| D3 | Persistencia: SQLite en un volumen de Fly (`/data/notas.db`), con FTS5 para la búsqueda por palabra. | [SUPUESTO] Un solo usuario y volumen bastan. Plan B: Postgres gestionado (Neon/Supabase) si se necesitan varias máquinas o backup automático. |
+| D3 | Persistencia: SQLite en un volumen de Fly (`/data/notas.db`, volumen `datos` que crea `deploy.yml`), con FTS5 para la búsqueda por palabra (F3). | **Confirmado** por el usuario. Plan B: Postgres gestionado (Neon/Supabase) si se necesitan varias máquinas o backup automático. |
 | D4 | Dictado: en el navegador con Web Speech API (`SpeechRecognition`, `lang=es-ES`), resultado en el mismo `textarea`. | [SUPUESTO] Chrome/Android es el uso principal. Plan B: en iOS Safari no hay `SpeechRecognition`; se usa el dictado del teclado del sistema (el micro del teclado escribe en el `textarea`), sin cambios en la app. |
 | D5 | Título y etiquetas: los genera el backend al guardar, llamando al LLM del usuario con un prompt cerrado que devuelve JSON `{titulo, etiquetas[]}`. Vocabulario de etiquetas controlado: se le pasan las etiquetas ya existentes para que reutilice antes de inventar. | [SUPUESTO] La «API de agentes LLM» es compatible con un `POST` HTTPS + clave en cabecera (OpenAI-like o Anthropic-like). Plan B: si es otro protocolo, se aísla en un módulo `llm.rs` con la firma `fn titular(texto, etiquetas_existentes) -> {titulo, etiquetas}` y se cambia solo ese módulo. **Pendiente**: URL, formato y nombre del secreto. |
 | D6 | Si el LLM falla o tarda >8 s, la nota se guarda igual con un título de respaldo (primera frase, ≤60 caracteres) y sin etiquetas, marcada `pendiente_ia=true`; un reintento posterior la completa. La nota nunca se pierde por culpa de la IA. | Decidido |
@@ -53,8 +53,8 @@ CREATE VIRTUAL TABLE notas_fts USING fts5(titulo, contenido, content='notas', co
 
 | Fase | Entregable | Verificación |
 |---|---|---|
-| **F0** (esta sesión) | Este plan + mock navegable en `docs/index.html` con `localStorage`. | Pages verde; probar desde el móvil: crear, dictar, buscar, filtrar. |
-| **F1** Backend CRUD | `app/`: SQLite + volumen de Fly, `POST/GET/DELETE /notas`, `GET /etiquetas`. Título de respaldo (D6) sin LLM aún. | `deploy.yml` verde; `docs/index.html` pasa de `localStorage` a la API (con el `?api=` local que ya describe `CLAUDE.md`). |
+| **F0** ✅ | Plan + mock 1 con `localStorage` (archivado en `docs/mocks/002-notas-local.html`). | Pages verde (`a55de42`). |
+| **F1** ✅ | `app/`: SQLite + volumen de Fly, `POST/GET/DELETE /notas`, `GET /notas?q=&etiqueta=&desde=&hasta=`, `GET /etiquetas`. Título de respaldo (D6); `etiquetas` vacías hasta F2. `docs/index.html` (mock 2) habla con la API. | `deploy.yml` verifica `/notas` (crear, buscar, borrar) además de `/salud`. **Riesgo abierto**: la API es pública sin token hasta F4 (D8); cualquiera con la URL puede escribir. Si molesta antes, se adelanta D8. |
 | **F2** IA | `llm.rs` + secreto en Fly; título y etiquetas reales; reintento. | Guardar tres notas distintas desde el móvil y ver títulos/etiquetas coherentes; apagar el secreto y comprobar que la nota se guarda igual (D6). |
 | **F3** Búsqueda completa | FTS5 (`q`), filtro por etiqueta y por rango de fecha en la API y en la UI. Prefijos y acentos (`unicode61 remove_diacritics 2`). | Buscar «reunión» encuentra «reunion» y «Reuniones». |
 | **F4** Pulido móvil | Manifest PWA + icono, instalable, aviso de «sin conexión», ajustes con token (D8). | Instalar en pantalla de inicio y usar sin abrir el navegador. |
