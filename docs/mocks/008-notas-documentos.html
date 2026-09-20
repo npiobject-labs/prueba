@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-010">
+  <meta name="build" content="PR-B1-20260920-009">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,27 +11,15 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 8</title>
-  <script>
-    // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
-    try {
-      var t = localStorage.getItem('notas-tema');
-      if (t === 'claro' || t === 'oscuro') document.documentElement.dataset.tema = t;
-    } catch (e) {}
-  </script>
+  <title>Notas · mock 7</title>
   <style>
     :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; }
-    /* En automatico manda el sistema; data-tema lo fuerza en un sentido u otro. */
-    @media (prefers-color-scheme: dark) { :root:not([data-tema="claro"]) { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
-    :root[data-tema="oscuro"] { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
     * { box-sizing:border-box; }
     body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--txt); }
     header { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--line); padding:.75rem 1rem; z-index:2; }
     header h1 { font-size:1.1rem; margin:0 0 .5rem; display:flex; justify-content:space-between; align-items:center; }
-    /* Con cuatro iconos al lado, el estado tiene que ceder: se recorta el, no el titulo. */
-    header h1 small { font-weight:400; color:var(--mut); font-size:.75rem; max-width:7.5rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    header h1 #cab { white-space:nowrap; }
-    header h1 .fila { gap:.15rem; }
+    header h1 small { font-weight:400; color:var(--mut); font-size:.75rem; }
     main { max-width:40rem; margin:0 auto; padding:1rem 1rem 6rem; }
     input, textarea, select { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; width:100%; }
     textarea { min-height:45vh; resize:vertical; line-height:1.5; }
@@ -95,7 +83,7 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 8 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 7 · conectando…</small><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -176,7 +164,7 @@
     <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260920-010</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-009</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -391,7 +379,7 @@
       if (mia !== cargaActual) return;
       notas = ns; etiquetas = es;
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
-      estado(`mock 8 · ${API.replace('https://', '')}`);
+      estado(`mock 7 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -675,45 +663,6 @@
   let promptInstalar = null;
   window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); promptInstalar = ev; $('aInstalarFila').classList.remove('hidden'); });
   $('aInstalar').onclick = async () => { if (!promptInstalar) return; promptInstalar.prompt(); await promptInstalar.userChoice; promptInstalar = null; $('aInstalarFila').classList.add('hidden'); };
-
-  // --- Tema: automático (lo que diga el sistema), claro u oscuro ---
-  // El estado inicial ya lo aplicó el script del <head>; aquí solo se cicla y
-  // se pinta el icono. Con el color de la barra del navegador, que en la PWA
-  // instalada es lo que enmarca la pantalla.
-  const CLAVE_TEMA = 'notas-tema';
-  const TEMAS = [
-    { id: 'auto', icono: '🌗', texto: 'Tema: automático' },
-    { id: 'claro', icono: '☀️', texto: 'Tema: claro' },
-    { id: 'oscuro', icono: '🌙', texto: 'Tema: oscuro' }
-  ];
-  function pintarTema(id) {
-    const t = TEMAS.find(x => x.id === id) || TEMAS[0];
-    if (t.id === 'auto') delete document.documentElement.dataset.tema;
-    else document.documentElement.dataset.tema = t.id;
-    $('temaBtn').textContent = t.icono;
-    $('temaBtn').title = t.texto + ' (toca para cambiar)';
-    $('temaBtn').setAttribute('aria-label', t.texto);
-    // El color de la barra sale del panel ya resuelto, así el tema forzado manda.
-    const panel = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta && panel) meta.content = panel;
-  }
-  function leerTema() {
-    try { return localStorage.getItem(CLAVE_TEMA) || 'auto'; } catch { return 'auto'; }
-  }
-  $('temaBtn').onclick = () => {
-    const i = TEMAS.findIndex(x => x.id === leerTema());
-    const siguiente = TEMAS[(i + 1) % TEMAS.length].id;
-    try {
-      if (siguiente === 'auto') localStorage.removeItem(CLAVE_TEMA);
-      else localStorage.setItem(CLAVE_TEMA, siguiente);
-    } catch {}
-    pintarTema(siguiente);
-  };
-  pintarTema(leerTema());
-  // En automático, seguir al sistema si cambia mientras la app está abierta.
-  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)')
-    .addEventListener('change', () => { if (leerTema() === 'auto') pintarTema('auto'); });
 
   // --- Sin conexión ---
   const pintarRed = () => { const off = navigator.onLine === false; $('offline').classList.toggle('hidden', !off); $('guardar').disabled = off; };
