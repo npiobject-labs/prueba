@@ -12,7 +12,7 @@
     "docs/index.html: con filtro puesto el botón enseña la etiqueta activa en vez del recuento; sin etiquetas el botón no aparece",
     "CLAUDE.md y docs/planificacion/plan-notas.md: F10 anotada"
   ],
-  "sha": "pendiente",
+  "sha": "f1df81e",
   "run": null,
   "mock": "mocks/010-notas-dictado.html",
   "build": "PR-B1-20260920-012",
