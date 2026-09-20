@@ -1,0 +1,35 @@
+{
+  "fecha": "2026-09-20T09:15:00+02:00",
+  "titulo": "F1: CRUD de notas en SQLite y mock 2 conectado a la API",
+  "objetivo": "Backend real de notas (crear, listar con filtros, ver, borrar) sobre SQLite en un volumen de Fly, y el mock hablando con esa API.",
+  "prompts": [
+    { "texto": "Dame un enlace al mock." },
+    { "texto": "Fusiona el PR en main y verifica." },
+    { "texto": "Adelante con F1 + el CRUD en SQLite.", "nota": "Dictado; confirma la decisión D3 (SQLite) del plan." }
+  ],
+  "cambios": [
+    "app/Cargo.toml, app/src/main.rs: rusqlite bundled, tablas notas y etiquetas, rutas POST/GET /notas, GET/DELETE /notas/{id}, GET /etiquetas, filtros q/etiqueta/desde/hasta, título de respaldo, CORS con preflight.",
+    "app/fly.toml: volumen datos en /data.",
+    ".github/workflows/deploy.yml: crea el volumen si no existe y verifica /notas (crear, buscar, borrar).",
+    "docs/index.html: mock 2 contra la API de Fly (o local con ?api=). docs/mocks/002-notas-local.html: archivado el mock 1.",
+    "docs/planificacion/plan-notas.md: v2, D3 confirmado, F0 y F1 hechas, riesgo de API sin token. CLAUDE.md: rutas y ruta de la base.",
+    "Build actualizado a PR-B1-20260920-004."
+  ],
+  "sha": "cfb3818",
+  "sha_completo": "cfb3818ab8383efcb89e52418eef560465627b4b",
+  "run": "35495661217",
+  "mock": "mocks/002-notas-local.html",
+  "build": "PR-B1-20260920-004",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "F2: título y etiquetas con el LLM; faltan URL, formato y nombre del secreto de la API de agentes (D5)",
+    "F3: FTS5 con acentos y prefijos",
+    "F4: PWA instalable y token de acceso (D8); hasta entonces la API es pública"
+  ],
+  "enlaces": [
+    { "texto": "PR #2", "url": "https://github.com/npiobject-labs/prueba/pull/2" },
+    { "texto": "Run deploy.yml", "url": "https://github.com/npiobject-labs/prueba/actions/runs/35495661217" }
+  ],
+  "notas": "Prompts dictados: transcripción aproximada. El PR #1 (plan y mock 1) se fusionó en esta misma sesión (a55de42, run pages 35495297380)."
+}
