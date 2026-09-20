@@ -63,6 +63,6 @@ Cada fase termina con push, verificación por workflow, entrada en bitácora y r
 
 ## 6. Pendiente del usuario
 
-- Datos de la API de agentes LLM: URL, formato de petición y cómo se llama el secreto (D5).
-- Confirmar D3 (SQLite en Fly) y D8 (un solo usuario con token).
-- Validar el mock desde el móvil y decir qué cambia antes de F1.
+- Datos de la API de agentes LLM: URL, formato de petición y cómo se llama el secreto (D5). Bloquea F2.
+- Confirmar D8 (un solo usuario con token) o adelantarlo si la API pública molesta.
+- Probar el mock 2 desde el móvil contra Fly y decir qué cambia.
