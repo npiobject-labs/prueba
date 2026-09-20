@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-008">
+  <meta name="build" content="PR-B1-20260920-007">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 6</title>
+  <title>Notas · mock 5</title>
   <style>
     :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; }
     @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
@@ -67,7 +67,7 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 6 · conectando…</small><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 5 · conectando…</small><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -105,7 +105,7 @@
       <button class="btn pri" id="guardar" type="button">Guardar</button>
     </div>
     <p class="aviso" id="avisoMic"></p>
-    <p class="aviso">Al guardar, el título y las etiquetas los pone el modelo. Si no contesta, la nota se guarda igual y queda marcada para reintentarlo.</p>
+    <p class="aviso">Al guardar, el backend pone el título (F1: primera frase) y en F2 el LLM pondrá título y etiquetas.</p>
   </section>
 
   <section id="detalle" class="hidden detalle">
@@ -113,7 +113,6 @@
     <h2 id="dTitulo"></h2>
     <time id="dFecha" style="color:var(--mut);font-size:.85rem"></time>
     <div class="chips" id="dEtiquetas"></div>
-    <div id="dIa"></div>
     <article id="dContenido"></article>
     <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
@@ -203,8 +202,6 @@
       d.querySelector('time').textContent = fmt(n.creada_en);
       d.querySelector('p').textContent = n.contenido;
       n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; d.querySelector('.chips').appendChild(s); });
-      // Sin IA la nota se guarda igual (D6); el distintivo dice que le falta su titulo bueno.
-      if (n.pendiente_ia) { const s = document.createElement('span'); s.className = 'chip ia'; s.textContent = 'sin titular'; d.querySelector('.chips').appendChild(s); }
       d.onclick = () => abrir(n);
       l.appendChild(d);
     });
@@ -223,7 +220,7 @@
       if (mia !== cargaActual) return;
       notas = ns; etiquetas = es;
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
-      estado(`mock 6 · ${API.replace('https://', '')}`);
+      estado(`mock 5 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -236,31 +233,7 @@
     $('dTitulo').textContent = n.titulo; $('dFecha').textContent = fmt(n.creada_en); $('dContenido').textContent = n.contenido;
     const c = $('dEtiquetas'); c.innerHTML = '';
     n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; c.appendChild(s); });
-    pintarReintento(n);
     ver('detalle');
-  }
-
-  // Reintento de la IA (D6): solo aparece si a la nota le falta su titulo bueno.
-  function pintarReintento(n) {
-    const zona = $('dIa');
-    zona.innerHTML = '';
-    if (!n.pendiente_ia) return;
-    const b = document.createElement('button');
-    b.className = 'btn'; b.type = 'button'; b.textContent = 'Titular con IA';
-    b.onclick = async () => {
-      b.disabled = true; b.textContent = 'titulando…';
-      try {
-        const nueva = await api('/notas/' + encodeURIComponent(n.id) + '/reintentar-ia', { method: 'POST' });
-        abrir(nueva);
-        cargar();
-      } catch (e) {
-        b.disabled = false; b.textContent = 'Titular con IA';
-        zona.appendChild(Object.assign(document.createElement('p'), {
-          className: 'aviso', textContent: 'No se pudo titular ahora (' + e.message + '). La nota sigue guardada.'
-        }));
-      }
-    };
-    zona.appendChild(b);
   }
 
   // --- Editor y dictado ---

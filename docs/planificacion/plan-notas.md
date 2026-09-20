@@ -1,6 +1,6 @@
 # Plan — app de notas dictadas
 
-Fecha: 2026-09-20 · Estado: v3, F0, F1, F3 y F4 hechas; F2 aparcada · Fuente de verdad: este fichero (la copia en Drive es solo copia).
+Fecha: 2026-09-20 · Estado: v4, F0 a F4 hechas · Fuente de verdad: este fichero (la copia en Drive es solo copia).
 
 ## 1. Qué se pide (notas del usuario, en sus términos)
 
@@ -17,11 +17,11 @@ Fecha: 2026-09-20 · Estado: v3, F0, F1, F3 y F4 hechas; F2 aparcada · Fuente d
 | D2 | Backend: el `app/` existente (Rust, axum) crece con una API REST `/notas`. Un solo binario en Fly. | Decidido |
 | D3 | Persistencia: SQLite en un volumen de Fly (`/data/notas.db`, volumen `datos` que crea `deploy.yml`), con FTS5 para la búsqueda por palabra (F3). | **Confirmado** por el usuario. Plan B: Postgres gestionado (Neon/Supabase) si se necesitan varias máquinas o backup automático. |
 | D4 | Dictado: en el navegador con Web Speech API (`SpeechRecognition`, `lang=es-ES`), resultado en el mismo `textarea`. | [SUPUESTO] Chrome/Android es el uso principal. Plan B: en iOS Safari no hay `SpeechRecognition`; se usa el dictado del teclado del sistema (el micro del teclado escribe en el `textarea`), sin cambios en la app. |
-| D5 | Título y etiquetas: los genera el backend al guardar, llamando al LLM del usuario con un prompt cerrado que devuelve JSON `{titulo, etiquetas[]}`. Vocabulario de etiquetas controlado: se le pasan las etiquetas ya existentes para que reutilice antes de inventar. | [SUPUESTO] La «API de agentes LLM» es compatible con un `POST` HTTPS + clave en cabecera (OpenAI-like o Anthropic-like). Plan B: si es otro protocolo, se aísla en un módulo `llm.rs` con la firma `fn titular(texto, etiquetas_existentes) -> {titulo, etiquetas}` y se cambia solo ese módulo. **Pendiente**: URL, formato y nombre del secreto. |
+| D5 | Título y etiquetas: los genera el backend al guardar, llamando al LLM del usuario con un prompt cerrado que devuelve JSON `{titulo, etiquetas[]}`. Vocabulario de etiquetas controlado: se le pasan las etiquetas ya existentes para que reutilice antes de inventar. | **Resuelto** en F2. La «API de agentes LLM» es el servicio `npiobject-labs/openrouter`: `POST {base}/chat/completions` con `Authorization: Bearer <clave de aplicación>`, formato de la API de OpenAI, salida estructurada por esquema JSON. El supuesto se cumplió, así que el plan B (otro protocolo) no hizo falta; el aislamiento en `llm.rs` se mantiene igual por si cambia. Base por defecto `https://openrouter-npiobject-labs.fly.dev/v1`, sustituible con la variable `LLM_BASE`. |
 | D6 | Si el LLM falla o tarda >8 s, la nota se guarda igual con un título de respaldo (primera frase, ≤60 caracteres) y sin etiquetas, marcada `pendiente_ia=true`; un reintento posterior la completa. La nota nunca se pierde por culpa de la IA. | Decidido |
 | D7 | Fecha/hora: el servidor guarda UTC (`creada_en`); el cliente muestra en hora local. Búsqueda por fecha = rango de día en hora local convertido a UTC en el cliente. | Decidido |
 | D8 | Acceso: un solo usuario. Token estático en cabecera `Authorization: Bearer` guardado en el móvil una vez (pantalla «Ajustes»). El backend lo exige solo si existe el secreto `TOKEN_API` en Fly, que `deploy.yml` toma del secreto de repositorio del mismo nombre; sin él, la API queda abierta y `/salud` lo indica (`"token": false`). | Hecho en F4. [SUPUESTO] No hace falta multiusuario. Plan B: Passkeys/WebAuthn si se abre a más gente. |
-| D9 | Secreto del LLM: secreto de Fly (`fly secrets set LLM_API_KEY=...`), nunca en el repo ni en `docs/`. | Decidido |
+| D9 | Secreto del LLM: secreto de Fly (`LLM_API_KEY`), nunca en el repo ni en `docs/`. | **Hecho** en F2. No se fija a mano: es un secreto de repositorio que `deploy.yml` vuelca a Fly en cada despliegue, y que borra de Fly si se quita del repositorio. Su valor es la clave de la aplicación `prueba` en el servicio, que solo se ve una vez al crearla. |
 | D10 | Mock de esta sesión: funcional sin backend, guarda en `localStorage` y simula título/etiquetas con una heurística local, para validar la UX desde el móvil antes de tocar `app/`. | Decidido |
 
 ## 3. Modelo de datos
@@ -55,7 +55,7 @@ CREATE VIRTUAL TABLE notas_fts USING fts5(titulo, contenido, content='notas', co
 |---|---|---|
 | **F0** ✅ | Plan + mock 1 con `localStorage` (archivado en `docs/mocks/002-notas-local.html`). | Pages verde (`a55de42`). |
 | **F1** ✅ | `app/`: SQLite + volumen de Fly, `POST/GET/DELETE /notas`, `GET /notas?q=&etiqueta=&desde=&hasta=`, `GET /etiquetas`. Título de respaldo (D6); `etiquetas` vacías hasta F2. `docs/index.html` (mock 2) habla con la API. | `deploy.yml` verifica `/notas` (crear, buscar, borrar) además de `/salud`. **Riesgo abierto**: la API es pública sin token hasta F4 (D8); cualquiera con la URL puede escribir. Si molesta antes, se adelanta D8. |
-| **F2** IA (aparcada) | `llm.rs` + secreto en Fly; título y etiquetas reales; reintento. | Guardar tres notas distintas desde el móvil y ver títulos/etiquetas coherentes; apagar el secreto y comprobar que la nota se guarda igual (D6). |
+| **F2** ✅ | `llm.rs` (aislado, D5) + secreto `LLM_API_KEY` volcado por `deploy.yml`; título y etiquetas reales al guardar; `POST /notas/{id}/reintentar-ia` y botón «Titular con IA» en el detalle; distintivo «sin titular» en la lista; `/salud` declara `"ia"`. | `deploy.yml` verifica las dos caras: con clave, una nota real vuelve con `pendiente_ia:false` y etiquetas; sin clave, `/salud` dice `"ia":false`. Probado además en local contra un servicio simulado: título y etiquetas correctos, normalización de comillas y etiquetas repetidas, servicio caído → nota guardada y pendiente, reintento → completada. |
 | **F3** ✅ | FTS5 en `notas_fts` (`unicode61 remove_diacritics 2`) mantenida por triggers y reconstruida al arrancar si se desincroniza; `q` = palabras por prefijo con AND implícito, sin sintaxis especial. | `deploy.yml` crea «Reunión…» y la encuentra con `q=reunion`. |
 | **F4** ✅ | `manifest.webmanifest`, iconos 192/512, `sw.js` (carcasa en caché, red primero; la API nunca), banda «sin conexión» con Guardar bloqueado, pantalla Ajustes con token (D8) y botón «Instalar» cuando el navegador lo ofrece. Backend: `TOKEN_API` opcional, 401 sin él. | Instalar en pantalla de inicio; recarga sin red muestra la carcasa; 401 abre Ajustes. |
 
@@ -64,5 +64,5 @@ Cada fase termina con push, verificación por workflow, entrada en bitácora y r
 ## 6. Pendiente del usuario
 
 - **Activar el token (D8)**: crear el secreto de repositorio `TOKEN_API` (GitHub → Settings → Secrets and variables → Actions) con un valor largo y aleatorio; el siguiente run de `deploy.yml` lo pasa a Fly. Después, en la app, ⚙ Ajustes → pegar el token → Guardar. Hasta entonces la API sigue abierta.
-- Datos de la API de agentes LLM: URL, formato de petición y cómo se llama el secreto (D5). Bloquea F2.
+- **Activar la IA (D5/D9)**: crear el secreto de repositorio `LLM_API_KEY` con la clave de la aplicación `prueba` en el servicio `openrouter` (se obtiene en su consola, panel Aplicaciones, y solo se enseña al crearla). El siguiente run de `deploy.yml` la pasa a Fly y verifica que titula. Hasta entonces las notas se guardan con título de respaldo y sin etiquetas, que es el modo previsto en D6.
 - Instalar la app en el móvil y decir qué cambia.
