@@ -1,0 +1,30 @@
+{
+  "fecha": "2026-09-20T16:10:00+02:00",
+  "titulo": "Botón de tema: automático, claro u oscuro",
+  "objetivo": "Poder elegir el tema desde la app, en vez de depender solo de lo que diga el sistema.",
+  "prompts": [
+    { "texto": "Añade un icono de día noche" },
+    { "texto": "Brevemente, cómo se relanza el despliegue", "nota": "Pregunta, no cambio de código: se contestó en la conversación." }
+  ],
+  "cambios": [
+    "docs/index.html: botón de tema con tres estados, script en el <head> que lo aplica antes del primer pintado, theme-color que sigue al tema elegido, y cabecera que recorta el estado en vez del título",
+    "docs/sw.js: caché al build nuevo",
+    "docs/mocks/008-notas-documentos.html: mock 7 archivado",
+    "CLAUDE.md y docs/planificacion/plan-notas.md: F7 anotada"
+  ],
+  "sha": "dc54415",
+  "sha_completo": "dc54415b35f993fa690e5d0263170a349c82b931",
+  "run": "35516486984",
+  "mock": "mocks/008-notas-documentos.html",
+  "build": "PR-B1-20260920-010",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Elegir el modelo que redacta los documentos: definir la variable de repositorio LLM_MODELO_DOCUMENTO y relanzar deploy.yml a mano.",
+    "Probar la app en el móvil con notas dictadas de verdad."
+  ],
+  "enlaces": [
+    { "texto": "PR #16", "url": "https://github.com/npiobject-labs/prueba/pull/16" }
+  ],
+  "notas": "Continuación de la sesión de las 15:45, sin tocar el backend: solo el mock, así que no hubo despliegue en Fly."
+}
