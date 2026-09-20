@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-013">
+  <meta name="build" content="PR-B1-20260920-012">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 11</title>
+  <title>Notas · mock 10</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -102,7 +102,7 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 11 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 10 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -162,12 +162,6 @@
     </div>
     <p class="aviso">Se guarda solo en este navegador. La app es instalable: en Chrome/Android «Añadir a pantalla de inicio»; en iOS, Compartir → «Añadir a pantalla de inicio».</p>
     <div class="acciones hidden" id="aInstalarFila"><button class="btn pri" id="aInstalar" type="button">Instalar la app</button></div>
-    <label>Copia de seguridad</label>
-    <div class="acciones">
-      <button class="btn" id="aExportar" type="button">Exportar las notas (.md)</button>
-      <button class="btn hidden" id="aCompartirNotas" type="button">Compartir</button>
-    </div>
-    <p class="aviso" id="aExportaAviso">Un fichero de texto con todas las notas: título, fecha, etiquetas y contenido.</p>
   </section>
 
   <section id="editor" class="hidden">
@@ -192,7 +186,7 @@
     <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260920-013</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-012</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -443,7 +437,7 @@
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
       // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
       if (modoSel) pintarSeleccion();
-      estado(`mock 11 · ${API.replace('https://', '')}`);
+      estado(`mock 10 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -608,7 +602,13 @@
     try { await navigator.share({ title: docActual.titulo, text: $('gTexto').value }); }
     catch { /* cancelar no es un error */ }
   };
-  $('gDescargar').onclick = () => descargarMd(nombreDeFichero(docActual.titulo, 'documento'), $('gTexto').value);
+  $('gDescargar').onclick = () => {
+    const nombre = (docActual.titulo || 'documento').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'documento';
+    const url = URL.createObjectURL(new Blob([$('gTexto').value], { type: 'text/markdown;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = nombre + '.md'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   $('gGuardar').onclick = async () => {
     $('gGuardar').disabled = true; $('gAviso').textContent = 'guardando…';
     try {
@@ -775,9 +775,6 @@
     $('aEstado').textContent = msg || '';
     $('aEstado').classList.toggle('error', !!msg);
     $('aToken').value = leerToken();
-    $('aExportaAviso').textContent = 'Un fichero de texto con todas las notas: título, fecha, etiquetas y contenido.';
-    $('aExportaAviso').classList.remove('error');
-    $('aCompartirNotas').classList.add('hidden');
     ver('ajustes');
   }
   $('ajustesBtn').onclick = () => abrirAjustes('');
@@ -787,58 +784,6 @@
   let promptInstalar = null;
   window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); promptInstalar = ev; $('aInstalarFila').classList.remove('hidden'); });
   $('aInstalar').onclick = async () => { if (!promptInstalar) return; promptInstalar.prompt(); await promptInstalar.userChoice; promptInstalar = null; $('aInstalarFila').classList.add('hidden'); };
-
-  // --- Descarga de ficheros y exportación de las notas ---
-  function nombreDeFichero(titulo, porDefecto) {
-    return (titulo || porDefecto).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || porDefecto;
-  }
-  function descargarMd(nombre, texto) {
-    const url = URL.createObjectURL(new Blob([texto], { type: 'text/markdown;charset=utf-8' }));
-    const a = document.createElement('a'); a.href = url; a.download = nombre + '.md'; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
-  // Todas las notas en un solo markdown. El backend devuelve como mucho 500 y
-  // el fichero lo dice, para que un recorte nunca pase por copia completa.
-  const TOPE_LISTA = 500;
-  function notasComoMarkdown(notas) {
-    const ahora = new Date().toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
-    const lineas = ['# Notas', '', `Exportadas el ${ahora} · ${notas.length} nota${notas.length === 1 ? '' : 's'}.`];
-    if (notas.length >= TOPE_LISTA) lineas.push('', `**Aviso:** solo caben ${TOPE_LISTA} notas por exportación; faltan las más antiguas.`);
-    notas.forEach(n => {
-      lineas.push('', '---', '', '## ' + n.titulo, '');
-      const meta = [fmt(n.creada_en)];
-      if (n.etiquetas.length) meta.push('etiquetas: ' + n.etiquetas.join(', '));
-      if (n.pendiente_ia) meta.push('sin titular por la IA');
-      lineas.push('*' + meta.join(' · ') + '*', '', n.contenido.trim());
-    });
-    return lineas.join('\n') + '\n';
-  }
-  let notasExportadas = '';
-  async function exportarNotas() {
-    const b = $('aExportar');
-    b.disabled = true; b.textContent = 'Exportando…';
-    $('aExportaAviso').classList.remove('error');
-    try {
-      // Sin filtros: lo que se exporta es todo, no lo que se esté mirando.
-      const todas = await api('/notas');
-      if (!todas.length) { $('aExportaAviso').textContent = 'No hay ninguna nota que exportar.'; return; }
-      notasExportadas = notasComoMarkdown(todas);
-      descargarMd('notas-' + new Date().toISOString().slice(0, 10), notasExportadas);
-      $('aExportaAviso').textContent = `${todas.length} nota${todas.length === 1 ? '' : 's'} en el fichero. Si no lo ves, míralo en las descargas del navegador.`;
-      // Compartir es lo que sirve en el móvil para mandárselo a otro sitio.
-      if (navigator.share) $('aCompartirNotas').classList.remove('hidden');
-    } catch (e) {
-      $('aExportaAviso').textContent = 'No se pudo exportar (' + e.message + ').';
-      $('aExportaAviso').classList.add('error');
-    } finally { b.disabled = false; b.textContent = 'Exportar las notas (.md)'; }
-  }
-  $('aExportar').onclick = exportarNotas;
-  $('aCompartirNotas').onclick = async () => {
-    if (!navigator.share || !notasExportadas) return;
-    try { await navigator.share({ title: 'Notas', text: notasExportadas }); } catch { /* cancelar no es un error */ }
-  };
 
   // --- Tema: automático (lo que diga el sistema), claro u oscuro ---
   // El estado inicial ya lo aplicó el script del <head>; aquí solo se cicla y
