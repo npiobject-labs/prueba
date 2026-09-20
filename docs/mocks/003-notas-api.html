@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-005">
+  <meta name="build" content="PR-B1-20260920-004">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
-  <title>Notas · mock 3</title>
+  <title>Notas · mock 2</title>
   <style>
     :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; }
     @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
@@ -24,16 +24,7 @@
     .chip.on { background:var(--acc); border-color:var(--acc); color:#fff; }
     .chip.et { background:var(--acc2); border-color:transparent; color:var(--acc); cursor:default; font-size:.75rem; padding:.15rem .55rem; }
     .nota { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; }
-    .nota { position:relative; padding-right:3rem; }
     .nota h2 { font-size:1rem; margin:0 0 .25rem; }
-    .nota .papelera { position:absolute; top:.5rem; right:.5rem; width:2.4rem; height:2.4rem; border:0; border-radius:50%; background:transparent; color:var(--mut); font-size:1.1rem; cursor:pointer; }
-    .nota .papelera:hover, .nota .papelera:focus-visible { background:var(--acc2); color:var(--danger); }
-    .velo { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
-    .hoja { background:var(--panel); color:var(--txt); width:100%; max-width:40rem; border-radius:16px 16px 0 0; padding:1.25rem 1rem calc(1.25rem + env(safe-area-inset-bottom)); }
-    .hoja h3 { margin:0 0 .5rem; font-size:1.05rem; }
-    .hoja p { margin:0 0 1rem; color:var(--mut); font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .hoja .acciones { margin-top:0; }
-    .btn.peligro.solido { background:var(--danger); border-color:var(--danger); color:#fff; font-weight:600; }
     .nota time { color:var(--mut); font-size:.8rem; }
     .nota p { margin:.4rem 0 0; color:var(--mut); font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .vacio { text-align:center; color:var(--mut); padding:3rem 1rem; }
@@ -57,7 +48,7 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><small id="estado">mock 3 · conectando…</small></h1>
+  <h1><span id="cab">Notas</span><small id="estado">mock 2 · conectando…</small></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -90,19 +81,8 @@
     <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260920-005</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-004</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
-
-<div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
-  <div class="hoja">
-    <h3 id="cTitulo">¿Borrar esta nota?</h3>
-    <p id="cNota"></p>
-    <div class="acciones">
-      <button class="btn" id="cNo" type="button">Cancelar</button>
-      <button class="btn peligro solido" id="cSi" type="button">Borrar</button>
-    </div>
-  </div>
-</div>
 
 <button class="fab" id="nueva" title="Nueva nota" aria-label="Nueva nota">+</button>
 
@@ -154,8 +134,7 @@
     if (!notas.length) { l.innerHTML = `<p class="vacio">${filtrando ? 'Nada coincide con el filtro.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`; return; }
     notas.forEach(n => {
       const d = document.createElement('div'); d.className = 'nota';
-      d.innerHTML = `<h2></h2><time></time><div class="chips"></div><p></p><button class="papelera" type="button" title="Borrar nota" aria-label="Borrar nota">🗑</button>`;
-      d.querySelector('.papelera').onclick = ev => { ev.stopPropagation(); pedirBorrado(n); };
+      d.innerHTML = `<h2></h2><time></time><div class="chips"></div><p></p>`;
       d.querySelector('h2').textContent = n.titulo;
       d.querySelector('time').textContent = fmt(n.creada_en);
       d.querySelector('p').textContent = n.contenido;
@@ -178,7 +157,7 @@
       if (mia !== cargaActual) return;
       notas = ns; etiquetas = es;
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
-      estado(`mock 3 · ${API.replace('https://', '')}`);
+      estado(`mock 2 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).<br>Vuelve a intentarlo en unos segundos.</p>`;
@@ -228,34 +207,11 @@
     } finally { $('guardar').disabled = false; $('guardar').textContent = 'Guardar'; }
   };
   $('volver').onclick = () => ver('lista');
-
-  // --- Borrado con confirmación (hoja propia: el confirm() nativo falla en algunos webviews) ---
-  let aBorrar = null;
-  function pedirBorrado(n) {
-    aBorrar = n;
-    $('cNota').textContent = `${n.titulo} · ${fmt(n.creada_en)}`;
-    $('cSi').disabled = false; $('cSi').textContent = 'Borrar';
-    $('confirmar').classList.remove('hidden');
-    $('cNo').focus();
-  }
-  const cerrarConfirmacion = () => { $('confirmar').classList.add('hidden'); aBorrar = null; };
-  $('cNo').onclick = cerrarConfirmacion;
-  $('confirmar').onclick = ev => { if (ev.target === $('confirmar')) cerrarConfirmacion(); };
-  document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && aBorrar) cerrarConfirmacion(); });
-  $('cSi').onclick = async () => {
-    if (!aBorrar) return;
-    $('cSi').disabled = true; $('cSi').textContent = 'Borrando…';
-    try {
-      await api('/notas/' + aBorrar.id, { method: 'DELETE' });
-      cerrarConfirmacion();
-      if (!$('detalle').classList.contains('hidden')) ver('lista');
-      cargar();
-    } catch (e) {
-      $('cSi').disabled = false; $('cSi').textContent = 'Reintentar';
-      $('cNota').textContent = 'No se pudo borrar (' + e.message + ').';
-    }
+  $('borrar').onclick = async () => {
+    if (!confirm('¿Borrar esta nota?')) return;
+    try { await api('/notas/' + actual.id, { method: 'DELETE' }); etiquetaActiva = null; ver('lista'); cargar(); }
+    catch (e) { alert('No se pudo borrar (' + e.message + ')'); }
   };
-  $('borrar').onclick = () => pedirBorrado(actual);
   let t; $('q').oninput = () => { clearTimeout(t); t = setTimeout(cargar, 250); };
   $('fecha').onchange = cargar;
 

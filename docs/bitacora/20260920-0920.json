@@ -1,0 +1,29 @@
+{
+  "fecha": "2026-09-20T09:20:00+02:00",
+  "titulo": "Botón de borrar nota con confirmación",
+  "objetivo": "Que se pueda borrar una nota desde la lista y el detalle con una comprobación previa clara en el móvil.",
+  "prompts": [
+    { "texto": "De momento dejamos la fase 2. Lo que quiero ahora es que añadas un botón de eliminar nota con comprobación." }
+  ],
+  "cambios": [
+    "docs/index.html: papelera en cada tarjeta y en el detalle; hoja de confirmación propia (Cancelar/Borrar, Escape y toque fuera cierran, reintento si falla la API) en lugar del confirm() nativo.",
+    "docs/mocks/003-notas-api.html: archivado el mock 2.",
+    "Build actualizado a PR-B1-20260920-005."
+  ],
+  "sha": "",
+  "sha_completo": "",
+  "run": "",
+  "mock": "mocks/003-notas-api.html",
+  "build": "PR-B1-20260920-005",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "F2 (LLM) aparcada a petición del usuario",
+    "F3: FTS5 con acentos y prefijos",
+    "F4: PWA instalable y token de acceso (D8)"
+  ],
+  "enlaces": [
+    { "texto": "PR #4", "url": "https://github.com/npiobject-labs/prueba/pull/4" }
+  ],
+  "notas": "Solo frontend: no se despliega backend. El SHA del merge se conoce después del cierre; queda en el resumen de la sesión siguiente si hace falta."
+}
