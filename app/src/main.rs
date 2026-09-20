@@ -1,9 +1,10 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, Query, Request, State},
     http::{header, StatusCode},
-    response::IntoResponse,
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
     routing::get,
     Json, Router,
 };
@@ -287,6 +288,34 @@ async fn listar_etiquetas(State(db): State<Db>) -> Respuesta<Json<serde_json::Va
     }
 }
 
+// Token de acceso (D8): secreto TOKEN_API en Fly. Sin el, la API queda abierta (aviso en /salud).
+fn token_api() -> Option<&'static str> {
+    static TOKEN: OnceLock<Option<String>> = OnceLock::new();
+    TOKEN
+        .get_or_init(|| std::env::var("TOKEN_API").ok().map(|t| t.trim().to_string()).filter(|t| !t.is_empty()))
+        .as_deref()
+}
+
+fn iguales_en_tiempo_constante(a: &str, b: &str) -> bool {
+    a.len() == b.len() && a.bytes().zip(b.bytes()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+async fn exigir_token(req: Request, next: Next) -> Response {
+    if let Some(esperado) = token_api() {
+        let valido = req
+            .headers()
+            .get(header::AUTHORIZATION)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bearer "))
+            .map(|v| iguales_en_tiempo_constante(v.trim(), esperado))
+            .unwrap_or(false);
+        if !valido {
+            return (StatusCode::UNAUTHORIZED, Json(json!({ "error": "token de acceso requerido" }))).into_response();
+        }
+    }
+    next.run(req).await
+}
+
 async fn raiz() -> &'static str {
     "prueba backend"
 }
@@ -299,7 +328,10 @@ async fn holamundo() -> impl IntoResponse {
 // /salud tambien se lee desde Pages (docs/holamundo.html): misma cabecera.
 async fn salud() -> impl IntoResponse {
     let build = std::env::var("BUILD_ID").unwrap_or_else(|_| "dev".to_string());
-    ([(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")], Json(json!({ "ok": true, "build": build })))
+    (
+        [(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")],
+        Json(json!({ "ok": true, "build": build, "token": token_api().is_some() })),
+    )
 }
 
 #[tokio::main]
@@ -307,15 +339,23 @@ async fn main() {
     let db: Db = Arc::new(Mutex::new(abrir_db()));
 
     // Todo lo consume docs/ desde Pages (otro origen): CORS abierto, con preflight para POST/DELETE.
+    // Las rutas de datos exigen el token si TOKEN_API esta definido; /salud y /holamundo no.
+    let protegidas = Router::new()
+        .route("/notas", get(listar_notas).post(crear_nota))
+        .route("/notas/{id}", get(ver_nota).delete(borrar_nota))
+        .route("/etiquetas", get(listar_etiquetas))
+        .route_layer(middleware::from_fn(exigir_token));
     let app = Router::new()
         .route("/", get(raiz))
         .route("/salud", get(salud))
         .route("/holamundo", get(holamundo))
-        .route("/notas", get(listar_notas).post(crear_nota))
-        .route("/notas/{id}", get(ver_nota).delete(borrar_nota))
-        .route("/etiquetas", get(listar_etiquetas))
+        .merge(protegidas)
         .layer(CorsLayer::permissive())
         .with_state(db);
+    match token_api() {
+        Some(_) => println!("token de acceso activo"),
+        None => println!("AVISO: sin TOKEN_API, la API de notas queda abierta"),
+    }
 
     let direccion = format!("0.0.0.0:{}", puerto());
     let listener = tokio::net::TcpListener::bind(&direccion)

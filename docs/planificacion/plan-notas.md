@@ -1,6 +1,6 @@
 # Plan — app de notas dictadas
 
-Fecha: 2026-09-20 · Estado: v2, F0 y F1 hechas · Fuente de verdad: este fichero (la copia en Drive es solo copia).
+Fecha: 2026-09-20 · Estado: v3, F0, F1, F3 y F4 hechas; F2 aparcada · Fuente de verdad: este fichero (la copia en Drive es solo copia).
 
 ## 1. Qué se pide (notas del usuario, en sus términos)
 
@@ -20,7 +20,7 @@ Fecha: 2026-09-20 · Estado: v2, F0 y F1 hechas · Fuente de verdad: este ficher
 | D5 | Título y etiquetas: los genera el backend al guardar, llamando al LLM del usuario con un prompt cerrado que devuelve JSON `{titulo, etiquetas[]}`. Vocabulario de etiquetas controlado: se le pasan las etiquetas ya existentes para que reutilice antes de inventar. | [SUPUESTO] La «API de agentes LLM» es compatible con un `POST` HTTPS + clave en cabecera (OpenAI-like o Anthropic-like). Plan B: si es otro protocolo, se aísla en un módulo `llm.rs` con la firma `fn titular(texto, etiquetas_existentes) -> {titulo, etiquetas}` y se cambia solo ese módulo. **Pendiente**: URL, formato y nombre del secreto. |
 | D6 | Si el LLM falla o tarda >8 s, la nota se guarda igual con un título de respaldo (primera frase, ≤60 caracteres) y sin etiquetas, marcada `pendiente_ia=true`; un reintento posterior la completa. La nota nunca se pierde por culpa de la IA. | Decidido |
 | D7 | Fecha/hora: el servidor guarda UTC (`creada_en`); el cliente muestra en hora local. Búsqueda por fecha = rango de día en hora local convertido a UTC en el cliente. | Decidido |
-| D8 | Acceso: un solo usuario. Token estático en cabecera `Authorization: Bearer` guardado en el móvil una vez (pantalla «Ajustes»). | [SUPUESTO] No hace falta multiusuario. Plan B: Passkeys/WebAuthn si se abre a más gente. |
+| D8 | Acceso: un solo usuario. Token estático en cabecera `Authorization: Bearer` guardado en el móvil una vez (pantalla «Ajustes»). El backend lo exige solo si existe el secreto `TOKEN_API` en Fly, que `deploy.yml` toma del secreto de repositorio del mismo nombre; sin él, la API queda abierta y `/salud` lo indica (`"token": false`). | Hecho en F4. [SUPUESTO] No hace falta multiusuario. Plan B: Passkeys/WebAuthn si se abre a más gente. |
 | D9 | Secreto del LLM: secreto de Fly (`fly secrets set LLM_API_KEY=...`), nunca en el repo ni en `docs/`. | Decidido |
 | D10 | Mock de esta sesión: funcional sin backend, guarda en `localStorage` y simula título/etiquetas con una heurística local, para validar la UX desde el móvil antes de tocar `app/`. | Decidido |
 
@@ -55,14 +55,14 @@ CREATE VIRTUAL TABLE notas_fts USING fts5(titulo, contenido, content='notas', co
 |---|---|---|
 | **F0** ✅ | Plan + mock 1 con `localStorage` (archivado en `docs/mocks/002-notas-local.html`). | Pages verde (`a55de42`). |
 | **F1** ✅ | `app/`: SQLite + volumen de Fly, `POST/GET/DELETE /notas`, `GET /notas?q=&etiqueta=&desde=&hasta=`, `GET /etiquetas`. Título de respaldo (D6); `etiquetas` vacías hasta F2. `docs/index.html` (mock 2) habla con la API. | `deploy.yml` verifica `/notas` (crear, buscar, borrar) además de `/salud`. **Riesgo abierto**: la API es pública sin token hasta F4 (D8); cualquiera con la URL puede escribir. Si molesta antes, se adelanta D8. |
-| **F2** IA | `llm.rs` + secreto en Fly; título y etiquetas reales; reintento. | Guardar tres notas distintas desde el móvil y ver títulos/etiquetas coherentes; apagar el secreto y comprobar que la nota se guarda igual (D6). |
-| **F3** Búsqueda completa | FTS5 (`q`), filtro por etiqueta y por rango de fecha en la API y en la UI. Prefijos y acentos (`unicode61 remove_diacritics 2`). | Buscar «reunión» encuentra «reunion» y «Reuniones». |
-| **F4** Pulido móvil | Manifest PWA + icono, instalable, aviso de «sin conexión», ajustes con token (D8). | Instalar en pantalla de inicio y usar sin abrir el navegador. |
+| **F2** IA (aparcada) | `llm.rs` + secreto en Fly; título y etiquetas reales; reintento. | Guardar tres notas distintas desde el móvil y ver títulos/etiquetas coherentes; apagar el secreto y comprobar que la nota se guarda igual (D6). |
+| **F3** ✅ | FTS5 en `notas_fts` (`unicode61 remove_diacritics 2`) mantenida por triggers y reconstruida al arrancar si se desincroniza; `q` = palabras por prefijo con AND implícito, sin sintaxis especial. | `deploy.yml` crea «Reunión…» y la encuentra con `q=reunion`. |
+| **F4** ✅ | `manifest.webmanifest`, iconos 192/512, `sw.js` (carcasa en caché, red primero; la API nunca), banda «sin conexión» con Guardar bloqueado, pantalla Ajustes con token (D8) y botón «Instalar» cuando el navegador lo ofrece. Backend: `TOKEN_API` opcional, 401 sin él. | Instalar en pantalla de inicio; recarga sin red muestra la carcasa; 401 abre Ajustes. |
 
 Cada fase termina con push, verificación por workflow, entrada en bitácora y resumen de sesión, como marca `CLAUDE.md`.
 
 ## 6. Pendiente del usuario
 
+- **Activar el token (D8)**: crear el secreto de repositorio `TOKEN_API` (GitHub → Settings → Secrets and variables → Actions) con un valor largo y aleatorio; el siguiente run de `deploy.yml` lo pasa a Fly. Después, en la app, ⚙ Ajustes → pegar el token → Guardar. Hasta entonces la API sigue abierta.
 - Datos de la API de agentes LLM: URL, formato de petición y cómo se llama el secreto (D5). Bloquea F2.
-- Confirmar D8 (un solo usuario con token) o adelantarlo si la API pública molesta.
-- Probar el mock 2 desde el móvil contra Fly y decir qué cambia.
+- Instalar la app en el móvil y decir qué cambia.

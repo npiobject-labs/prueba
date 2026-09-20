@@ -3,15 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260920-007">
+  <meta name="build" content="PR-B1-20260920-006">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icono-192.png" type="image/png">
-  <link rel="apple-touch-icon" href="icono-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 5</title>
+  <title>Notas · mock 4</title>
   <style>
     :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; }
     @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
@@ -55,11 +50,6 @@
     .detalle h2 { margin:.25rem 0; }
     .detalle article { white-space:pre-wrap; line-height:1.6; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1rem; margin-top:.75rem; }
     .aviso { font-size:.8rem; color:var(--mut); margin-top:.5rem; }
-    .icono { border:0; background:transparent; color:var(--mut); font-size:1.3rem; cursor:pointer; padding:.2rem .4rem; border-radius:8px; }
-    .icono:hover, .icono:focus-visible { background:var(--acc2); color:var(--acc); }
-    .banda { background:var(--danger); color:#fff; text-align:center; font-size:.85rem; padding:.4rem 1rem; }
-    .ajustes label { display:block; font-size:.85rem; color:var(--mut); margin:1rem 0 .3rem; }
-    .ajustes code { background:var(--acc2); color:var(--acc); padding:.15rem .4rem; border-radius:4px; word-break:break-all; }
     .hidden { display:none !important; }
     .enlaces { margin-top:2rem; padding-top:1rem; border-top:1px solid var(--line); font-size:.85rem; color:var(--mut); }
     a { color:var(--acc); }
@@ -67,7 +57,7 @@
 </head>
 <body>
 <header>
-  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 5 · conectando…</small><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span id="cab">Notas</span><small id="estado">mock 4 · conectando…</small></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -77,25 +67,8 @@
   </div>
 </header>
 
-<div id="offline" class="banda hidden">Sin conexión: no se pueden cargar ni guardar notas hasta que vuelva la red.</div>
-
 <main>
   <section id="lista"></section>
-
-  <section id="ajustes" class="hidden ajustes">
-    <button class="btn" id="volverAjustes" type="button">← Volver</button>
-    <label>Backend</label>
-    <code id="aApi"></code>
-    <p class="aviso" id="aEstado"></p>
-    <label for="aToken">Token de acceso (secreto <code>TOKEN_API</code> de Fly; vacío si la API está abierta)</label>
-    <input id="aToken" type="password" autocomplete="off" placeholder="Pega aquí el token">
-    <div class="acciones">
-      <button class="btn" id="aQuitar" type="button">Quitar</button>
-      <button class="btn pri" id="aGuardar" type="button">Guardar</button>
-    </div>
-    <p class="aviso">Se guarda solo en este navegador. La app es instalable: en Chrome/Android «Añadir a pantalla de inicio»; en iOS, Compartir → «Añadir a pantalla de inicio».</p>
-    <div class="acciones hidden" id="aInstalarFila"><button class="btn pri" id="aInstalar" type="button">Instalar la app</button></div>
-  </section>
 
   <section id="editor" class="hidden">
     <textarea id="texto" placeholder="Dicta o escribe la nota…"></textarea>
@@ -117,7 +90,7 @@
     <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260920-007</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-006</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -144,17 +117,10 @@
   // La máquina de Fly se suspende sin tráfico y el proxy tarda a veces en despertarla:
   // 45 s de espera y un reintento automático, avisando en la cabecera.
   const ESPERA = 45000;
-  // Token de acceso (D8): solo en este navegador. Si el backend lo exige y falta, 401 -> Ajustes.
-  const CLAVE_TOKEN = 'notas-token';
-  const leerToken = () => { try { return localStorage.getItem(CLAVE_TOKEN) || ''; } catch { return ''; } };
   async function api(ruta, init = {}, intento = 1) {
     let avisador = setTimeout(() => estado('arrancando el backend, puede tardar un minuto…'), 4000);
     try {
-      const headers = { ...(init.headers || {}) };
-      const token = leerToken();
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      const r = await fetch(API + ruta, { ...init, headers, signal: AbortSignal.timeout(ESPERA) });
-      if (r.status === 401) { abrirAjustes('El backend pide un token de acceso y el guardado aquí ' + (token ? 'no es válido' : 'está vacío') + '.'); throw new Error('HTTP 401: token de acceso'); }
+      const r = await fetch(API + ruta, { ...init, signal: AbortSignal.timeout(ESPERA) });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.status === 204 ? null : r.json();
     } catch (e) {
@@ -167,12 +133,12 @@
 
   let notas = [], etiquetas = [], etiquetaActiva = null, actual = null;
 
-  const vistas = ['lista', 'editor', 'detalle', 'ajustes'];
+  const vistas = ['lista', 'editor', 'detalle'];
   function ver(v) {
     vistas.forEach(x => $(x).classList.toggle('hidden', x !== v));
     $('buscador').classList.toggle('hidden', v !== 'lista');
     $('nueva').classList.toggle('hidden', v !== 'lista');
-    $('cab').textContent = { lista: 'Notas', editor: 'Nueva nota', detalle: 'Nota', ajustes: 'Ajustes' }[v];
+    $('cab').textContent = { lista: 'Notas', editor: 'Nueva nota', detalle: 'Nota' }[v];
     window.scrollTo(0, 0);
   }
   const fmt = iso => new Date(iso).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
@@ -220,7 +186,7 @@
       if (mia !== cargaActual) return;
       notas = ns; etiquetas = es;
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
-      estado(`mock 5 · ${API.replace('https://', '')}`);
+      estado(`mock 4 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -302,31 +268,6 @@
   $('borrar').onclick = () => pedirBorrado(actual);
   let t; $('q').oninput = () => { clearTimeout(t); t = setTimeout(cargar, 250); };
   $('fecha').onchange = cargar;
-
-  // --- Ajustes: token e instalación ---
-  function abrirAjustes(msg) {
-    $('aApi').textContent = API;
-    $('aEstado').textContent = msg || '';
-    $('aEstado').classList.toggle('error', !!msg);
-    $('aToken').value = leerToken();
-    ver('ajustes');
-  }
-  $('ajustesBtn').onclick = () => abrirAjustes('');
-  $('volverAjustes').onclick = () => { ver('lista'); cargar(); };
-  $('aGuardar').onclick = () => { try { localStorage.setItem(CLAVE_TOKEN, $('aToken').value.trim()); } catch {} ver('lista'); cargar(); };
-  $('aQuitar').onclick = () => { try { localStorage.removeItem(CLAVE_TOKEN); } catch {} $('aToken').value = ''; };
-  let promptInstalar = null;
-  window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); promptInstalar = ev; $('aInstalarFila').classList.remove('hidden'); });
-  $('aInstalar').onclick = async () => { if (!promptInstalar) return; promptInstalar.prompt(); await promptInstalar.userChoice; promptInstalar = null; $('aInstalarFila').classList.add('hidden'); };
-
-  // --- Sin conexión ---
-  const pintarRed = () => { const off = navigator.onLine === false; $('offline').classList.toggle('hidden', !off); $('guardar').disabled = off; };
-  window.addEventListener('online', () => { pintarRed(); cargar(); });
-  window.addEventListener('offline', pintarRed);
-  pintarRed();
-
-  // --- PWA: la carcasa se cachea para abrir sin red; la API nunca ---
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   ver('lista'); cargar();
 })();

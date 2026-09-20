@@ -16,6 +16,7 @@ jobs:
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       FLY_APP: ${{ vars.FLY_APP || 'prueba-npiobject-labs' }}
+      TOKEN_API: ${{ secrets.TOKEN_API }}
     steps:
       - name: Instalar flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
@@ -34,17 +35,18 @@ jobs:
       - name: Llamadas reales con tiempos
         run: |
           base="https://${FLY_APP}.fly.dev"
+          auth="Authorization: Bearer ${TOKEN_API}"
           for ruta in /salud /notas; do
             echo "--- GET ${ruta}"
-            curl -sS --max-time 60 -o /tmp/cuerpo -w 'http=%{http_code} total=%{time_total}s\n' "${base}${ruta}" || echo "curl fallo: $?"
+            curl -sS --max-time 60 -o /tmp/cuerpo -w 'http=%{http_code} total=%{time_total}s\n' -H "${auth}" "${base}${ruta}" || echo "curl fallo: $?"
             head -c 400 /tmp/cuerpo; echo
           done
           echo "--- POST /notas"
           curl -sS --max-time 60 -o /tmp/cuerpo -w 'http=%{http_code} total=%{time_total}s\n' -X POST "${base}/notas" \
-            -H 'Content-Type: application/json' -d '{"contenido":"Diagnostico desde Actions. Se borra sola."}' || echo "curl fallo: $?"
+            -H 'Content-Type: application/json' -H "${auth}" -d '{"contenido":"Diagnostico desde Actions. Se borra sola."}' || echo "curl fallo: $?"
           head -c 400 /tmp/cuerpo; echo
           id="$(sed -n 's/.*"id":"\([^"]*\)".*/\1/p' /tmp/cuerpo)"
-          [ -n "${id}" ] && curl -sS --max-time 60 -o /dev/null -w 'DELETE http=%{http_code}\n' -X DELETE "${base}/notas/${id}" || true
+          [ -n "${id}" ] && curl -sS --max-time 60 -o /dev/null -w 'DELETE http=%{http_code}\n' -X DELETE -H "${auth}" "${base}/notas/${id}" || true
 
       - name: Estado tras las llamadas
         run: flyctl machines list --app "${FLY_APP}" --json | jq '.[] | {id, state}' || true

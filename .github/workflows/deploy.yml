@@ -91,6 +91,22 @@ jobs:
             flyctl volumes create datos --app "${FLY_APP}" --region "${region}" --size 1 --yes
           fi
 
+      # Token de acceso a /notas (D8): secreto de repositorio TOKEN_API. Sin el, la API queda abierta.
+      - name: Fijar TOKEN_API si existe el secreto
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+          TOKEN_API: ${{ secrets.TOKEN_API }}
+        run: |
+          if [ -n "${TOKEN_API}" ]; then
+            flyctl secrets set "TOKEN_API=${TOKEN_API}" --app "${FLY_APP}" --stage
+            echo "Token de acceso configurado (valor oculto)."
+          else
+            flyctl secrets unset TOKEN_API --app "${FLY_APP}" --stage 2>/dev/null || true
+            echo "AVISO: sin secreto TOKEN_API, la API de notas queda abierta." >> "$GITHUB_STEP_SUMMARY"
+            echo "AVISO: sin secreto TOKEN_API, la API de notas queda abierta."
+          fi
+
       - name: Fijar BUILD_ID con el SHA del commit
         if: steps.fly.outputs.configurado == 'true'
         env:
@@ -145,19 +161,27 @@ jobs:
         if: steps.fly.outputs.configurado == 'true'
         env:
           FLY_APP: ${{ steps.app.outputs.app }}
+          TOKEN_API: ${{ secrets.TOKEN_API }}
         run: |
           base="https://${FLY_APP}.fly.dev"
           marca="verificacion-deploy-${GITHUB_SHA:0:7}"
-          nota="$(curl -fsS --max-time 20 -X POST "${base}/notas" -H 'Content-Type: application/json' \
-            -d "{\"contenido\":\"Nota de ${marca}. Se borra sola.\"}")"
+          auth="Authorization: Bearer ${TOKEN_API}"
+          if [ -n "${TOKEN_API}" ]; then
+            codigo="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "${base}/notas")"
+            [ "${codigo}" = "401" ] || { echo "::error::/notas sin token devolvio ${codigo}, se esperaba 401"; exit 1; }
+            echo "OK: /notas sin token -> 401"
+          fi
+          nota="$(curl -fsS --max-time 20 -X POST "${base}/notas" -H 'Content-Type: application/json' -H "${auth}" \
+            -d "{\"contenido\":\"Nota de ${marca}. Reunión de verificación.\"}")"
           echo "Creada: ${nota}"
           id="$(printf '%s' "${nota}" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')"
           [ -n "${id}" ] || { echo "::error::POST /notas no devolvio id"; exit 1; }
-          curl -fsS --max-time 20 "${base}/notas?q=${marca}" | grep -q "\"id\":\"${id}\"" \
-            || { echo "::error::GET /notas?q= no encuentra la nota ${id}"; exit 1; }
-          curl -fsS --max-time 20 -o /dev/null -w '%{http_code}\n' -X DELETE "${base}/notas/${id}" | grep -q '^204$' \
+          # F3: sin acentos y por prefijo ("reunion" encuentra "Reunión")
+          curl -fsS --max-time 20 -H "${auth}" "${base}/notas?q=reunion+${marca}" | grep -q "\"id\":\"${id}\"" \
+            || { echo "::error::GET /notas?q=reunion no encuentra la nota ${id}"; exit 1; }
+          curl -fsS --max-time 20 -o /dev/null -w '%{http_code}\n' -X DELETE -H "${auth}" "${base}/notas/${id}" | grep -q '^204$' \
             || { echo "::error::DELETE /notas/${id} no devolvio 204"; exit 1; }
-          echo "OK: /notas crea, busca y borra"
+          echo "OK: /notas crea, busca sin acentos y borra"
 
       - name: Resumen del despliegue
         if: success() && steps.fly.outputs.configurado == 'true'
