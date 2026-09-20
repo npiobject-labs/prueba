@@ -10,6 +10,8 @@ serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 tower-http = { version = "0.6", features = ["cors"] }
+# rustls en vez de OpenSSL: el Dockerfile no instala libssl-dev y no hace falta.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "http2"] }
 
 [profile.release]
 opt-level = "z"

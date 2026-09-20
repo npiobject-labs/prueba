@@ -107,6 +107,41 @@ jobs:
             echo "AVISO: sin secreto TOKEN_API, la API de notas queda abierta."
           fi
 
+      # Clave del servicio de modelos (D5/D9): secreto de repositorio LLM_API_KEY,
+      # que es la clave de esta aplicacion en el servicio openrouter. Sin el, las
+      # notas se guardan con titulo de respaldo y sin etiquetas (D6), que es un
+      # modo previsto y no un fallo.
+      - name: Fijar la clave de la IA si existe el secreto
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE: ${{ vars.LLM_BASE }}
+          LLM_MODELO: ${{ vars.LLM_MODELO }}
+        run: |
+          if [ -n "${LLM_API_KEY}" ]; then
+            flyctl secrets set "LLM_API_KEY=${LLM_API_KEY}" --app "${FLY_APP}" --stage
+            echo "Clave de la IA configurada (valor oculto)."
+          else
+            flyctl secrets unset LLM_API_KEY --app "${FLY_APP}" --stage 2>/dev/null || true
+            echo "AVISO: sin secreto LLM_API_KEY, las notas van sin titulo ni etiquetas de IA." >> "$GITHUB_STEP_SUMMARY"
+            echo "AVISO: sin secreto LLM_API_KEY, las notas van sin titulo ni etiquetas de IA."
+          fi
+          # Ambas son variables de repositorio opcionales: sin ellas valen el
+          # servidor y el modelo por defecto.
+          if [ -n "${LLM_BASE}" ]; then
+            flyctl secrets set "LLM_BASE=${LLM_BASE}" --app "${FLY_APP}" --stage
+            echo "Servicio de modelos: ${LLM_BASE}"
+          else
+            flyctl secrets unset LLM_BASE --app "${FLY_APP}" --stage 2>/dev/null || true
+          fi
+          if [ -n "${LLM_MODELO}" ]; then
+            flyctl secrets set "LLM_MODELO=${LLM_MODELO}" --app "${FLY_APP}" --stage
+            echo "Modelo: ${LLM_MODELO}"
+          else
+            flyctl secrets unset LLM_MODELO --app "${FLY_APP}" --stage 2>/dev/null || true
+          fi
+
       - name: Fijar BUILD_ID con el SHA del commit
         if: steps.fly.outputs.configurado == 'true'
         env:
@@ -182,6 +217,40 @@ jobs:
           curl -fsS --max-time 20 -o /dev/null -w '%{http_code}\n' -X DELETE -H "${auth}" "${base}/notas/${id}" | grep -q '^204$' \
             || { echo "::error::DELETE /notas/${id} no devolvio 204"; exit 1; }
           echo "OK: /notas crea, busca sin acentos y borra"
+
+      # F2: con clave, una nota real tiene que volver titulada y etiquetada.
+      # Cuesta una fraccion de centimo y es la unica forma de saber que la
+      # cadena entera (Fly -> servicio -> modelo) funciona de verdad.
+      - name: Verificar la IA
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+          TOKEN_API: ${{ secrets.TOKEN_API }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          base="https://${FLY_APP}.fly.dev"
+          auth="Authorization: Bearer ${TOKEN_API}"
+          salud="$(curl -fsS --max-time 20 "${base}/salud")"
+          if [ -z "${LLM_API_KEY}" ]; then
+            printf '%s' "${salud}" | grep -q '"ia":false' \
+              || { echo "::error::sin secreto LLM_API_KEY, /salud deberia decir \"ia\":false"; exit 1; }
+            echo "OK: sin clave de IA, el servicio lo declara y las notas se guardan igual (D6)"
+            exit 0
+          fi
+          printf '%s' "${salud}" | grep -q '"ia":true' \
+            || { echo "::error::con secreto LLM_API_KEY, /salud dice ${salud}"; exit 1; }
+          nota="$(curl -fsS --max-time 30 -X POST "${base}/notas" -H 'Content-Type: application/json' -H "${auth}" \
+            -d '{"contenido":"Llamar mañana al taller para la revisión del coche y pedir presupuesto de los neumáticos."}')"
+          echo "Creada: ${nota}"
+          id="$(printf '%s' "${nota}" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')"
+          [ -n "${id}" ] || { echo "::error::POST /notas no devolvio id"; exit 1; }
+          # Se borra pase lo que pase: la verificacion no deja basura en la base.
+          trap 'curl -fsS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/notas/${id}" || true' EXIT
+          printf '%s' "${nota}" | grep -q '"pendiente_ia":false' \
+            || { echo "::error::la nota quedo pendiente de IA: el servicio de modelos no respondio"; exit 1; }
+          printf '%s' "${nota}" | grep -q '"etiquetas":\[".' \
+            || { echo "::error::la nota volvio sin etiquetas"; exit 1; }
+          echo "OK: la IA titula y etiqueta"
 
       - name: Resumen del despliegue
         if: success() && steps.fly.outputs.configurado == 'true'

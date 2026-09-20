@@ -1,3 +1,5 @@
+mod llm;
+
 use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::{
@@ -5,7 +7,7 @@ use axum::{
     http::{header, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use rusqlite::{params, Connection, OptionalExtension};
@@ -195,22 +197,55 @@ async fn crear_nota(State(db): State<Db>, Json(nueva): Json<NuevaNota>) -> Respu
     if contenido.is_empty() {
         return error(StatusCode::BAD_REQUEST, "contenido vacío");
     }
-    let con = db.lock().unwrap();
-    let titulo = titulo_respaldo(&contenido);
-    // id aleatorio y fecha UTC los pone SQLite: sin dependencias extra.
-    let id: String = match con.query_row(
-        "INSERT INTO notas (id, titulo, contenido, creada_en, pendiente_ia)
-         VALUES (lower(hex(randomblob(8))), ?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1)
-         RETURNING id",
-        params![titulo, contenido],
-        |f| f.get(0),
-    ) {
-        Ok(id) => id,
-        Err(e) => return interno(e),
+    // La nota se guarda antes de saber nada de la IA, con su titulo de respaldo
+    // y marcada pendiente (D6). El candado se suelta aqui: no puede seguir
+    // tomado mientras se espera al modelo.
+    let id: String = {
+        let con = db.lock().unwrap();
+        let titulo = titulo_respaldo(&contenido);
+        // id aleatorio y fecha UTC los pone SQLite: sin dependencias extra.
+        match con.query_row(
+            "INSERT INTO notas (id, titulo, contenido, creada_en, pendiente_ia)
+             VALUES (lower(hex(randomblob(8))), ?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1)
+             RETURNING id",
+            params![titulo, contenido],
+            |f| f.get(0),
+        ) {
+            Ok(id) => id,
+            Err(e) => return interno(e),
+        }
     };
+
+    completar_con_ia(&db, &id).await;
+
+    let con = db.lock().unwrap();
     match leer_nota(&con, &id) {
         Ok(Some(n)) => Ok((StatusCode::CREATED, Json(n))),
         Ok(None) => error(StatusCode::INTERNAL_SERVER_ERROR, "la nota no se guardó"),
+        Err(e) => interno(e),
+    }
+}
+
+/// Reintento manual (D6): la nota ya existe y se vuelve a pedir su titulo.
+async fn reintentar_ia(State(db): State<Db>, Path(id): Path<String>) -> Respuesta<Json<Nota>> {
+    {
+        let con = db.lock().unwrap();
+        match leer_nota(&con, &id) {
+            Ok(Some(_)) => {}
+            Ok(None) => return error(StatusCode::NOT_FOUND, "nota no encontrada"),
+            Err(e) => return interno(e),
+        }
+    }
+    if ia().is_none() {
+        return error(StatusCode::SERVICE_UNAVAILABLE, "no hay IA configurada");
+    }
+    if !completar_con_ia(&db, &id).await {
+        return error(StatusCode::BAD_GATEWAY, "la IA no respondió; la nota sigue pendiente");
+    }
+    let con = db.lock().unwrap();
+    match leer_nota(&con, &id) {
+        Ok(Some(n)) => Ok(Json(n)),
+        Ok(None) => error(StatusCode::NOT_FOUND, "nota no encontrada"),
         Err(e) => interno(e),
     }
 }
@@ -296,6 +331,78 @@ fn token_api() -> Option<&'static str> {
         .as_deref()
 }
 
+/// El servicio de modelos (D5), leido una sola vez. `None` = sin IA, que es un
+/// modo previsto: la aplicacion guarda notas igual.
+fn ia() -> Option<&'static llm::Llm> {
+    static IA: OnceLock<Option<llm::Llm>> = OnceLock::new();
+    IA.get_or_init(llm::Llm::del_entorno).as_ref()
+}
+
+/// Pide titulo y etiquetas para una nota ya guardada y los escribe. Devuelve si
+/// lo consiguio. Cualquier fallo se queda en el log y la nota conserva su
+/// titulo de respaldo con `pendiente_ia = 1` (D6): la IA nunca hace perder una
+/// nota ni rompe la respuesta al usuario.
+async fn completar_con_ia(db: &Db, id: &str) -> bool {
+    let Some(ia) = ia() else { return false };
+
+    // Se lee lo que hace falta y se suelta el candado antes de salir a la red.
+    let datos = {
+        let con = db.lock().unwrap();
+        let contenido: Option<String> = con
+            .query_row("SELECT contenido FROM notas WHERE id = ?1", [id], |f| f.get(0))
+            .optional()
+            .unwrap_or(None);
+        // Las mas usadas primero: son las que conviene que reutilice.
+        let existentes: Vec<String> = con
+            .prepare_cached("SELECT etiqueta FROM etiquetas GROUP BY etiqueta ORDER BY COUNT(*) DESC, etiqueta")
+            .and_then(|mut s| s.query_map([], |f| f.get(0))?.collect())
+            .unwrap_or_default();
+        contenido.map(|c| (c, existentes))
+    };
+    let Some((contenido, existentes)) = datos else {
+        eprintln!("ia: la nota {id} ya no está");
+        return false;
+    };
+
+    let sugerencia = match ia.titular(&contenido, &existentes).await {
+        Ok(s) if !s.titulo.trim().is_empty() => s,
+        Ok(_) => {
+            eprintln!("ia: título vacío para la nota {id}");
+            return false;
+        }
+        Err(e) => {
+            eprintln!("ia: {e}");
+            return false;
+        }
+    };
+
+    let con = db.lock().unwrap();
+    // Titulo y etiquetas entran juntos o no entra ninguno: media sugerencia
+    // guardada es peor que ninguna.
+    let escribir = || -> rusqlite::Result<()> {
+        let tx = con.unchecked_transaction()?;
+        tx.execute(
+            "UPDATE notas SET titulo = ?1, pendiente_ia = 0 WHERE id = ?2",
+            params![sugerencia.titulo, id],
+        )?;
+        tx.execute("DELETE FROM etiquetas WHERE nota_id = ?1", [id])?;
+        {
+            let mut ins = tx.prepare("INSERT INTO etiquetas (nota_id, etiqueta) VALUES (?1, ?2)")?;
+            for etiqueta in &sugerencia.etiquetas {
+                ins.execute(params![id, etiqueta])?;
+            }
+        }
+        tx.commit()
+    };
+    match escribir() {
+        Ok(()) => true,
+        Err(e) => {
+            eprintln!("ia: no se pudo guardar la sugerencia de {id}: {e}");
+            false
+        }
+    }
+}
+
 fn iguales_en_tiempo_constante(a: &str, b: &str) -> bool {
     a.len() == b.len() && a.bytes().zip(b.bytes()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
@@ -330,7 +437,7 @@ async fn salud() -> impl IntoResponse {
     let build = std::env::var("BUILD_ID").unwrap_or_else(|_| "dev".to_string());
     (
         [(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")],
-        Json(json!({ "ok": true, "build": build, "token": token_api().is_some() })),
+        Json(json!({ "ok": true, "build": build, "token": token_api().is_some(), "ia": ia().is_some() })),
     )
 }
 
@@ -343,6 +450,7 @@ async fn main() {
     let protegidas = Router::new()
         .route("/notas", get(listar_notas).post(crear_nota))
         .route("/notas/{id}", get(ver_nota).delete(borrar_nota))
+        .route("/notas/{id}/reintentar-ia", post(reintentar_ia))
         .route("/etiquetas", get(listar_etiquetas))
         .route_layer(middleware::from_fn(exigir_token));
     let app = Router::new()
@@ -355,6 +463,9 @@ async fn main() {
     match token_api() {
         Some(_) => println!("token de acceso activo"),
         None => println!("AVISO: sin TOKEN_API, la API de notas queda abierta"),
+    }
+    if ia().is_none() {
+        println!("AVISO: sin LLM_API_KEY, las notas se guardan con título de respaldo y sin etiquetas");
     }
 
     let direccion = format!("0.0.0.0:{}", puerto());
