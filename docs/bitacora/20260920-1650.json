@@ -1,0 +1,36 @@
+{
+  "fecha": "2026-09-20T16:50:00+02:00",
+  "titulo": "El dictado en Android escribía la frase repetida palabra a palabra",
+  "objetivo": "Arreglar la transcripción del botón Dictar, que sumaba todas las versiones parciales del reconocimiento.",
+  "prompts": [
+    {
+      "texto": "Al pulsar Dictar, no transcribe bien, y como que repite texto",
+      "nota": "Con una captura del móvil: dictando una frase, el textarea mostraba «sí sí sí para sí para jugar sí para jugar de…»."
+    }
+  ],
+  "cambios": [
+    "docs/index.html: el dictado se recorre desde ev.resultIndex, el interino ya no se acumula, los trozos finales se fusionan solo si llegan dentro de dos segundos, continuous pasa a false y el dictado largo sale de rearrancar en onend",
+    "docs/index.html: mensaje propio cuando se deniega el micrófono; Cancelar y Guardar cortan el rearranque",
+    "docs/sw.js: caché al build nuevo",
+    "docs/mocks/009-notas-tema.html: mock 8 archivado",
+    "CLAUDE.md y docs/planificacion/plan-notas.md: F8 y la regla de no usar continuous"
+  ],
+  "sha": "aa716f2",
+  "sha_completo": "aa716f2928e3f9797bb33bd225ff9cd3d5131e33",
+  "mock": "mocks/009-notas-tema.html",
+  "build": "PR-B1-20260920-011",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Probar el dictado en el móvil de verdad: es donde salió el fallo y donde hay que confirmar el arreglo.",
+    "Elegir el modelo que redacta los documentos: definir la variable de repositorio LLM_MODELO_DOCUMENTO y relanzar deploy.yml a mano."
+  ],
+  "enlaces": [
+    {
+      "texto": "PR #18",
+      "url": "https://github.com/npiobject-labs/prueba/pull/18"
+    }
+  ],
+  "notas": "Chrome en Android entrega cada versión del resultado interino en un índice nuevo en vez de actualizar el mismo, así que sumarlos todos escribía la frase creciendo palabra a palabra. Probado con un motor de voz simulado en Chromium, porque el sandbox no tiene micrófono.",
+  "run": "35517647571"
+}
