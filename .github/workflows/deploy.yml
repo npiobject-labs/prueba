@@ -118,6 +118,7 @@ jobs:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE: ${{ vars.LLM_BASE }}
           LLM_MODELO: ${{ vars.LLM_MODELO }}
+          LLM_MODELO_DOCUMENTO: ${{ vars.LLM_MODELO_DOCUMENTO }}
         run: |
           if [ -n "${LLM_API_KEY}" ]; then
             flyctl secrets set "LLM_API_KEY=${LLM_API_KEY}" --app "${FLY_APP}" --stage
@@ -140,6 +141,13 @@ jobs:
             echo "Modelo: ${LLM_MODELO}"
           else
             flyctl secrets unset LLM_MODELO --app "${FLY_APP}" --stage 2>/dev/null || true
+          fi
+          # Redactar un documento (F5) no es tarea del modelo barato que titula.
+          if [ -n "${LLM_MODELO_DOCUMENTO}" ]; then
+            flyctl secrets set "LLM_MODELO_DOCUMENTO=${LLM_MODELO_DOCUMENTO}" --app "${FLY_APP}" --stage
+            echo "Modelo de documentos: ${LLM_MODELO_DOCUMENTO}"
+          else
+            flyctl secrets unset LLM_MODELO_DOCUMENTO --app "${FLY_APP}" --stage 2>/dev/null || true
           fi
 
       - name: Fijar BUILD_ID con el SHA del commit
@@ -252,6 +260,58 @@ jobs:
             || { echo "::error::la nota volvio sin etiquetas"; exit 1; }
           echo "OK: la IA titula y etiqueta"
 
+      # F5: un documento real de punta a punta. Solo con clave: sin IA la ruta
+      # contesta 503 a proposito y eso tambien se comprueba.
+      - name: Verificar /documentos
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+          TOKEN_API: ${{ secrets.TOKEN_API }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          base="https://${FLY_APP}.fly.dev"
+          auth="Authorization: Bearer ${TOKEN_API}"
+          marca="doc-${GITHUB_SHA:0:7}"
+          n1="$(curl -fsS --max-time 30 -X POST "${base}/notas" -H 'Content-Type: application/json' -H "${auth}" \
+            -d "{\"contenido\":\"${marca}: el buscador tarda mucho cuando hay muchas notas guardadas.\"}")"
+          n2="$(curl -fsS --max-time 30 -X POST "${base}/notas" -H 'Content-Type: application/json' -H "${auth}" \
+            -d "{\"contenido\":\"${marca}: quiero paginar la lista y que el filtro por etiqueta se mantenga.\"}")"
+          id1="$(printf '%s' "${n1}" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')"
+          id2="$(printf '%s' "${n2}" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')"
+          [ -n "${id1}" ] && [ -n "${id2}" ] || { echo "::error::no se pudieron crear las notas de prueba"; exit 1; }
+          trap 'for n in "${id1}" "${id2}"; do curl -fsS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/notas/${n}" || true; done' EXIT
+
+          if [ -z "${LLM_API_KEY}" ]; then
+            codigo="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' -X POST "${base}/documentos" \
+              -H 'Content-Type: application/json' -H "${auth}" -d "{\"notas\":[\"${id1}\"]}")"
+            [ "${codigo}" = "503" ] || { echo "::error::sin clave de IA, POST /documentos devolvio ${codigo}, se esperaba 503"; exit 1; }
+            echo "OK: sin clave de IA, /documentos lo dice y no crea nada"
+            exit 0
+          fi
+
+          doc="$(curl -fsS --max-time 30 -X POST "${base}/documentos" -H 'Content-Type: application/json' -H "${auth}" \
+            -d "{\"notas\":[\"${id2}\",\"${id1}\"],\"instruccion\":\"centrate en el rendimiento\"}")"
+          echo "Creado: $(printf '%s' "${doc}" | cut -c1-200)"
+          doc_id="$(printf '%s' "${doc}" | sed -n 's/^{"id":"\([^"]*\)".*/\1/p')"
+          [ -n "${doc_id}" ] || { echo "::error::POST /documentos no devolvio id"; exit 1; }
+          trap 'curl -fsS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/documentos/${doc_id}" || true; for n in "${id1}" "${id2}"; do curl -fsS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/notas/${n}" || true; done' EXIT
+
+          # Se genera en segundo plano: se pregunta hasta dos minutos y medio.
+          estado="pendiente"
+          for intento in $(seq 1 30); do
+            sleep 5
+            actual="$(curl -fsS --max-time 20 -H "${auth}" "${base}/documentos/${doc_id}")"
+            estado="$(printf '%s' "${actual}" | sed -n 's/.*"estado":"\([^"]*\)".*/\1/p')"
+            echo "Intento ${intento}/30: estado=${estado}"
+            [ "${estado}" = "pendiente" ] || break
+          done
+          [ "${estado}" = "listo" ] || { echo "::error::el documento acabo en estado '${estado}': ${actual}"; exit 1; }
+          for seccion in "## Objetivo" "## Requisitos" "## Criterios de aceptación" "## Notas de origen"; do
+            printf '%s' "${actual}" | grep -qF "${seccion}" \
+              || { echo "::error::el documento no trae la seccion ${seccion}"; exit 1; }
+          done
+          echo "OK: /documentos redacta el encargo con su estructura y sus notas de origen"
+
       - name: Resumen del despliegue
         if: success() && steps.fly.outputs.configurado == 'true'
         env:
@@ -266,6 +326,7 @@ jobs:
             echo "- Salud: https://${FLY_APP}.fly.dev/salud"
             echo "- Hola mundo: https://${FLY_APP}.fly.dev/holamundo"
             echo "- Notas: https://${FLY_APP}.fly.dev/notas"
+            echo "- Documentos: https://${FLY_APP}.fly.dev/documentos"
             echo "- Comprobacion desde Pages: https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/holamundo.html"
             echo "- Build (SHA): \`${GITHUB_SHA}\`"
           } >> "$GITHUB_STEP_SUMMARY"

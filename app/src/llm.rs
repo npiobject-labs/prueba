@@ -1,8 +1,11 @@
-//! Título y etiquetas de una nota, pedidos al servicio de modelos (D5).
+//! Lo que la aplicación le pide al servicio de modelos (D5): título y
+//! etiquetas de una nota, y el documento que resume un conjunto de notas
+//! (D11).
 //!
 //! Todo lo que sabe la aplicación del proveedor vive aquí: si mañana cambia el
 //! protocolo se reescribe este fichero y nada más, que es lo que el plan dejó
-//! decidido como plan B de D5. Hacia fuera solo se ofrece `titular`.
+//! decidido como plan B de D5. Hacia fuera solo se ofrecen `titular` y
+//! `documentar`.
 //!
 //! El servicio al que se llama es `openrouter`, el proxy propio: habla el
 //! formato de la API de OpenAI, cobra contra la clave de esta aplicación y
@@ -26,12 +29,38 @@ const ETIQUETAS_DE_CONTEXTO: usize = 40;
 /// título y sí encarece la llamada.
 const MAXIMO_CONTENIDO: usize = 4000;
 
+/// D11: un documento no lo espera nadie delante (se genera en segundo plano y
+/// el móvil pregunta por él), así que aquí la espera larga no molesta a nadie.
+const ESPERA_DOCUMENTO: Duration = Duration::from_secs(120);
+
+/// Tope de material que entra en un documento. Veinte notas dictadas caben de
+/// sobra; pasado esto se recorta y el documento lo dice.
+const MAXIMO_DOCUMENTO: usize = 30_000;
+
 /// Lo que el modelo devuelve para una nota.
 #[derive(Debug, Deserialize)]
 pub struct Sugerencia {
     pub titulo: String,
     #[serde(default)]
     pub etiquetas: Vec<String>,
+}
+
+/// Una nota tal y como entra en un documento (D11). El backend la arma; aquí
+/// solo se formatea para el modelo.
+pub struct NotaFuente {
+    pub titulo: String,
+    pub creada_en: String,
+    pub contenido: String,
+    pub etiquetas: Vec<String>,
+}
+
+/// Lo que el modelo devuelve para un conjunto de notas (D11). `markdown` trae
+/// el documento entero menos la sección de notas de origen, que la escribe el
+/// backend para que sea fiel y no dependa de lo que el modelo recuerde.
+#[derive(Debug, Deserialize)]
+pub struct Documento {
+    pub titulo: String,
+    pub markdown: String,
 }
 
 /// Configuración del servicio, leída del entorno una sola vez al arrancar.
@@ -41,6 +70,7 @@ pub struct Llm {
     base: String,
     clave: String,
     modelo: Option<String>,
+    modelo_documento: Option<String>,
 }
 
 impl Llm {
@@ -60,6 +90,14 @@ impl Llm {
             .ok()
             .map(|m| m.trim().to_string())
             .filter(|m| !m.is_empty());
+        // Titular es tarea de modelo barato; redactar un documento no. Si no se
+        // fija ninguno manda el mismo de titular, y en último término el que el
+        // servicio ponga por defecto.
+        let modelo_documento = std::env::var("LLM_MODELO_DOCUMENTO")
+            .ok()
+            .map(|m| m.trim().to_string())
+            .filter(|m| !m.is_empty())
+            .or_else(|| modelo.clone());
         let http = Client::builder()
             .user_agent("prueba-backend")
             .build()
@@ -70,6 +108,7 @@ impl Llm {
             base,
             clave,
             modelo,
+            modelo_documento,
         })
     }
 
@@ -80,14 +119,60 @@ impl Llm {
         contenido: &str,
         etiquetas_existentes: &[String],
     ) -> Result<Sugerencia, String> {
+        let texto = self
+            .completar(
+                self.peticion(contenido, etiquetas_existentes),
+                "notas-titular",
+                ESPERA,
+            )
+            .await?;
+        let sugerencia: Sugerencia = serde_json::from_str(&texto)
+            .map_err(|e| format!("el modelo no devolvió el JSON esperado: {e}"))?;
+        Ok(limpiar(sugerencia))
+    }
+
+    /// Redacta el documento de un conjunto de notas (D11). El backend le añade
+    /// después la sección de notas de origen.
+    pub async fn documentar(
+        &self,
+        notas: &[NotaFuente],
+        instruccion: &str,
+    ) -> Result<Documento, String> {
+        if notas.is_empty() {
+            return Err("no hay notas que documentar".into());
+        }
+        let texto = self
+            .completar(
+                self.peticion_documento(notas, instruccion),
+                "notas-documento",
+                ESPERA_DOCUMENTO,
+            )
+            .await?;
+        let documento: Documento = serde_json::from_str(&texto)
+            .map_err(|e| format!("el modelo no devolvió el JSON esperado: {e}"))?;
+        let documento = limpiar_documento(documento);
+        if documento.markdown.trim().is_empty() {
+            return Err("el modelo devolvió un documento vacío".into());
+        }
+        Ok(documento)
+    }
+
+    /// El envío, igual para todo lo que se le pide al servicio: mismo sobre de
+    /// error y mismo sitio donde viene el texto de la respuesta.
+    async fn completar(
+        &self,
+        peticion: Value,
+        operacion: &str,
+        espera: Duration,
+    ) -> Result<String, String> {
         let respuesta = self
             .http
             .post(format!("{}/chat/completions", self.base))
             .bearer_auth(&self.clave)
             // Agrupa en el servicio todo lo que gasta esta aplicación.
-            .header("X-Operacion", "notas-titular")
-            .timeout(ESPERA)
-            .json(&self.peticion(contenido, etiquetas_existentes))
+            .header("X-Operacion", operacion)
+            .timeout(espera)
+            .json(&peticion)
             .send()
             .await
             .map_err(|e| format!("no se pudo llamar al servicio: {}", causas(&e)))?;
@@ -109,18 +194,16 @@ impl Llm {
                 .pointer("/error/message")
                 .and_then(Value::as_str)
                 .unwrap_or("sin detalle");
-            return Err(format!("el servicio respondió {estado} ({codigo}): {mensaje}"));
+            return Err(format!(
+                "el servicio respondió {estado} ({codigo}): {mensaje}"
+            ));
         }
 
-        let texto = cuerpo
+        cuerpo
             .pointer("/choices/0/message/content")
             .and_then(Value::as_str)
-            .ok_or_else(|| "la respuesta no trae contenido".to_string())?;
-
-        let sugerencia: Sugerencia = serde_json::from_str(texto)
-            .map_err(|e| format!("el modelo no devolvió el JSON esperado: {e}"))?;
-
-        Ok(limpiar(sugerencia))
+            .map(str::to_string)
+            .ok_or_else(|| "la respuesta no trae contenido".to_string())
     }
 
     /// El cuerpo de la petición, en formato de la API de OpenAI. Sin `model` el
@@ -196,6 +279,109 @@ impl Llm {
         }
         cuerpo
     }
+
+    /// El cuerpo de la petición del documento (D11). Misma API que titular,
+    /// otro encargo: aquí el modelo no clasifica, redacta un enunciado de
+    /// trabajo a partir de lo que dictó el usuario.
+    fn peticion_documento(&self, notas: &[NotaFuente], instruccion: &str) -> Value {
+        let mut material = String::new();
+        let mut recortadas = 0usize;
+        for (i, n) in notas.iter().enumerate() {
+            let cabecera = if n.etiquetas.is_empty() {
+                format!("### Nota {} — {} ({})\n", i + 1, n.titulo, n.creada_en)
+            } else {
+                format!(
+                    "### Nota {} — {} ({}) · etiquetas: {}\n",
+                    i + 1,
+                    n.titulo,
+                    n.creada_en,
+                    n.etiquetas.join(", ")
+                )
+            };
+            // Se recorta por nota, no por el final: con veinte notas largas, un
+            // corte global dejaría fuera las últimas enteras.
+            let sitio = MAXIMO_DOCUMENTO
+                .saturating_sub(material.chars().count() + cabecera.chars().count());
+            let por_nota = (MAXIMO_DOCUMENTO / notas.len().max(1)).min(sitio);
+            let contenido: String = n.contenido.chars().take(por_nota).collect();
+            if contenido.chars().count() < n.contenido.chars().count() {
+                recortadas += 1;
+            }
+            material.push_str(&cabecera);
+            material.push_str(&contenido);
+            material.push_str("\n\n");
+        }
+        if recortadas > 0 {
+            material.push_str(&format!(
+                "(Aviso: {recortadas} nota(s) se han recortado por longitud; dilo en «Dudas por resolver».)\n"
+            ));
+        }
+
+        let encargo = match instruccion.trim() {
+            "" => String::new(),
+            i => format!(
+                "Instrucción del usuario para este documento, por encima de todo lo demás: {i}\n\n"
+            ),
+        };
+
+        let mut cuerpo = json!({
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Conviertes notas personales dictadas en un encargo de trabajo \
+                                listo para dárselo a un agente de programación. No ejecutas nada: \
+                                redactas el enunciado. Devuelves solo JSON con las claves \
+                                «titulo» y «markdown». El título es una frase corta y concreta, \
+                                sin comillas ni punto final. El markdown empieza por un \
+                                encabezado de primer nivel con ese mismo título y lleva estas \
+                                seis secciones de segundo nivel, en este orden y sin añadir ni \
+                                quitar ninguna: «Contexto», «Objetivo», «Requisitos», \
+                                «Decisiones y restricciones», «Criterios de aceptación», \
+                                «Dudas por resolver». \
+                                Reglas: no inventes ni un requisito que las notas no pidan; lo \
+                                que quede ambiguo va en «Dudas por resolver» como pregunta \
+                                concreta y cerrada, no como comentario. «Objetivo» es una sola \
+                                frase. «Requisitos» y «Criterios de aceptación» van numerados, \
+                                una idea por línea, y cada criterio tiene que ser comprobable. \
+                                Funde lo que se repita en varias notas y lleva a «Dudas» lo que \
+                                se contradiga, diciendo qué nota dice cada cosa. Si las notas no \
+                                dan material para una sección, escribe en ella una línea que diga \
+                                qué falta, en vez de rellenar. Español, tono directo, sin \
+                                preámbulos ni cortesías, sin hablar de ti mismo ni del proceso. \
+                                No escribas ninguna sección de notas de origen: esa la añade la \
+                                aplicación."
+                },
+                {
+                    "role": "user",
+                    "content": format!("{encargo}Notas dictadas, de la más antigua a la más reciente:\n\n{material}")
+                }
+            ],
+            "max_tokens": 3000,
+            // Algo más suelto que titular: hay que redactar, no clasificar.
+            "temperature": 0.3,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "documento_de_notas",
+                    "strict": true,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "titulo": { "type": "string", "maxLength": 80 },
+                            "markdown": { "type": "string" }
+                        },
+                        "required": ["titulo", "markdown"],
+                        "additionalProperties": false
+                    }
+                }
+            }
+        });
+
+        if let Some(modelo) = &self.modelo_documento {
+            cuerpo["model"] = json!(modelo);
+        }
+        cuerpo
+    }
 }
 
 /// `reqwest::Error` no enseña por si solo por que fallo la conexion: el motivo
@@ -216,23 +402,40 @@ fn causas(e: &reqwest::Error) -> String {
 /// nota siguiente se le pasan las existentes para que reutilice, asi que el
 /// ruido se propaga solo. Se filtran aqui, que es donde no hay margen de error.
 const ETIQUETAS_INUTILES: [&str; 10] = [
-    "nota", "notas", "personal", "general", "recordatorio", "tarea", "tareas", "varios", "otros",
+    "nota",
+    "notas",
+    "personal",
+    "general",
+    "recordatorio",
+    "tarea",
+    "tareas",
+    "varios",
+    "otros",
     "apuntes",
 ];
+
+/// Quita comillas y punto final, en cualquier orden y cuantas veces hagan
+/// falta: el modelo devuelve «Título». y una sola pasada deja el cierre
+/// colgando.
+fn recortar_adornos(texto: &str) -> String {
+    let mut t = texto.trim();
+    loop {
+        let antes = t;
+        t = t
+            .trim_matches(|c| matches!(c, '"' | '«' | '»' | '\u{201c}' | '\u{201d}'))
+            .trim_end_matches('.')
+            .trim();
+        if t == antes {
+            return t.to_string();
+        }
+    }
+}
 
 /// El esquema acota la forma, no el contenido: el título puede venir con
 /// comillas y las etiquetas repetidas o vacías. Se normaliza aquí para que la
 /// base de datos no herede la creatividad del modelo.
 fn limpiar(mut s: Sugerencia) -> Sugerencia {
-    s.titulo = s
-        .titulo
-        .trim()
-        .trim_matches(|c| c == '"' || c == '«' || c == '»')
-        .trim_end_matches('.')
-        .trim()
-        .chars()
-        .take(60)
-        .collect();
+    s.titulo = recortar_adornos(&s.titulo).chars().take(60).collect();
 
     let mut vistas: Vec<String> = Vec::new();
     for etiqueta in s.etiquetas.drain(..) {
@@ -256,6 +459,22 @@ fn limpiar(mut s: Sugerencia) -> Sugerencia {
     s
 }
 
+/// El modelo a veces envuelve el markdown en un cerco de código, y el título
+/// se le va en comillas igual que en las notas. Se quita aquí.
+fn limpiar_documento(mut d: Documento) -> Documento {
+    d.titulo = recortar_adornos(&d.titulo).chars().take(80).collect();
+
+    let texto = d.markdown.trim();
+    let texto = if texto.starts_with("```") {
+        let sin_apertura = texto.split_once('\n').map(|(_, resto)| resto).unwrap_or("");
+        sin_apertura.trim_end().trim_end_matches("```").trim_end()
+    } else {
+        texto
+    };
+    d.markdown = texto.to_string();
+    d
+}
+
 #[cfg(test)]
 mod pruebas {
     use super::*;
@@ -268,6 +487,15 @@ mod pruebas {
         });
         assert_eq!(s.titulo.chars().count(), 60);
         assert!(!s.titulo.contains('"'));
+    }
+
+    #[test]
+    fn quita_comillas_aunque_vayan_antes_del_punto() {
+        let s = limpiar(Sugerencia {
+            titulo: "  «Llamar al taller».  ".into(),
+            etiquetas: vec![],
+        });
+        assert_eq!(s.titulo, "Llamar al taller");
     }
 
     #[test]
@@ -299,6 +527,26 @@ mod pruebas {
             ],
         });
         assert_eq!(s.etiquetas, vec!["coche", "presupuesto"]);
+    }
+
+    #[test]
+    fn quita_el_cerco_de_codigo_del_documento() {
+        let d = limpiar_documento(Documento {
+            titulo: "  «Migrar el buscador».  ".into(),
+            markdown: "```markdown\n# Migrar el buscador\n\n## Contexto\nTexto.\n```".into(),
+        });
+        assert_eq!(d.titulo, "Migrar el buscador");
+        assert!(d.markdown.starts_with("# Migrar"));
+        assert!(!d.markdown.contains("```"));
+    }
+
+    #[test]
+    fn el_documento_sin_cerco_se_queda_igual() {
+        let d = limpiar_documento(Documento {
+            titulo: "Migrar el buscador".into(),
+            markdown: "# Migrar el buscador\n\n## Contexto\nTexto.".into(),
+        });
+        assert!(d.markdown.ends_with("Texto."));
     }
 
     #[test]
