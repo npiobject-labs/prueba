@@ -328,25 +328,40 @@
   $('generarSel').onclick = () => {
     const caracteres = [...seleccion.values()].reduce((t, x) => t + x.contenido.length, 0);
     const n = seleccion.size;
+    regenerando = null;
+    $('gaTitulo').textContent = 'Generar documento';
+    $('gaResumen').classList.remove('error');
     $('gaResumen').textContent = `${n} nota${n === 1 ? '' : 's'} seleccionada${n === 1 ? '' : 's'}.`
       + (caracteres > TOPE_CARACTERES ? ' Son muchas letras: el servidor recortará las notas más largas y lo dirá en el documento.' : '');
     $('gaInstruccion').value = '';
     $('hojaGen').classList.remove('hidden');
     $('gaInstruccion').focus();
   };
-  const cerrarHojaGen = () => $('hojaGen').classList.add('hidden');
+  // La misma hoja sirve para generar y para regenerar: lo unico que cambia es
+  // de donde salen las notas y si la instruccion viene puesta.
+  let regenerando = null;
+  const cerrarHojaGen = () => { $('hojaGen').classList.add('hidden'); $('gaResumen').classList.remove('error'); };
   $('gaNo').onclick = cerrarHojaGen;
   $('hojaGen').onclick = ev => { if (ev.target === $('hojaGen')) cerrarHojaGen(); };
   $('gaSi').onclick = async () => {
     $('gaSi').disabled = true; $('gaSi').textContent = 'Generando…';
+    const instruccion = $('gaInstruccion').value.trim();
     try {
-      const doc = await api('/documentos', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notas: [...seleccion.keys()], instruccion: $('gaInstruccion').value.trim() })
-      });
-      cerrarHojaGen(); salirSeleccion(); abrirDocumento(doc);
+      if (regenerando) {
+        const doc = await api('/documentos/' + encodeURIComponent(regenerando) + '/regenerar', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instruccion })
+        });
+        cerrarHojaGen(); abrirDocumento(doc);
+      } else {
+        const doc = await api('/documentos', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notas: [...seleccion.keys()], instruccion })
+        });
+        cerrarHojaGen(); salirSeleccion(); abrirDocumento(doc);
+      }
     } catch (e) {
-      $('gaResumen').textContent = 'No se pudo generar (' + e.message + '). La selección sigue aquí.';
+      $('gaResumen').textContent = 'No se pudo generar (' + e.message + '). '
+        + (regenerando ? 'El documento sigue como estaba.' : 'La selección sigue aquí.');
       $('gaResumen').classList.add('error');
     } finally { $('gaSi').disabled = false; $('gaSi').textContent = 'Generar'; }
   };
@@ -545,22 +560,17 @@
       $('gAviso').textContent = 'Cambios guardados.';
     } catch (e) { $('gGuardar').disabled = false; $('gAviso').textContent = 'No se pudo guardar (' + e.message + ').'; }
   };
-  $('gRegenerar').onclick = async () => {
-    const instruccion = prompt('Instrucción para volver a redactarlo (deja vacío para repetir igual):', docActual.instruccion || '');
-    if (instruccion === null) return;
-    $('gRegenerar').disabled = true; $('gAviso').textContent = '';
-    try {
-      abrirDocumento(await api('/documentos/' + encodeURIComponent(docActual.id) + '/regenerar', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instruccion })
-      }));
-    } catch (e) { $('gAviso').textContent = 'No se pudo regenerar (' + e.message + ').'; }
-    finally { $('gRegenerar').disabled = false; }
+  $('gRegenerar').onclick = () => {
+    regenerando = docActual.id;
+    $('gaTitulo').textContent = 'Regenerar documento';
+    $('gaResumen').classList.remove('error');
+    $('gaResumen').textContent = `Se vuelve a redactar con las mismas ${docActual.notas.length} nota`
+      + (docActual.notas.length === 1 ? '' : 's') + '. Lo que haya ahora se pierde.';
+    $('gaInstruccion').value = docActual.instruccion || '';
+    $('hojaGen').classList.remove('hidden');
+    $('gaInstruccion').focus();
   };
-  $('gBorrar').onclick = async () => {
-    if (!confirm('¿Borrar este documento? Las notas no se tocan.')) return;
-    try { await api('/documentos/' + encodeURIComponent(docActual.id), { method: 'DELETE' }); cargarDocumentos(); }
-    catch (e) { $('gAviso').textContent = 'No se pudo borrar (' + e.message + ').'; }
-  };
+  $('gBorrar').onclick = () => pedirBorrado(docActual, 'documento');
 
   // --- Editor y dictado ---
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -600,10 +610,12 @@
   $('volver').onclick = () => { ver('lista'); cargar(); };
 
   // --- Borrado con confirmación (hoja propia: el confirm() nativo falla en algunos webviews) ---
-  let aBorrar = null;
-  function pedirBorrado(n) {
-    aBorrar = n;
-    $('cNota').textContent = `${n.titulo} · ${fmt(n.creada_en)}`;
+  let aBorrar = null, tipoBorrado = 'nota';
+  function pedirBorrado(n, tipo = 'nota') {
+    aBorrar = n; tipoBorrado = tipo;
+    $('cTitulo').textContent = tipo === 'documento' ? '¿Borrar este documento?' : '¿Borrar esta nota?';
+    $('cNota').textContent = `${n.titulo} · ${fmt(tipo === 'documento' ? n.creado_en : n.creada_en)}`
+      + (tipo === 'documento' ? ' · las notas no se tocan' : '');
     $('cSi').disabled = false; $('cSi').textContent = 'Borrar';
     $('confirmar').classList.remove('hidden');
     $('cNo').focus();
@@ -619,10 +631,12 @@
   });
   $('cSi').onclick = async () => {
     if (!aBorrar) return;
+    const documento = tipoBorrado === 'documento';
     $('cSi').disabled = true; $('cSi').textContent = 'Borrando…';
     try {
-      await api('/notas/' + aBorrar.id, { method: 'DELETE' });
+      await api((documento ? '/documentos/' : '/notas/') + encodeURIComponent(aBorrar.id), { method: 'DELETE' });
       cerrarConfirmacion();
+      if (documento) { cargarDocumentos(); return; }
       if (!$('detalle').classList.contains('hidden')) ver('lista');
       cargar();
     } catch (e) {

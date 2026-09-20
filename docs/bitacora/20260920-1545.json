@@ -1,0 +1,50 @@
+{
+  "fecha": "2026-09-20T15:45:00+02:00",
+  "titulo": "De varias notas a un prompt bien montado",
+  "objetivo": "Seleccionar una o varias notas y generar con ellas un documento estructurado, listo para pasárselo a Claude Code.",
+  "prompts": [
+    {
+      "texto": "Vamos a ver. La aplicación prueba con notas funciona bien. Vamos a añadirle una nueva funcionalidad, la cual consiste en poder seleccionar varias notas y a partir de ese conjunto de notas generar un documento que contenga el contenido de esas notas, usar un agente de resúmenes y generación de prompts, pero bien estructurado. Que sea algo parecido a un prompt, para pasárselo a Claude Code. Hazme las preguntas necesarias para entender o para planificar mejor esta nueva funcionalidad. La idea es esa, seleccionar una nota o varias notas y generar un documento que dé una buena estructura de lo que se cuenta dentro de esas notas. Que dé un PROMPT, un PROMPT bien montado.",
+      "nota": "La sesión empezó con nueve preguntas de planificación: si el documento se guarda o solo se copia, qué estructura tiene, modelo y tiempo de generación, tope de notas, qué hacer después de generarlo y si hace falta rastro entre nota y documento."
+    },
+    {
+      "texto": "adelante con tus defectos"
+    },
+    {
+      "texto": "continúa hasta el final, con versión desplegada y lista para probar"
+    }
+  ],
+  "cambios": [
+    "app/src/llm.rs: documentar() con su espera de 120 s y su modelo propio; envío común a la API extraído de titular(); recorte de adornos del título arreglado y compartido",
+    "app/src/main.rs: tablas documentos y documento_notas, seis rutas nuevas, generación en segundo plano y rescate al arrancar de lo que quedara a medias",
+    "docs/index.html: mock 7, modo selección que sobrevive a los filtros, pantalla de documentos y detalle editable",
+    "docs/sw.js: caché al build nuevo",
+    ".github/workflows/deploy.yml: genera un documento real en cada despliegue y comprueba sus secciones; sin clave de IA, comprueba el 503",
+    "docs/planificacion/plan-notas.md: D11, D12, D13, F5 y F6",
+    "CLAUDE.md: rutas de documentos y la variable LLM_MODELO_DOCUMENTO",
+    "docs/mocks/007-notas-ia.html: mock 6 archivado",
+    "docs/index.html: regenerar y borrar un documento usan las hojas propias, no prompt() ni confirm() nativos"
+  ],
+  "sha": "ff2a0e6",
+  "sha_completo": "ff2a0e604d21ec3ff8dfb1a9f463f3b14ef1bdb4",
+  "mock": "mocks/007-notas-ia.html",
+  "build": "PR-B1-20260920-009",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Elegir el modelo que redacta los documentos: definir la variable de repositorio LLM_MODELO_DOCUMENTO y relanzar deploy.yml. Hoy lo hace el mismo modelo barato que titula las notas.",
+    "Probarlo en el móvil con notas dictadas de verdad."
+  ],
+  "enlaces": [
+    {
+      "texto": "PR #13",
+      "url": "https://github.com/npiobject-labs/prueba/pull/13"
+    },
+    {
+      "texto": "Run del despliegue",
+      "url": "https://github.com/npiobject-labs/prueba/actions/runs/35514456917"
+    }
+  ],
+  "notas": "Los prompts son casi literales; el primero se ha transcrito quitando las repeticiones del dictado. Un test nuevo destapó un fallo que llevaba dos fases en los títulos de las notas: «Así». se quedaba con la comilla de cierre colgando.",
+  "run": "35514456917"
+}
