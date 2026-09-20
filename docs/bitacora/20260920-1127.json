@@ -15,11 +15,12 @@
     "GET /salud publica \"ia\"",
     "Mock 6: distintivo «⏳ sin titular» en la lista y botón «✨ Titular con IA» en el detalle",
     "deploy.yml: pasa las variables LLM_* a Fly y verifica el título por IA sin tumbar el despliegue",
-    "Plan v4 y CLAUDE.md al día; mock 5 archivado en docs/mocks/006-notas-pwa.html"
+    "Plan v4 y CLAUDE.md al día; mock 5 archivado en docs/mocks/006-notas-pwa.html",
+    "Ajuste al contrato documentado: model opcional, cabecera X-Operacion y la URL fuera de docs/"
   ],
-  "sha": "e229353",
-  "sha_completo": "e2293539b124b8043b49121357415b08ea6b4773",
-  "run": "35502237876",
+  "sha": "083ff6d",
+  "sha_completo": "083ff6dded67e9abe696c6c282a591086b347d77",
+  "run": "35502444594",
   "mock": "mocks/006-notas-pwa.html",
   "build": "PR-B1-20260920-008",
   "pagina": "https://npiobject-labs.github.io/prueba/",
@@ -37,6 +38,10 @@
     {
       "texto": "Run de despliegue",
       "url": "https://github.com/npiobject-labs/prueba/actions/runs/35502237876"
+    },
+    {
+      "texto": "Run de despliegue (ajuste)",
+      "url": "https://github.com/npiobject-labs/prueba/actions/runs/35502444594"
     }
   ],
   "notas": "El sandbox de la sesión no compila Rust (crates.io bloqueado) ni alcanza el dominio del proveedor, así que la verificación fue el run de deploy.yml sobre la rama. El contrato (endpoint estilo OpenAI /v1/chat/completions, Authorization: Bearer y cabecera X-Operacion) se confirmó con la documentación del usuario; la URL y la clave no se escriben en docs/ porque es público: van en variables de repositorio y en el secreto LLM_API_KEY."
