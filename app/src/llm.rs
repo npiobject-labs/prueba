@@ -152,7 +152,12 @@ impl Llm {
                                 El título es una frase corta y concreta, en español, sin comillas \
                                 ni punto final, de 60 caracteres como mucho. \
                                 Las etiquetas son de una o dos palabras, en minúsculas, sin \
-                                acentos ni almohadillas, entre una y cuatro."
+                                acentos ni almohadillas, y nombran el asunto de la nota: de qué \
+                                trata, con quién o para cuándo. Prefiere una sola etiqueta buena \
+                                a cuatro mediocres. Nunca etiquetes con palabras que valdrían \
+                                para cualquier nota, como «nota», «personal», «general», \
+                                «recordatorio», «tarea» o «varios»: no distinguen nada y \
+                                ensucian el buscador."
                 },
                 {
                     "role": "user",
@@ -206,6 +211,15 @@ fn causas(e: &reqwest::Error) -> String {
     texto
 }
 
+/// Etiquetas que valdrían para cualquier nota. El modelo tiene instrucciones
+/// de no usarlas, pero se le escapan, y una sola que entre se perpetúa: a la
+/// nota siguiente se le pasan las existentes para que reutilice, asi que el
+/// ruido se propaga solo. Se filtran aqui, que es donde no hay margen de error.
+const ETIQUETAS_INUTILES: [&str; 10] = [
+    "nota", "notas", "personal", "general", "recordatorio", "tarea", "tareas", "varios", "otros",
+    "apuntes",
+];
+
 /// El esquema acota la forma, no el contenido: el título puede venir con
 /// comillas y las etiquetas repetidas o vacías. Se normaliza aquí para que la
 /// base de datos no herede la creatividad del modelo.
@@ -231,7 +245,10 @@ fn limpiar(mut s: Sugerencia) -> Sugerencia {
             .take(30)
             .collect();
         let limpia = limpia.trim().to_string();
-        if !limpia.is_empty() && !vistas.contains(&limpia) {
+        if !limpia.is_empty()
+            && !ETIQUETAS_INUTILES.contains(&limpia.as_str())
+            && !vistas.contains(&limpia)
+        {
             vistas.push(limpia);
         }
     }
@@ -268,6 +285,20 @@ mod pruebas {
             ],
         });
         assert_eq!(s.etiquetas, vec!["trabajo", "ideas", "compra", "viaje"]);
+    }
+
+    #[test]
+    fn descarta_las_etiquetas_que_valen_para_cualquier_nota() {
+        let s = limpiar(Sugerencia {
+            titulo: "Pedir presupuesto para los neumáticos".into(),
+            etiquetas: vec![
+                "coche".into(),
+                "nota".into(),
+                "Personal".into(),
+                "presupuesto".into(),
+            ],
+        });
+        assert_eq!(s.etiquetas, vec!["coche", "presupuesto"]);
     }
 
     #[test]

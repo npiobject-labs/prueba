@@ -1,0 +1,52 @@
+{
+  "fecha": "2026-09-20T14:30:00+02:00",
+  "titulo": "F2: el titulo y las etiquetas de cada nota los pone el modelo, a traves del servicio openrouter",
+  "objetivo": "Desbloquear F2, que llevaba aparcada por no saber que API de modelos usar, con que formato ni como se llama su secreto (D5). El dato llego al conectar esta aplicacion al servicio propio openrouter, asi que la fase se implemento entera: llm.rs, reintento, verificacion en el despliegue y la interfaz que lo enseña.",
+  "prompts": [
+    {
+      "texto": "hazlo tu, quiero poder utilizar openrouter desde otra app que se llama prueba. YO NO SOY CAPAZ. Vete paso a paso y solamente un paso"
+    },
+    {
+      "texto": "quiero generar la conexion de la app «prueba» a las APIs de «openrouter» pero no con el VPS sino con Fly. Guiame paso a paso, un paso cada vez"
+    },
+    {
+      "texto": "Una pregunta. Desde aqui tienes acceso a ambas aplicaciones? a prueba y a Openrouter?"
+    },
+    {
+      "texto": "Ojo, tengo otro proyecto que se llama Prueba y lo tengo en otra carpeta que se llama Prueba. Yo creo que lo que hay que hacer es bajar de GitHub prueba en local la app y ahi es donde tenemos que trabajar. No es asi?"
+    },
+    {
+      "texto": "el proyecto que quieres conectar a openrouter, es npiobject-labs/prueba, el que tengo en esa carpeta"
+    },
+    {
+      "texto": "ya lo he fusionado, comprueba el despliegue"
+    }
+  ],
+  "cambios": [
+    "app/src/llm.rs: nuevo, unico sitio que conoce al proveedor, con la firma que D5 dejo escrita como plan B. Salida estructurada por esquema JSON, etiquetas existentes en el prompt (las mas usadas primero) y normalizacion de lo que vuelve",
+    "app/src/main.rs: la nota se guarda antes de saber nada del modelo y el candado de SQLite se suelta antes de salir a la red; POST /notas/{id}/reintentar-ia; /salud declara «ia»",
+    "app/Cargo.toml: reqwest con rustls, para no tener que tocar el Dockerfile",
+    ".github/workflows/deploy.yml: vuelca el secreto LLM_API_KEY a Fly (y lo quita si se retira) y verifica las dos caras, con clave y sin ella; la nota de verificacion se borra pase lo que pase",
+    "docs/index.html: mock 6 (PR-B1-20260920-008) con distintivo «sin titular» y boton «Titular con IA»; mock 5 archivado en docs/mocks/006-notas-pwa.html; docs/sw.js al nuevo build",
+    "Correccion posterior a la primera nota real: el prompt prohibe las etiquetas que valdrian para cualquier nota y limpiar() las descarta, porque el vocabulario se realimenta y el ruido se propagaba solo",
+    "docs/planificacion/plan-notas.md: v4, F2 hecha, D5 resuelto y D9 concretado"
+  ],
+  "sha": "fe965d8",
+  "sha_completo": null,
+  "run": "35509967110",
+  "mock": "mocks/006-notas-pwa.html",
+  "build": "PR-B1-20260920-008",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Crear el secreto TOKEN_API: ahora es urgente, porque sin el cualquiera con la URL puede escribir notas y cada nota gasta dinero real del modelo. El tope de la aplicacion en el servicio acota el daño a 2 $ por dia",
+    "Instalar la app en el movil y guardar tres notas dictadas de verdad: es la verificacion que pedia F2 y que ningun workflow puede hacer",
+    "Fusionar el segundo PR, con el ajuste de las etiquetas genericas y este cierre"
+  ],
+  "enlaces": [
+    { "texto": "PR #10 · F2, titulo y etiquetas con IA", "url": "https://github.com/npiobject-labs/prueba/pull/10" },
+    { "texto": "Run del despliegue que verifico la IA", "url": "https://github.com/npiobject-labs/prueba/actions/runs/35509967110" },
+    { "texto": "El servicio que pone los modelos", "url": "https://github.com/npiobject-labs/openrouter" }
+  ],
+  "notas": "Los prompts son transcripcion de lo que pidio el usuario; la sesion empezo en el repositorio openrouter (alta de esta aplicacion con su clave y su tope) y siguio aqui, asi que varios prompts se refieren a aquel repo. La primera nota real la titulo bien pero la etiqueto con «nota» y «personal», que no distinguen nada; eso se corrigio despues por los dos lados, en el prompt y en el filtro."
+}
