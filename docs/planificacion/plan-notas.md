@@ -1,6 +1,6 @@
 # Plan — app de notas dictadas
 
-Fecha: 2026-09-20 · Estado: v10, F0 a F11 hechas: notas dictadas, tituladas por IA, buscables, con token, y documentos generados a partir de una selección de notas · Fuente de verdad: este fichero (la copia en Drive es solo copia).
+Fecha: 2026-09-20 · Estado: v11, F0 a F11 hechas: notas dictadas, tituladas por IA, buscables, con token, y documentos generados a partir de una selección de notas · Fuente de verdad: este fichero (la copia en Drive es solo copia).
 
 ## 1. Qué se pide (notas del usuario, en sus términos)
 
