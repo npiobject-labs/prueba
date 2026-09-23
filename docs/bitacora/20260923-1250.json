@@ -1,0 +1,29 @@
+{
+  "fecha": "2026-09-23T12:50:00+02:00",
+  "titulo": "Las notas se pueden editar",
+  "objetivo": "Poder corregir una nota ya guardada y comprobar si el campo de la base se quedaba corto.",
+  "prompts": [
+    {
+      "texto": "Nooo mee dejas existe las notas y creo que el campo de las bbdd  que la almacena se querrá corto, lo puedes revisar y corregir.",
+      "nota": "Con captura del detalle de una nota. Se interpretó «existe» como «editar» y «se querrá» como «se queda»."
+    }
+  ],
+  "cambios": [
+    "app/src/main.rs: PUT /notas/{id} para corregir contenido y título",
+    "docs/index.html: mock 17; botón «✏️ Editar» en el detalle y modo edición en el editor",
+    "docs/mocks/017-notas-copiar.html: mock 16 archivado",
+    "docs/sw.js: caché al build nuevo",
+    ".github/workflows/deploy.yml: el PUT se verifica con 6000 caracteres",
+    "CLAUDE.md: anotado"
+  ],
+  "sha": "f7fdc93",
+  "sha_completo": "f7fdc9374466aac815c6d4107df3159c5b1d9cdc",
+  "run": "35850894953",
+  "mock": "mocks/017-notas-copiar.html",
+  "build": "PR-B1-20260923-019",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": ["Completar la nota de la entrevista si quedó cortada.", "Planificar la sección Entrevista."],
+  "enlaces": [{ "texto": "PR #34", "url": "https://github.com/npiobject-labs/prueba/pull/34" }],
+  "notas": "El campo contenido es TEXT sin límite; si una nota se ve cortada, el texto se perdió al dictar. Prompt literal del dictado."
+}
