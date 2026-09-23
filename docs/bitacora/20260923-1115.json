@@ -1,0 +1,27 @@
+{
+  "fecha": "2026-09-23T11:15:00+02:00",
+  "titulo": "Pestañas para pasar de Proyectos a Notas",
+  "objetivo": "Que se pueda ir de la pantalla de proyectos a la de notas y al revés sin adivinar.",
+  "prompts": [
+    {
+      "texto": "Actualmente tenemos dos pantallas la de proyectos y la de notas entonces entrando en la estando en la de proyectos como puedes ver arriba no hay como volver a la como ir a la pantalla de la sección de notas y desde la denotas tampoco está claro como ir a la sección de proyectos de crear un nuevo proyecto o gestionarlo",
+      "nota": "Con captura de la pantalla Proyectos en el móvil."
+    }
+  ],
+  "cambios": [
+    "docs/index.html: mock 15; pestañas 📁 Proyectos · 📝 Notas bajo la cabecera; Notas sin proyecto activo enseña todas; «Editar proyecto»",
+    "docs/mocks/015-notas-nuevo-proyecto.html: mock 14 archivado",
+    "docs/sw.js: caché al build nuevo",
+    "CLAUDE.md: anotado"
+  ],
+  "sha": "4fa3e8b",
+  "sha_completo": "4fa3e8b8bb25fe25e325f539c5e7d85b0094002e",
+  "run": "35841117345",
+  "mock": "mocks/015-notas-nuevo-proyecto.html",
+  "build": "PR-B1-20260923-017",
+  "pagina": "index.html",
+  "fly": null,
+  "pendiente": ["Probarlo en el móvil."],
+  "enlaces": [{ "texto": "PR #30", "url": "https://github.com/npiobject-labs/prueba/pull/30" }],
+  "notas": "Solo frontend. El prompt es transcripción literal del dictado."
+}
