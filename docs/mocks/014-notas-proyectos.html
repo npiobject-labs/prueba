@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260923-016">
+  <meta name="build" content="PR-B1-20260923-015">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 14</title>
+  <title>Notas · mock 13</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -119,7 +119,6 @@
     .listaMover { max-height:40vh; overflow:auto; display:flex; flex-direction:column; gap:.4rem; }
     .listaMover .btn { text-align:left; }
     .ambito { margin:.75rem 0; }
-    .nuevoProy { display:block; width:100%; margin:.75rem 0; border-style:dashed; border-color:var(--acc); color:var(--acc); font-weight:600; }
     .hoja p.libre { white-space:normal; overflow:visible; }
     .hidden { display:none !important; }
     .enlaces { margin-top:2rem; padding-top:1rem; border-top:1px solid var(--line); font-size:.85rem; color:var(--mut); }
@@ -128,7 +127,7 @@
 </head>
 <body>
 <header>
-  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 14 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 13 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -162,8 +161,7 @@
         <option value="notas">Nº de notas</option>
       </select>
     </div>
-    <button class="btn nuevoProy" id="nuevoProyBtn" type="button">＋ Nuevo proyecto</button>
-    <div id="listaProyectos"></div>
+    <div id="listaProyectos" style="margin-top:.75rem"></div>
     <button class="chipsBtn hidden" id="archBtn" type="button" aria-expanded="false" aria-controls="listaArchivados">
       <span id="archTxt">Archivados</span><span class="flecha" id="archFlecha" aria-hidden="true">▾</span>
     </button>
@@ -232,8 +230,7 @@
       <button class="btn pri" id="guardar" type="button">Guardar</button>
     </div>
     <p class="aviso" id="avisoMic"></p>
-    <label class="etq" for="eProyecto">Proyecto</label>
-    <select id="eProyecto"></select>
+    <p class="aviso" id="avisoProyecto"></p>
     <p class="aviso">Al guardar, el título y las etiquetas los pone el modelo. Si no contesta, la nota se guarda igual y queda marcada para reintentarlo.</p>
   </section>
 
@@ -249,7 +246,7 @@
     <div class="acciones"><button class="btn" id="moverNota" type="button">Mover a…</button><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260923-016</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260923-015</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -353,7 +350,7 @@
       throw e;
     } finally { clearTimeout(avisador); }
   }
-  // «mock 14 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
+  // «mock 13 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
   // Los avisos («arrancando el backend…») y los errores se siguen viendo.
   const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); $('estado').dataset.rutina = !err && txt.startsWith('mock ') ? '1' : ''; };
 
@@ -380,8 +377,8 @@
   function ver(v) {
     vistas.forEach(x => $(x).classList.toggle('hidden', x !== v));
     $('buscador').classList.toggle('hidden', v !== 'lista');
-    // En Proyectos el + se confundía con «nueva nota»: allí crea el botón «Nuevo proyecto».
-    $('nueva').classList.toggle('hidden', !(v === 'lista' && !modoSel));
+    $('nueva').classList.toggle('hidden', !((v === 'lista' && !modoSel) || v === 'proyectos'));
+    $('nueva').title = v === 'proyectos' ? 'Nuevo proyecto' : 'Nueva nota';
     $('nueva').setAttribute('aria-label', $('nueva').title);
     $('proyectosBtn').classList.toggle('hidden', v !== 'lista' || modoSel);
     $('seleccionarBtn').classList.toggle('hidden', v !== 'lista');
@@ -583,7 +580,7 @@
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
       // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
       if (modoSel) pintarSeleccion();
-      estado(`mock 14 · ${API.replace('https://', '')}`);
+      estado(`mock 13 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -866,32 +863,13 @@
     };
   }
   $('nueva').onclick = () => {
+    if (!$('proyectos').classList.contains('hidden')) { abrirHojaProyecto(null); return; }
     $('texto').value = ''; base = ''; trozos = []; parcial = '';
     if (SR) $('avisoMic').textContent = '';
-    llenarProyectosEditor();
+    $('avisoProyecto').textContent = proyectoActivo && proyectoActivo.id
+      ? `Se guarda en el proyecto «${proyectoActivo.nombre}».` : 'Se guarda sin proyecto.';
     ver('editor'); $('texto').focus();
   };
-  // Desplegable de proyecto del editor: parte del proyecto activo y se puede cambiar.
-  // Se pinta al momento con lo que se sabe y se completa cuando llega la lista.
-  async function llenarProyectosEditor() {
-    const sel = $('eProyecto'), aqui = proyectoActivo && proyectoActivo.id ? proyectoActivo : null;
-    const pintar = ps => {
-      sel.innerHTML = '';
-      [{ id: null, nombre: 'Sin proyecto' }, ...ps].forEach(p => {
-        const o = document.createElement('option');
-        o.value = p.id ?? ''; o.textContent = p.nombre;
-        sel.appendChild(o);
-      });
-    };
-    pintar(aqui ? [aqui] : []);
-    sel.value = aqui ? aqui.id : '';
-    try {
-      const ps = (await api('/proyectos?orden=nombre')).filter(p => p.id !== null && (!p.archivado || (aqui && p.id === aqui.id)));
-      const elegido = sel.value;
-      pintar(ps);
-      sel.value = [...sel.options].some(o => o.value === elegido) ? elegido : '';
-    } catch {}
-  }
   const cortarDictado = () => { if (rec) { dictando = false; try { rec.stop(); } catch {} } micParado(); };
   $('cancelar').onclick = () => { cortarDictado(); irALista(); };
   $('guardar').onclick = async () => {
@@ -900,13 +878,9 @@
     if (!contenido) { $('texto').focus(); return; }
     $('guardar').disabled = true; $('guardar').textContent = 'Guardando…';
     try {
-      const proyecto = $('eProyecto').value || null;
+      const proyecto = proyectoActivo ? proyectoActivo.id : null;
       await api('/notas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contenido, proyecto }) });
-      // Guardada en otro proyecto: se va a verla allí, que es donde se buscará.
-      if (!enTodos && (proyectoActivo ? proyectoActivo.id : undefined) !== proyecto) {
-        const o = $('eProyecto').selectedOptions[0];
-        entrarProyecto({ id: proyecto, nombre: o ? o.textContent : 'Sin proyecto' });
-      } else irALista();
+      irALista();
     } catch (e) {
       $('avisoMic').textContent = 'No se pudo guardar (' + e.message + '). El texto sigue aquí: pulsa Guardar otra vez.';
       estado('sin conexión con ' + API, true);
@@ -1151,7 +1125,7 @@
       const ps = await api('/proyectos?' + p);
       if (mia !== cargaProy) return;
       pintarProyectos(ps, !!q);
-      estado(`mock 14 · ${API.replace('https://', '')}`);
+      estado(`mock 13 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaProy) return;
       $('listaProyectos').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentarProy" type="button">Reintentar</button></p>`;
@@ -1175,7 +1149,7 @@
   function pintarProyectos(ps, buscando) {
     const activos = ps.filter(p => !p.archivado), arch = ps.filter(p => p.archivado);
     const l = $('listaProyectos'); l.innerHTML = '';
-    if (!activos.length) l.innerHTML = `<p class="vacio">${buscando ? 'Ningún proyecto coincide.' : 'Sin proyectos todavía. Pulsa «Nuevo proyecto» para crear el primero.'}</p>`;
+    if (!activos.length) l.innerHTML = `<p class="vacio">${buscando ? 'Ningún proyecto coincide.' : 'Sin proyectos todavía. Pulsa + para crear el primero.'}</p>`;
     activos.forEach(p => l.appendChild(tarjetaProyecto(p)));
     // Archivados: plegados al final, como las etiquetas (D19).
     const a = $('listaArchivados'); a.innerHTML = '';
@@ -1187,7 +1161,6 @@
     $('archFlecha').textContent = abierto ? '▴' : '▾';
     a.classList.toggle('hidden', !abierto);
   }
-  $('nuevoProyBtn').onclick = () => abrirHojaProyecto(null);
   $('archBtn').onclick = () => { archAbiertos = !archAbiertos; cargarProyectos(); };
   let tp; $('pq').oninput = () => { clearTimeout(tp); tp = setTimeout(cargarProyectos, 250); };
   $('porden').onchange = () => { try { localStorage.setItem(CLAVE_ORDEN, $('porden').value); } catch {} cargarProyectos(); };
