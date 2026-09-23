@@ -25,7 +25,7 @@ No se mezcla con las notas. Una nota es una idea corta que titula la IA al momen
 
 La grabación tiene un requisito propio que las notas no tienen: **se usa delante de otra persona**, con el móvil en la mano o sobre la mesa, sin atención para la pantalla. De ahí la pantalla de captura (D38): tres botones que se acierten sin mirar, respuesta por vibración y control desde los auriculares.
 
-**Tercer paso elegido: resumen estructurado de la entrevista**, generado desde la transcripción, con Participantes, Temas tratados, Puntos clave, Acuerdos y decisiones, Tareas pendientes (quién y qué) y Frases literales relevantes. Un botón «Guardar como nota» lo pasa al proyecto. Es lo que da valor a una conversación grabada: nadie relee una transcripción de una hora, pero todo el mundo necesita saber qué se acordó y qué queda por hacer.
+**Tercer paso elegido: dos resúmenes** generados desde la transcripción: uno **ejecutivo**, de diez líneas, para saber en un vistazo de qué iba y qué se acordó, y otro **amplio** con Participantes, Temas tratados, Puntos clave, Acuerdos y decisiones, Tareas pendientes (quién y qué) y Frases literales relevantes. Un botón «Guardar como nota» lo pasa al proyecto. Es lo que da valor a una conversación grabada: nadie relee una transcripción de una hora, pero todo el mundo necesita saber qué se acordó y qué queda por hacer.
 
 ## 3. Decisiones y supuestos
 
