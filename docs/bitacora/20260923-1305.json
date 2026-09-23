@@ -1,0 +1,26 @@
+{
+  "fecha": "2026-09-23T13:05:00+02:00",
+  "titulo": "Plan de la sección Entrevista",
+  "objetivo": "Planificar una sección nueva para grabar diálogos, transcribirlos y sacar algo útil de ellos.",
+  "prompts": [
+    { "texto": "Espera no corras sesión", "nota": "«corras» por «cierres»." },
+    { "texto": "Ok, cierra sesión, vamos a comenzar con uns nueva sección dentro de la aplicación una sección que se va a llamar entrevista" },
+    { "texto": "Cierra, arándanos en un nuevo prompt", "nota": "«arándanos» por «arrancamos»: cerrar y empezar la implementación en otro prompt." }
+  ],
+  "cambios": [
+    "docs/planificacion/plan-entrevista.md: decisiones D27 a D37, modelo de datos, API, pantallas, fases F18 a F21, preguntas y riesgos"
+  ],
+  "sha": null,
+  "sha_completo": null,
+  "run": null,
+  "mock": null,
+  "build": "PR-B1-20260923-019",
+  "pagina": "index.html",
+  "fly": null,
+  "pendiente": [
+    "Contestar las preguntas de la sección 8 del plan.",
+    "F18: grabar y guardar entrevistas."
+  ],
+  "enlaces": [],
+  "notas": "Solo planificación. La especificación sale de la nota «Nueva sección de entrevista en la aplicación». Se comprobó que el proxy openrouter pasa el cuerpo JSON tal cual con el límite de 2 MB de axum, de ahí los trozos de 5 min."
+}
