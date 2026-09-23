@@ -1,0 +1,32 @@
+{
+  "fecha": "2026-09-23T11:00:00+02:00",
+  "titulo": "Nuevo proyecto a la vista y proyecto al crear nota",
+  "objetivo": "Que se vea cómo crear un proyecto y poder elegir el proyecto de una nota al crearla.",
+  "prompts": [
+    {
+      "texto": "En la imagen adjunta eh se ven los proyectos ahí deberá existir una un botón para añadir un nuevo proyecto. Por otra parte cuando se crea una nueva nota en la parte inferior creo que sería mejor no sé tú decides debería existir un desplegable o algo para asignarle un proyecto a la nota",
+      "nota": "Con captura de la pantalla Proyectos en el móvil."
+    }
+  ],
+  "cambios": [
+    "docs/index.html: mock 14; botón «＋ Nuevo proyecto» en Proyectos y sin + flotante allí; desplegable Proyecto en el editor de nota",
+    "docs/mocks/014-notas-proyectos.html: mock 13 archivado",
+    "docs/sw.js: caché al build nuevo",
+    "CLAUDE.md: anotado"
+  ],
+  "sha": "f77acbe",
+  "sha_completo": "f77acbe69231d8c3ff71840b4beb7b233c3a1d3f",
+  "run": "35840593361",
+  "mock": "mocks/014-notas-proyectos.html",
+  "build": "PR-B1-20260923-016",
+  "pagina": "index.html",
+  "fly": null,
+  "pendiente": [
+    "Probarlo en el móvil.",
+    "Decidir si el desplegable debe permitir crear un proyecto sin salir del editor."
+  ],
+  "enlaces": [
+    { "texto": "PR #28", "url": "https://github.com/npiobject-labs/prueba/pull/28" }
+  ],
+  "notas": "Solo cambia el frontend; Fly no se redespliega. El prompt es transcripción literal del dictado."
+}
