@@ -1,7 +1,7 @@
 // Service worker de la app de notas: cachea la carcasa (HTML, manifest, iconos) para abrir
 // sin red; la API de Fly es otro origen y no pasa por aquí. El nombre lleva el build para
 // que cada publicación descarte la caché anterior.
-const CACHE = 'notas-PR-B1-20260923-015';
+const CACHE = 'notas-PR-B1-20260923-016';
 const CARCASA = ['./', 'index.html', 'manifest.webmanifest', 'icono-192.png', 'icono-512.png'];
 
 self.addEventListener('install', ev => {
