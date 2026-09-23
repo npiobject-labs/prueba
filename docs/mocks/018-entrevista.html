@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="build" content="PR-B1-20260923-020">
+  <meta name="theme-color" content="#0b6e7a">
+  <title>Notas · mock 18 · Entrevista</title>
+  <style>
+    :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; --rec:#c62828; --pausa:#e0a100; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--txt); }
+    header { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--line); padding:.75rem 1rem; z-index:2; }
+    header h1 { font-size:1.1rem; margin:0 0 .5rem; display:flex; justify-content:space-between; align-items:center; gap:.4rem; }
+    header h1 small { font-weight:400; color:var(--mut); font-size:.75rem; }
+    .pestanas { display:flex; gap:.25rem; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:.2rem; }
+    .pestanas button { flex:1 1 0; min-width:0; border:0; background:transparent; color:var(--mut); font:inherit; font-size:.9rem; padding:.45rem .3rem; border-radius:8px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pestanas button.on { background:var(--acc); color:#fff; font-weight:600; }
+    /* Tres pestañas a 390 px: sin esto «Entrevistas» se recorta (D35). */
+    @media (max-width:420px) { .pestanas button { font-size:.8rem; padding:.45rem .15rem; } }
+    main { max-width:40rem; margin:0 auto; padding:1rem 1rem 6rem; }
+    .hidden { display:none !important; }
+    .banda { background:var(--acc2); color:var(--acc); padding:.6rem .8rem; border-radius:10px; font-size:.9rem; margin-bottom:.75rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+    .banda .btn { padding:.3rem .7rem; }
+    .btn { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:10px; padding:.55rem .9rem; font:inherit; cursor:pointer; }
+    .btn.primario { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
+    .btn.peligro { color:var(--danger); }
+    .btn.enlace { border:0; background:transparent; color:var(--mut); text-decoration:underline; padding:.4rem 0; font-size:.9rem; }
+    .fila { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+    .nota { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; }
+    .nota h2 { font-size:1rem; margin:0 0 .25rem; }
+    .meta { color:var(--mut); font-size:.8rem; display:flex; gap:.6rem; flex-wrap:wrap; }
+    .estado { border-radius:999px; padding:.1rem .55rem; font-size:.75rem; background:var(--acc2); color:var(--acc); }
+    .estado.gris { background:var(--line); color:var(--mut); }
+    .estado.rojo { background:#fde7e7; color:var(--danger); }
+    .flotante { position:fixed; right:1rem; bottom:calc(1rem + env(safe-area-inset-bottom)); background:var(--acc); color:#fff; border:0; border-radius:999px; padding:.9rem 1.2rem; font:inherit; font-size:1rem; font-weight:600; box-shadow:0 4px 14px rgba(0,0,0,.25); cursor:pointer; }
+    input, textarea { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; width:100%; }
+    .velo { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
+    .hoja { background:var(--panel); color:var(--txt); width:100%; max-width:40rem; border-radius:16px 16px 0 0; padding:1.25rem 1rem calc(1.25rem + env(safe-area-inset-bottom)); }
+    .hoja h3 { margin:0 0 .5rem; font-size:1.05rem; }
+    .hoja p { color:var(--mut); font-size:.9rem; margin:.25rem 0 .75rem; }
+    .hoja .fila { justify-content:flex-end; margin-top:1rem; }
+
+    /* --- Captura rápida (D38): pantalla completa, tres botones, fondo según estado --- */
+    #captura { position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; color:#fff; background:#2b2f36; transition:background .25s; user-select:none; -webkit-user-select:none; touch-action:manipulation; padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+    #captura[data-estado="grabando"] { background:#5a1414; }
+    #captura[data-estado="pausada"] { background:#5e4a00; }
+    #captura[data-estado="cuenta"] { background:#1f3a44; }
+    #captura .arriba { display:flex; justify-content:space-between; align-items:center; padding:.5rem .75rem; }
+    #captura .cerrar { height:56px; padding:0 1.25rem; border:0; border-radius:12px; background:rgba(255,255,255,.14); color:#fff; font:inherit; font-size:1.1rem; cursor:pointer; }
+    #captura .proyecto { font-size:.85rem; opacity:.75; max-width:50%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    #captura .centro { flex:1 1 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.5rem; }
+    #captura .estadoTxt { font-size:1.25rem; letter-spacing:.08em; text-transform:uppercase; opacity:.9; display:flex; align-items:center; gap:.5rem; }
+    #captura .punto { width:.9rem; height:.9rem; border-radius:50%; background:#ff5252; display:none; }
+    #captura[data-estado="grabando"] .punto { display:inline-block; animation:late 1.2s infinite; }
+    @keyframes late { 50% { opacity:.25; } }
+    #captura .crono { font-size:4rem; font-variant-numeric:tabular-nums; font-weight:300; line-height:1; }
+    #captura .cuentaAtras { font-size:7rem; font-weight:200; line-height:1; }
+    #captura .nivel { display:flex; gap:4px; align-items:flex-end; height:2.2rem; }
+    #captura .nivel i { width:7px; background:rgba(255,255,255,.7); border-radius:2px; height:10%; transition:height .12s; }
+    #captura .pista { font-size:.85rem; opacity:.6; text-align:center; padding:0 2rem; }
+    #captura .botones { display:flex; flex-direction:column; gap:.75rem; padding:.75rem; }
+    #captura .grande { width:100%; border:0; border-radius:18px; font:inherit; font-size:1.5rem; font-weight:700; letter-spacing:.04em; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:.6rem; }
+    #captura .grande:active { filter:brightness(1.15); }
+    #captura .pausa { height:96px; background:var(--pausa); color:#1a1a1a; }
+    #captura .principal { height:128px; background:var(--rec); }
+    #captura[data-estado="inactiva"] .pausa, #captura[data-estado="cuenta"] .pausa { visibility:hidden; }
+    #captura .ico { font-size:1.6rem; }
+
+    /* --- Detalle --- */
+    .detalle h2 { font-size:1.25rem; margin:0 0 .25rem; }
+    .reproductor { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.75rem 1rem; margin:.75rem 0; }
+    .reproductor .barra { height:6px; background:var(--line); border-radius:3px; margin:.5rem 0; position:relative; }
+    .reproductor .barra i { position:absolute; left:0; top:0; height:100%; width:37%; background:var(--acc); border-radius:3px; }
+    .bloque { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin:.75rem 0; }
+    .bloque h3 { margin:0 0 .5rem; font-size:1rem; display:flex; justify-content:space-between; align-items:center; }
+    .bloque h3 .plegar { font-weight:400; color:var(--mut); font-size:.85rem; cursor:pointer; }
+    .bloque p, .bloque li { line-height:1.5; margin:.25rem 0; }
+    .bloque ul { padding-left:1.2rem; margin:.25rem 0; }
+    .hablante { color:var(--acc); font-weight:600; }
+    .tiempo { color:var(--mut); font-size:.75rem; margin-right:.4rem; font-variant-numeric:tabular-nums; }
+    .acciones { display:flex; gap:.5rem; flex-wrap:wrap; margin:.75rem 0; }
+    .avance { height:6px; background:var(--line); border-radius:3px; margin:.5rem 0; }
+    .avance i { display:block; height:100%; width:25%; background:var(--acc); border-radius:3px; }
+    .leyenda { position:fixed; left:0; right:0; bottom:0; background:var(--panel); border-top:1px solid var(--line); font-size:.8rem; color:var(--mut); padding:.4rem 1rem; z-index:3; display:flex; gap:.5rem; flex-wrap:wrap; }
+    .leyenda button { border:1px solid var(--line); background:var(--bg); color:var(--txt); border-radius:999px; padding:.15rem .6rem; font:inherit; font-size:.75rem; cursor:pointer; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1><span>🎙 Notas · <span id="proyNombre">Cliente Norte</span></span><small>mock 18</small></h1>
+  <nav class="pestanas" aria-label="Secciones">
+    <button type="button">📁 Proyectos</button>
+    <button type="button">📝 Notas</button>
+    <button type="button" class="on">🎙 Entrevistas</button>
+  </nav>
+</header>
+
+<main>
+  <!-- 6.1 Lista -->
+  <section id="lista">
+    <div class="banda" id="sinSubir">⚠️ Hay una grabación de <b>12:34</b> sin subir <button class="btn primario" type="button">Subir</button><button class="btn" type="button">Descartar</button></div>
+    <article class="nota" onclick="ver('detalle')">
+      <h2>Reunión con Marta sobre el pedido de octubre</h2>
+      <div class="meta"><span>23 sept · 12:31</span><span>42:10</span><span class="estado">Resumida</span></div>
+    </article>
+    <article class="nota" onclick="ver('detalleTrans')">
+      <h2>Entrevista · 22 sept 17:05</h2>
+      <div class="meta"><span>22 sept · 17:05</span><span>18:47</span><span class="estado">Transcribiendo 3 de 4</span></div>
+    </article>
+    <article class="nota">
+      <h2>Entrevista · 19 sept 09:40</h2>
+      <div class="meta"><span>19 sept · 09:40</span><span>55:02</span><span class="estado gris">Grabada</span></div>
+    </article>
+    <article class="nota">
+      <h2>Entrevista · 15 sept 11:20</h2>
+      <div class="meta"><span>15 sept · 11:20</span><span>07:12</span><span class="estado rojo">Fallida · Reintentar</span></div>
+    </article>
+    <button class="btn enlace" type="button">Subir un audio ya grabado…</button>
+  </section>
+
+  <!-- 6.3 Detalle -->
+  <section id="detalle" class="detalle hidden">
+    <button class="btn enlace" type="button" onclick="ver('lista')">‹ Entrevistas</button>
+    <h2>Reunión con Marta sobre el pedido de octubre</h2>
+    <div class="meta"><span>23 sept 2026 · 12:31</span><span>42:10 · 9,8 MB</span><span>Con: Marta (Norte S.L.)</span></div>
+    <div class="reproductor">
+      <div class="fila"><button class="btn" type="button">▶</button><span class="tiempo">15:32 / 42:10</span></div>
+      <div class="barra"><i></i></div>
+    </div>
+    <div class="acciones">
+      <button class="btn primario" type="button">📝 Guardar como nota</button>
+      <button class="btn" type="button">📋 Copiar</button>
+      <button class="btn" type="button">✏️ Editar</button>
+      <button class="btn" type="button">📁 Mover</button>
+      <button class="btn peligro" type="button">Borrar audio</button>
+      <button class="btn peligro" type="button">🗑 Borrar</button>
+    </div>
+    <div class="bloque">
+      <h3>Resumen ejecutivo</h3>
+      <p>Marta confirma el pedido de octubre (1.200 uds.) si la entrega se adelanta al día 10. Se acuerda revisar el precio del embalaje y enviar oferta cerrada antes del viernes. Queda pendiente saber si el transporte lo pone Norte o nosotros.</p>
+      <ul><li><b>Acordado:</b> entrega el 10 de octubre; oferta cerrada el viernes.</li><li><b>Pendiente:</b> transporte (Marta pregunta a compras); precio del embalaje (nosotros).</li></ul>
+    </div>
+    <div class="bloque">
+      <h3>Resumen amplio <span class="plegar" onclick="alt('amplio', this)">desplegar ▾</span></h3>
+      <div id="amplio" class="hidden">
+        <p><b>Participantes.</b> Entrevistador (yo); Marta, compras de Norte S.L.</p>
+        <p><b>Temas tratados.</b> Volumen del pedido de octubre; plazo de entrega; embalaje; transporte; forma de pago.</p>
+        <p><b>Puntos clave.</b> El plazo manda más que el precio. El embalaje actual llega dañado en un 5 % de las cajas.</p>
+        <p><b>Acuerdos y decisiones.</b> Entrega el 10 de octubre. Oferta cerrada antes del viernes.</p>
+        <p><b>Tareas pendientes.</b> Marta: confirmar transporte con su dirección. Nosotros: precio del embalaje reforzado; enviar la oferta.</p>
+        <p><b>Frases literales.</b> «Si llega el 10, el pedido es vuestro.»</p>
+      </div>
+    </div>
+    <div class="bloque">
+      <h3>Transcripción <span class="plegar" onclick="alt('trans', this)">desplegar ▾</span></h3>
+      <div id="trans" class="hidden">
+        <p><span class="tiempo">00:00</span><span class="hablante">Entrevistador:</span> Gracias por atenderme, Marta. Quería repasar el pedido de octubre.</p>
+        <p><span class="tiempo">00:06</span><span class="hablante">Marta:</span> Sí, lo tengo aquí. Lo que nos preocupa es el plazo, no tanto el precio.</p>
+        <p><span class="tiempo">00:14</span><span class="hablante">Entrevistador:</span> ¿Qué fecha necesitáis?</p>
+        <p><span class="tiempo">00:16</span><span class="hablante">Marta:</span> Si llega el 10, el pedido es vuestro.</p>
+        <p class="meta">… (42 min)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Detalle transcribiendo -->
+  <section id="detalleTrans" class="detalle hidden">
+    <button class="btn enlace" type="button" onclick="ver('lista')">‹ Entrevistas</button>
+    <h2>Entrevista · 22 sept 17:05</h2>
+    <div class="meta"><span>22 sept 2026 · 17:05</span><span>18:47 · 4,4 MB</span></div>
+    <div class="reproductor"><div class="fila"><button class="btn" type="button">▶</button><span class="tiempo">00:00 / 18:47</span></div><div class="barra"><i style="width:0"></i></div></div>
+    <div class="bloque">
+      <h3>Transcribiendo… 3 de 4</h3>
+      <div class="avance"><i style="width:75%"></i></div>
+      <p class="meta">Cada trozo son 5 minutos. Puedes salir; sigue en el servidor.</p>
+    </div>
+    <div class="bloque">
+      <h3>Transcripción (parcial)</h3>
+      <p><span class="tiempo">00:00</span><span class="hablante">Entrevistador:</span> Vamos a empezar por lo del almacén…</p>
+      <p><span class="tiempo">00:04</span><span class="hablante">Entrevistado:</span> El problema es que los martes no hay nadie de recepción.</p>
+      <p class="meta">… 15 min transcritos</p>
+    </div>
+    <div class="acciones"><button class="btn" type="button" disabled>✨ Resumir (al terminar)</button><button class="btn" type="button">📋 Copiar</button></div>
+  </section>
+</main>
+
+<button class="flotante" id="nueva" type="button" onclick="abrirCaptura(false)">🎙 Nueva entrevista</button>
+
+<!-- 6.2 Captura rápida -->
+<div id="captura" class="hidden" data-estado="inactiva">
+  <div class="arriba">
+    <button class="cerrar" type="button" onclick="ev('cerrar')">✕ Cerrar</button>
+    <span class="proyecto">📁 Cliente Norte</span>
+  </div>
+  <div class="centro" onclick="cancelarCuenta()">
+    <div class="estadoTxt"><span class="punto"></span><span id="estadoTxt">Listo para grabar</span></div>
+    <div class="crono" id="crono">00:00</div>
+    <div class="cuentaAtras hidden" id="cuenta">3</div>
+    <div class="nivel" id="nivel"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="pista" id="pista">Pulsa Grabar. Vibra al empezar, al pausar y al parar.</div>
+  </div>
+  <div class="botones">
+    <button class="grande pausa" type="button" id="btnPausa" onclick="ev('pausa')"><span class="ico">⏸</span> PAUSA</button>
+    <button class="grande principal" type="button" id="btnPrincipal" onclick="ev('principal')"><span class="ico">●</span> GRABAR</button>
+  </div>
+</div>
+
+<!-- Hoja al parar -->
+<div id="hojaGuardar" class="velo hidden">
+  <div class="hoja">
+    <h3>Grabación de <span id="durFin">12:34</span></h3>
+    <p>Se guarda en <b>Cliente Norte</b>. Lo demás (título, transcripción, resumen) llega después.</p>
+    <label>Con quién (opcional)<input type="text" placeholder="Marta, compras de Norte S.L."></label>
+    <div class="fila"><button class="btn peligro" type="button" onclick="cerrarHoja('hojaGuardar'); ver('lista')">Descartar</button><button class="btn primario" type="button" onclick="cerrarHoja('hojaGuardar'); ver('lista')">Guardar</button></div>
+  </div>
+</div>
+
+<!-- Hoja al cerrar grabando -->
+<div id="hojaCerrar" class="velo hidden">
+  <div class="hoja">
+    <h3>Estás grabando</h3>
+    <p>¿Qué hacemos con los <span id="durCerrar">12:34</span> grabados?</p>
+    <div class="fila"><button class="btn peligro" type="button" onclick="cerrarHoja('hojaCerrar'); pararTodo(); ver('lista')">Descartar</button><button class="btn" type="button" onclick="cerrarHoja('hojaCerrar')">Seguir grabando</button><button class="btn primario" type="button" onclick="cerrarHoja('hojaCerrar'); ev('principal')">Guardar</button></div>
+  </div>
+</div>
+
+<div class="leyenda">Mock 18 · pantallas: <button onclick="ver('lista')">lista</button><button onclick="ver('detalle')">detalle</button><button onclick="ver('detalleTrans')">transcribiendo</button><button onclick="abrirCaptura(false)">captura</button><button onclick="abrirCaptura(true)">acceso directo (cuenta atrás)</button></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  function ver(id) { for (const s of ['lista','detalle','detalleTrans']) $(s).classList.toggle('hidden', s !== id); $('nueva').classList.toggle('hidden', id !== 'lista'); window.scrollTo(0,0); }
+  function alt(id, el) { const o = $(id).classList.toggle('hidden'); el.textContent = o ? 'desplegar ▾' : 'plegar ▴'; }
+  function cerrarHoja(id) { $(id).classList.add('hidden'); }
+
+  // Máquina de estados (D42): inactiva → cuenta → grabando ⇄ pausada → (hoja guardar). Aquí solo el mock: sin micrófono.
+  const cap = $('captura');
+  let seg = 0, tic = null, cuentaTic = null, nivelTic = null;
+  const fmt = s => String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  const vibra = p => { try { navigator.vibrate && navigator.vibrate(p); } catch {} };
+  function estado(e) {
+    cap.dataset.estado = e;
+    const txt = { inactiva:'Listo para grabar', cuenta:'Empieza en…', grabando:'Grabando', pausada:'En pausa' }[e];
+    $('estadoTxt').textContent = txt;
+    $('cuenta').classList.toggle('hidden', e !== 'cuenta');
+    $('crono').classList.toggle('hidden', e === 'cuenta');
+    $('btnPrincipal').innerHTML = e === 'inactiva' ? '<span class="ico">●</span> GRABAR' : '<span class="ico">■</span> PARAR';
+    $('btnPausa').innerHTML = e === 'pausada' ? '<span class="ico">▶</span> SEGUIR' : '<span class="ico">⏸</span> PAUSA';
+    $('pista').textContent = { inactiva:'Pulsa Grabar. Vibra al empezar, al pausar y al parar.', cuenta:'Toca en cualquier sitio para cancelar', grabando:'Pausa y Seguir también desde los auriculares o la notificación', pausada:'La pausa no se graba' }[e];
+    clearInterval(nivelTic); nivelTic = null;
+    if (e === 'grabando') nivelTic = setInterval(() => { for (const i of $('nivel').children) i.style.height = (10 + Math.random()*90) + '%'; }, 120);
+    else for (const i of $('nivel').children) i.style.height = '10%';
+  }
+  function abrirCaptura(directo) {
+    seg = 0; $('crono').textContent = '00:00'; cap.classList.remove('hidden'); estado('inactiva');
+    if (directo) { let n = 3; estado('cuenta'); $('cuenta').textContent = n; vibra(40);
+      cuentaTic = setInterval(() => { n--; if (n === 0) { clearInterval(cuentaTic); cuentaTic = null; empezar(); } else { $('cuenta').textContent = n; vibra(40); } }, 1000); }
+  }
+  function cancelarCuenta() { if (cap.dataset.estado === 'cuenta') { clearInterval(cuentaTic); cuentaTic = null; estado('inactiva'); } }
+  function empezar() { estado('grabando'); vibra(80); tic = setInterval(() => { seg++; $('crono').textContent = fmt(seg); }, 1000); }
+  function pararTodo() { clearInterval(tic); tic = null; clearInterval(cuentaTic); cuentaTic = null; clearInterval(nivelTic); nivelTic = null; cap.classList.add('hidden'); }
+  function ev(e) {
+    const s = cap.dataset.estado;
+    if (e === 'principal') {
+      if (s === 'inactiva') empezar();
+      else if (s === 'cuenta') { cancelarCuenta(); empezar(); }
+      else { vibra(250); clearInterval(tic); tic = null; $('durFin').textContent = fmt(seg); estado('inactiva'); cap.classList.add('hidden'); $('hojaGuardar').classList.remove('hidden'); }
+    } else if (e === 'pausa') {
+      if (s === 'grabando') { clearInterval(tic); tic = null; estado('pausada'); vibra([60,60,60]); }
+      else if (s === 'pausada') { estado('grabando'); vibra(80); tic = setInterval(() => { seg++; $('crono').textContent = fmt(seg); }, 1000); }
+    } else if (e === 'cerrar') {
+      if (s === 'grabando' || s === 'pausada') { $('durCerrar').textContent = fmt(seg); $('hojaCerrar').classList.remove('hidden'); }
+      else { pararTodo(); }
+    }
+  }
+</script>
+</body>
+</html>

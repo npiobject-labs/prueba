@@ -1,6 +1,6 @@
 # Plan — sección Entrevista
 
-Fecha: 2026-09-23 · Estado: **v2.1, solo planificación, preguntas contestadas**; F18 a F21 sin hacer, F22 opcional · Continúa `plan-proyectos.md` (D14 a D26, F13 a F17) · Fuente de verdad: este fichero (la copia en Drive es solo copia).
+Fecha: 2026-09-23 · Estado: **v2.2, solo planificación, preguntas contestadas, mock 18 hecho**; F18 a F21 sin hacer, F22 opcional · Continúa `plan-proyectos.md` (D14 a D26, F13 a F17) · Fuente de verdad: este fichero (la copia en Drive es solo copia).
 
 Cambios de v1 a v2: entra la **pantalla de captura rápida** (botones grandes, una mano), el **control sin mirar la pantalla** (auriculares, notificación, vibración) y el **arranque directo** desde el icono (D38 a D42); F18 se parte en dos (F18a captura, F18b guardar); se añade la guía de pruebas (sección 9) y qué se tomó de la propuesta externa (sección 11). D27 a D37 siguen como estaban salvo D27, que ahora remite a D38.
 
@@ -41,7 +41,7 @@ Numeración continua (última: D26). D38 a D42 son nuevas en v2.
 | D32 | **Transcribir es asíncrono**, como los documentos (D11): `POST /entrevistas/{id}/transcribir` contesta al momento, la entrevista pasa por `pendiente → transcribiendo (3/12) → lista | fallida`, y la app pregunta cada 3 s y enseña el avance. Si falla, «Reintentar» sigue desde el trozo que falló. La transcripción se puede **editar** (como las notas, `PUT`). | Decidido. |
 | D33 | **Tercer paso: dos resúmenes** (sección 2). `POST /entrevistas/{id}/resumir` genera los dos en una sola tarea asíncrona con `LLM_MODELO_DOCUMENTO` y el proyecto como contexto (D21): primero el **ejecutivo** (10 líneas como mucho: de qué iba, qué se acordó, qué queda por hacer), y después el **amplio** con la estructura fija (Participantes, Temas tratados, Puntos clave, Acuerdos y decisiones, Tareas pendientes con quién y qué, Frases literales relevantes). En el detalle, el ejecutivo va arriba a la vista y el amplio plegado debajo. «Guardar como nota» ofrece **Ejecutivo / Amplio / Los dos**; la IA titula y etiqueta la nota como a cualquier otra. «📋 Copiar» copia los dos resúmenes y la transcripción. Columnas `resumen_ejecutivo` y `resumen` (sección 4). | Decidido por el usuario (pregunta 3). |
 | D34 | **Título** propuesto por la IA con el resumen, editable siempre. Hasta entonces, «Entrevista · 23 sept 12:40». Campo opcional «Con quién» al grabar, que también se pasa al modelo para nombrar a los hablantes. Con la captura rápida (D38) el campo no estorba: se pide **después** de parar, no antes de grabar. | Decidido. |
-| D35 | **Navegación**: tercera pestaña **🎙 Entrevistas** junto a Proyectos y Notas (dentro del proyecto activo). En la lista, cada entrevista enseña duración, estado y fecha. | [SUPUESTO] Tres pestañas caben a 360 px. Plan B: la entrevista entra como un tipo de elemento más en la lista de notas, con un icono. |
+| D35 | **Navegación**: tercera pestaña **🎙 Entrevistas** junto a Proyectos y Notas (dentro del proyecto activo). En la lista, cada entrevista enseña duración, estado y fecha. | Comprobado en el mock 18: caben a 360 px bajando la letra a 0,8 rem por debajo de 420 px. |
 | D36 | **Consentimiento**: antes de la primera grabación, aviso de que grabar a otra persona requiere su permiso. Se enseña una vez y se recuerda en `localStorage`. | Decidido. Solo un aviso; la app no guarda ninguna prueba del consentimiento. |
 | D37 | **Fuera de esta versión**: transcripción en directo mientras se habla, más de un idioma en la misma entrevista, preguntar a la entrevista («¿qué dijo de los plazos?») y documentos (F5) a partir de entrevistas. La pregunta a la entrevista es la siguiente candidata (F22). | Decidido. |
 | D38 | **Pantalla de captura rápida** (sección 6.2): una vista a pantalla completa que tapa cabecera, pestañas y buscador, con **solo tres botones**: **Grabar** (rojo, el más grande, en la zona del pulgar), **Pausa / Seguir** (ámbar) y **Cerrar** (gris, arriba y aparte, para no pulsarlo sin querer). Cronómetro grande y nivel de audio. Nada más: ni título, ni «con quién», ni ajustes. Cada cambio de estado **vibra** con un patrón distinto (`navigator.vibrate`: 1 pulso al grabar, 2 al pausar, 1 largo al parar), para saber qué ha pasado sin mirar. Cerrar mientras graba pregunta «Guardar / Seguir grabando / Descartar». | Decidido. Es la lectura literal del punto 5 de la sección 1. |
@@ -93,7 +93,9 @@ En el navegador, IndexedDB `notas-grabaciones` con un registro por grabación en
 | `POST /entrevistas/{id}/resumir` | Arranca los dos resúmenes (409 sin transcripción) |
 | `POST /entrevistas/{id}/nota` `{cual: ejecutivo|amplio|ambos}` | Crea la nota con el resumen elegido en el mismo proyecto |
 
-## 6. Pantallas (mock 18 en adelante)
+## 6. Pantallas (mock 18: `docs/mocks/018-entrevista.html`, build `PR-B1-20260923-020`)
+
+El mock es estático y navegable: lista, detalle resumido, detalle transcribiendo, captura (con la máquina de estados simulada: cronómetro, pausa, hojas de cerrar y guardar) y el arranque directo con cuenta atrás. Probado con Chromium a 360 y 390 px sin errores de consola. Hallazgo: con tres pestañas, a 390 px «Entrevistas» se recortaba con la letra de hoy; a ≤ 420 px la letra de las pestañas baja a 0,8 rem y caben las tres (D35 confirmada, sin plan B).
 
 ### 6.1 Pestaña 🎙 Entrevistas
 
@@ -197,3 +199,89 @@ Resumen en `entrevistas/recogida.md`, bloque 2.
 | Permisos en tiempo de ejecución | Sí, estado `sin_permiso` y pantalla de ayuda (6.2) |
 | Guía de pruebas | Sí, sección 9 |
 | Stack nativo (React Native, Flutter, Kotlin, Swift) | No aplica: PWA + Rust. Solo F22 sería Kotlin |
+
+## 12. Detalle técnico (para no decidirlo a mitad de F18)
+
+### 12.1 Grabadora en el navegador
+
+- `getUserMedia({audio: {echoCancellation: false, noiseSuppression: true, autoGainControl: true, channelCount: 1}})`. Sin cancelación de eco: no hay altavoz sonando y recorta voz.
+- `MediaRecorder(stream, {mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 32000})`; si `isTypeSupported` falla (Safari), `audio/mp4`. `start(10000)` → un `dataavailable` cada 10 s que va a IndexedDB (D28).
+- **Pausa** = `MediaRecorder.pause()`, no parar y arrancar: así el fichero sigue siendo uno y la pausa no se graba. El cronómetro se para con él.
+- **Nivel**: `AudioContext` + `AnalyserNode` (`fftSize 256`, RMS del dominio temporal), 12 barras, refresco con `requestAnimationFrame` solo mientras la pantalla está visible.
+- **Wake Lock**: `navigator.wakeLock.request('screen')` al grabar; se pierde al ocultar la pestaña y se vuelve a pedir en `visibilitychange`.
+- **Vibración** (D38): `[80]` grabar, `[60,60,60]` pausar, `[250]` parar, `[40]` por segundo de cuenta atrás. Si `navigator.vibrate` no existe (iOS), nada.
+- **IndexedDB** `notas-grabaciones`, almacén `grabaciones` con clave `id` (ulid del cliente): `{id, proyecto: {id, nombre}, empezada_en, duracion_s, estado: 'grabando'|'parada'|'subiendo', trozos: Blob[]}`. Se actualiza en cada `dataavailable` (`put` del registro entero: con ~360 trozos por hora son ~14 MB, aceptable). Al montar la app, si hay registros con `estado != 'subiendo'` → banda de 6.1. Se borra tras el 201 del `POST`.
+- **Subida**: `new Blob(trozos, {type})` + `FormData` en `fetch`; `XMLHttpRequest` si se quiere avance de subida (`upload.onprogress`), que `fetch` aún no da en todos los Chrome. Reintento manual, no automático: la banda ya lo ofrece.
+- **Duración**: el cronómetro del cliente (segundos grabados sin pausas) es lo que se manda en `duracion_s`; `ffmpeg` la recalcula en el servidor al trocear y gana la suya.
+
+### 12.2 Media Session (D39) y notificación (D40)
+
+- Audio silencioso: un `<audio loop>` con un WAV de 1 s de ceros embebido en `data:`; `play()` dentro del gesto de «Grabar» (autoplay). `navigator.mediaSession.metadata = new MediaMetadata({title: 'Grabando entrevista', artist: proyecto, artwork: [icono-192]})` y `setActionHandler` para `play` → `seguir`, `pause` → `pausar`, `stop` → `parar`. `setPositionState` cada segundo para que la tarjeta enseñe el tiempo. Al parar, `audio.pause()` y `metadata = null`.
+- Notificación: `registration.showNotification('Grabando entrevista', {tag: 'grabacion', body: '12:34', silent: true, requireInteraction: true, actions: [{action: 'pausar', title: 'Pausa'}, {action: 'parar', title: 'Parar'}]})`, refrescada cada 10 s con el mismo `tag` (no vuelve a sonar). En `sw.js`, `notificationclick` → `clients.matchAll({type: 'window'})` → `client.postMessage({accion})` y `client.focus()` si es `parar`. La página escucha `navigator.serviceWorker.onmessage` y manda el evento a la máquina de estados (D42). Se cierra con `getNotifications({tag})` al parar.
+- Permiso de notificaciones: se pide **después** del micrófono y solo si el usuario no lo ha denegado ya; si lo deniega, la grabación sigue igual y sin notificación.
+- `sw.js` gana el `notificationclick` y el mensaje; `CACHE` cambia con el build como siempre.
+
+### 12.3 Acceso directo (D41)
+
+```json
+"shortcuts": [{
+  "name": "Grabar entrevista", "short_name": "Grabar",
+  "description": "Abre la grabadora en el proyecto activo",
+  "url": "./index.html?grabar=1",
+  "icons": [{ "src": "icono-grabar-96.png", "sizes": "96x96" }]
+}]
+```
+
+- `?grabar=1` se lee en el arranque antes de pintar la lista; si no hay proyecto activo, se graba en «Sin proyecto» (D16) sin preguntar. El parámetro se quita con `history.replaceState` para que un «recargar» no vuelva a la cuenta atrás.
+- Icono nuevo `icono-grabar-96.png` (micrófono sobre el color de acento). Chrome exige que el acceso directo esté en el manifest **antes** de instalar la PWA o que se actualice el manifest (lo hace solo al abrir, en un día como mucho); si no aparece, desinstalar e instalar.
+- `sw.js` sirve `index.html` para `?grabar=1` sin red (`ignoreSearch: true`, ya está así).
+
+### 12.4 Backend (F18b)
+
+- `axum` con `multipart` (`features = ["multipart"]`) y `DefaultBodyLimit::max(200 MB)` solo en `POST /entrevistas`. El campo `audio` se vuelca en streaming a `/data/audio/<id>.<ext>.parcial` con `tokio::fs::File` y `write_all` por trozo (`field.chunk()`), y se renombra al terminar: nunca queda un fichero a medias con nombre definitivo. Extensión por `content-type` del campo (`webm`, `mp4`/`m4a`, `mp3`, `ogg`, `wav`); otro → 415.
+- `GET /entrevistas/{id}/audio`: `tower-http` `ServeFile` no vale con el token por cabecera y la ruta dinámica; se implementa `Range` a mano (`bytes=a-b`, 206, `Accept-Ranges`, `Content-Length`), que son 40 líneas. Sin `Range`, 200 entero.
+- `DELETE /entrevistas/{id}`: borra fila (y `entrevista_trozos` por `ON DELETE CASCADE`) y después el fichero; si el fichero falla, se registra y no se devuelve error (la fila ya no está).
+- Migración 1 → 2 en `migrar` con la tabla de la sección 4 y `entrevista_trozos(entrevista_id TEXT REFERENCES entrevistas(id) ON DELETE CASCADE, n INTEGER, texto TEXT, PRIMARY KEY(entrevista_id, n))`.
+- `ffmpeg` en la imagen: `apt-get install -y --no-install-recommends ffmpeg` en la etapa de ejecución (~80 MB). Se comprueba al arrancar (`ffmpeg -version`) y `/salud` gana `"ffmpeg": bool`.
+- Al arrancar, las entrevistas en `transcribiendo` vuelven a `grabada` con `trozos_hechos` intacto (la tarea murió con el proceso), para que «Reintentar» siga donde estaba.
+
+### 12.5 Transcripción (F19)
+
+- Trocear: `ffmpeg -i in.webm -ac 1 -ar 16000 -b:a 24k -f segment -segment_time 300 -reset_timestamps 1 /tmp/<id>/%03d.mp3`. Se cuentan los ficheros → `trozos_total`. El directorio temporal se borra al terminar, bien o mal.
+- Por cada trozo `n`: base64 → `llm.rs::transcribir(TrozoAudio {mp3_b64, n, total, inicio_s}, Contexto {con_quien, proyecto, cola_anterior})`, donde `cola_anterior` son las últimas 20 líneas del trozo `n-1`. Se guarda en `entrevista_trozos` y se actualiza `trozos_hechos`. Tres intentos por trozo con espera 5/15/45 s; al tercer fallo, `estado = 'fallida'` y `error` con el motivo.
+- Petición (formato OpenAI por el proxy): `messages: [{role: 'system', content: <instrucciones>}, {role: 'user', content: [{type: 'text', text: <contexto>}, {type: 'input_audio', input_audio: {data: <b64>, format: 'mp3'}}]}]`. Modelo: variable `LLM_MODELO_AUDIO` (por defecto `google/gemini-2.5-flash`). Sin salida estructurada: texto plano con el formato de abajo, que se valida por regex y, si no cuadra, se repite el trozo una vez con «Responde SOLO en el formato indicado».
+- Instrucciones (resumidas): «Transcribe literalmente este fragmento (minutos X a Y de una conversación de N minutos) en su idioma original. Son dos personas: Entrevistador y Entrevistado [o el nombre de `con_quien`]. Cada intervención en una línea: `[mm:ss] Hablante: texto`, con el tiempo relativo al inicio de la conversación (empieza en X). Mantén los nombres de hablante del fragmento anterior. No resumas, no corrijas, no añadas nada. Marca lo inaudible como [inaudible].»
+- La transcripción final es la concatenación por `n`, y es lo que se edita con `PUT`; los trozos no se vuelven a tocar.
+
+### 12.6 Resúmenes (F20)
+
+- Una tarea, dos llamadas seguidas con `LLM_MODELO_DOCUMENTO` y salida estructurada (`json_schema`) como en D9: `{titulo, ejecutivo, amplio: {participantes, temas, puntos_clave, acuerdos, tareas: [{quien, que}], frases}}`. Si la transcripción pasa de ~60 000 caracteres (raro con 1 h), se resume por mitades y se funde; con 1 h de conversación son ~9 000 palabras, cabe de sobra.
+- Ejecutivo: «Diez líneas como mucho, en prosa, para alguien que no estuvo: de qué iba, qué se acordó, qué queda por hacer y de quién. Sin encabezados.»
+- Amplio: el markdown de D33 lo compone el backend desde el JSON (como «Notas de origen» en D11), así el formato nunca depende del modelo. `titulo` sustituye al provisional solo si el usuario no lo ha editado (`titulo_editado` en la fila; si no, se compara con el provisional).
+- «Guardar como nota»: `POST /entrevistas/{id}/nota {cual}` crea la nota con `contenido = <resumen elegido> + '\n\n_Entrevista: <titulo>, <fecha>, <duración>_'`, `proyecto_id` el de la entrevista, y pasa por `titular` como cualquier nota (D6). Devuelve la nota; la app abre su detalle.
+
+### 12.7 Verificación en `deploy.yml`
+
+- **F18b**: paso «Verificar /entrevistas»: genera 3 s de WAV con `ffmpeg -f lavfi -i sine=frequency=440:duration=3` en el runner, `POST` multipart, `GET` lista y detalle, `GET .../audio` con `Range: bytes=0-99` → 206 y 100 bytes, `DELETE` → 204 y 404 después. Con `TOKEN_API`, 401 sin cabecera.
+- **F19**: si hay `LLM_API_KEY`, `POST .../transcribir` sobre un audio de voz sintética (`espeak-ng` en el runner, «hola, esto es una prueba») y esperar hasta 90 s a `transcrita`; el texto tiene que contener «prueba». Sin clave, 503.
+- **F20**: `POST .../resumir` sobre esa transcripción y comprobar que `resumen_ejecutivo` no está vacío; `POST .../nota` crea una nota en el proyecto y se borra al final.
+- `pages.yml` no cambia; el mock se archiva como siempre y `sw.js` cambia de `CACHE`.
+
+### 12.8 Coste y tamaño (con las respuestas de la sección 8)
+
+- Audio: 1 h ≈ 14 MB en webm/opus a 32 kbps; troceado a mp3 24 kbps ≈ 10,8 MB en total (se borra tras transcribir; solo queda el original).
+- Transcripción: [SUPUESTO] un Gemini Flash cobra la entrada de audio a ~32 tokens/s → 1 h ≈ 115 000 tokens de entrada + ~12 000 de salida: **del orden de 0,05 a 0,10 € por hora**. Los dos resúmenes, ~15 000 tokens de entrada: céntimos. Se confirma en `/uso` del proxy tras la primera entrevista real.
+- Volumen: 70 entrevistas de 1 h con audio; con «Borrar audio» (D29), ilimitado en la práctica (el texto de 1 h son ~60 KB).
+
+### 12.9 Errores que la app tiene que enseñar (no solo registrar)
+
+| Situación | Qué ve el usuario |
+|---|---|
+| Micrófono denegado | Pantalla de permiso con pasos y «Subir audio» |
+| `MediaRecorder` no soportado | «Este navegador no puede grabar; usa la grabadora del móvil y Subir audio» |
+| Sin red al guardar | Queda en IndexedDB; banda «sin subir» y botón Subir |
+| Subida cortada | Igual que sin red; el `.parcial` del servidor se borra en el siguiente arranque |
+| 413 (más de 200 MB) | «Grabación demasiado larga para subirla de una vez» (no debería pasar con 1 h: 14 MB) |
+| Transcripción fallida | Estado «Fallida · Reintentar» con el motivo en el detalle |
+| 503 sin clave de IA | «Transcribir necesita la clave de IA configurada» y el botón deshabilitado |
+| Audio borrado | Reproductor sustituido por «Audio borrado el <fecha>»; Transcribir deshabilitado si no había transcripción |
