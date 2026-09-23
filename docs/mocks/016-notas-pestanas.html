@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260923-018">
+  <meta name="build" content="PR-B1-20260923-017">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 16</title>
+  <title>Notas · mock 15</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -119,8 +119,6 @@
     .listaMover { max-height:40vh; overflow:auto; display:flex; flex-direction:column; gap:.4rem; }
     .listaMover .btn { text-align:left; }
     .ambito { margin:.75rem 0; }
-    .barraDet { display:flex; justify-content:space-between; gap:.5rem; }
-    #dAvisoCopia:empty { display:none; }
     /* Dos pantallas, dos pestañas: siempre se ve dónde se está y cómo ir a la otra. */
     .pestanas { display:flex; gap:.25rem; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:.2rem; margin:0 0 .5rem; }
     .pestanas button { flex:1 1 0; min-width:0; border:0; background:transparent; color:var(--mut); font:inherit; font-size:.9rem; padding:.45rem .5rem; border-radius:8px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -134,7 +132,7 @@
 </head>
 <body>
 <header>
-  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 16 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 15 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <nav class="pestanas" id="pestanas" aria-label="Secciones">
     <button type="button" id="tabProy">📁 Proyectos</button>
     <button type="button" id="tabNotas">📝 <span id="tabNotasTxt">Notas</span></button>
@@ -248,8 +246,7 @@
   </section>
 
   <section id="detalle" class="hidden detalle">
-    <div class="barraDet"><button class="btn" id="volver" type="button">← Volver</button><button class="btn" id="copiarNota" type="button" title="Copiar la nota al portapapeles">📋 Copiar</button></div>
-    <p class="aviso" id="dAvisoCopia" role="status"></p>
+    <button class="btn" id="volver" type="button">← Volver</button>
     <h2 id="dTitulo"></h2>
     <time id="dFecha" style="color:var(--mut);font-size:.85rem"></time>
     <div class="chips" id="dProyecto"></div>
@@ -260,7 +257,7 @@
     <div class="acciones"><button class="btn" id="moverNota" type="button">Mover a…</button><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260923-018</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260923-017</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -364,7 +361,7 @@
       throw e;
     } finally { clearTimeout(avisador); }
   }
-  // «mock 16 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
+  // «mock 15 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
   // Los avisos («arrancando el backend…») y los errores se siguen viendo.
   const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); $('estado').dataset.rutina = !err && txt.startsWith('mock ') ? '1' : ''; };
 
@@ -601,7 +598,7 @@
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
       // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
       if (modoSel) pintarSeleccion();
-      estado(`mock 16 · ${API.replace('https://', '')}`);
+      estado(`mock 15 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -610,7 +607,6 @@
     }
   }
   function abrir(n, refrescar = false) {
-    if (!actual || actual.id !== n.id) $('dAvisoCopia').textContent = '';
     actual = n;
     $('dTitulo').textContent = n.titulo; $('dFecha').textContent = fmt(n.creada_en); $('dContenido').textContent = n.contenido;
     const zp = $('dProyecto'); zp.innerHTML = '';
@@ -933,35 +929,6 @@
   };
   $('volver').onclick = irALista;
   $('moverNota').onclick = () => abrirMover([actual.id], 'detalle');
-  // Copiar la nota entera para llevarla a otro sitio: título, proyecto, fecha,
-  // etiquetas y contenido, en markdown para que se pegue legible en cualquier lado.
-  const notaComoTexto = n => [
-    '# ' + n.titulo, '',
-    [
-      '📁 ' + (n.proyecto ? n.proyecto.nombre : 'Sin proyecto'),
-      fmt(n.creada_en),
-      n.etiquetas.length ? 'etiquetas: ' + n.etiquetas.join(', ') : ''
-    ].filter(Boolean).join(' · '),
-    '', n.contenido.trim(), ''
-  ].join('\n');
-  let tAvisoCopia;
-  $('copiarNota').onclick = async () => {
-    if (!actual) return;
-    const texto = notaComoTexto(actual);
-    let ok = false;
-    try { await navigator.clipboard.writeText(texto); ok = true; }
-    catch {
-      // Sin API de portapapeles (webview, sin HTTPS): el método antiguo.
-      const t = document.createElement('textarea');
-      t.value = texto; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
-      document.body.appendChild(t); t.select();
-      try { ok = document.execCommand('copy'); } catch {}
-      t.remove();
-    }
-    $('dAvisoCopia').classList.toggle('error', !ok);
-    $('dAvisoCopia').textContent = ok ? 'Nota copiada al portapapeles.' : 'Este navegador no deja copiar: mantén pulsado el texto y cópialo a mano.';
-    clearTimeout(tAvisoCopia); tAvisoCopia = setTimeout(() => { $('dAvisoCopia').textContent = ''; }, 3000);
-  };
 
   // --- Borrado con confirmación (hoja propia: el confirm() nativo falla en algunos webviews) ---
   let aBorrar = null, tipoBorrado = 'nota';
@@ -1199,7 +1166,7 @@
       const ps = await api('/proyectos?' + p);
       if (mia !== cargaProy) return;
       pintarProyectos(ps, !!q);
-      estado(`mock 16 · ${API.replace('https://', '')}`);
+      estado(`mock 15 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaProy) return;
       $('listaProyectos').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentarProy" type="button">Reintentar</button></p>`;
