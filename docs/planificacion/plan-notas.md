@@ -1,6 +1,6 @@
 # Plan — app de notas dictadas
 
-Fecha: 2026-09-20 · Estado: v12, F0 a F12 hechas: notas dictadas, tituladas por IA, buscables, con token, y documentos generados a partir de una selección de notas · Fuente de verdad: este fichero (la copia en Drive es solo copia).
+Fecha: 2026-09-20 · Estado: v14, F0 a F12 hechas (y F13 a F16, proyectos, en `plan-proyectos.md`): notas dictadas, tituladas por IA, buscables, con token, y documentos generados a partir de una selección de notas · Fuente de verdad: este fichero (la copia en Drive es solo copia) · Lo siguiente, notas por proyectos (F13 a F17), está en `plan-proyectos.md`.
 
 ## 1. Qué se pide (notas del usuario, en sus términos)
 
@@ -99,3 +99,7 @@ Cada fase termina con push, verificación por workflow, entrada en bitácora y r
 - ~~Activar la IA (D5/D9)~~ **hecho**: el secreto `LLM_API_KEY` existe y cada despliegue lo verifica contra el servicio de verdad. El run de F5 tituló una nota real y redactó un documento real.
 - Instalar la app en el móvil y decir qué cambia.
 - **Elegir el modelo de los documentos (D13)**: hoy los redacta el mismo modelo barato que titula las notas. Definir la variable de repositorio `LLM_MODELO_DOCUMENTO` con un modelo mejor y relanzar `deploy.yml`. Es lo que más va a notarse en la calidad del prompt que sale.
+
+## 7. Siguiente: proyectos
+
+El 2026-09-23 el usuario pidió que las notas se guarden además por proyectos (abrir un proyecto y dictar dentro; buscar y ordenar proyectos). Planificado y, en la misma sesión, implementado y desplegado: [`plan-proyectos.md`](plan-proyectos.md), decisiones D14 a D26 y fases F13 a F16 hechas (F17 opcional), con numeración continua a la de aquí.

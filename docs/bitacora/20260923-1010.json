@@ -1,0 +1,31 @@
+{
+  "fecha": "2026-09-23T10:10:00+02:00",
+  "titulo": "Planificar las notas por proyectos",
+  "objetivo": "Diseñar, sin implementar, que las notas se agrupen por proyectos además de por etiquetas, con proyectos que se puedan buscar y ordenar.",
+  "prompts": [
+    {
+      "texto": "Vamos a ver en esta aplicación de prueba en la que voy guardando notas lo que quiero es que aparte de las etiquetas las notas se puedan ir guardando por proyectos o sea que se abra a un proyecto y ahí se vayan poniendo notas mmm luego los distintos proyectos se han de poder buscar ordenar y demás es una mejora sustancial en la utilización solamente planificación"
+    }
+  ],
+  "cambios": [
+    "docs/planificacion/plan-proyectos.md: plan nuevo con decisiones D14 a D26, modelo de datos, API, pantallas, fases F13 a F17, preguntas al usuario y riesgos",
+    "docs/planificacion/plan-notas.md: v13, puntero al plan de proyectos",
+    "CLAUDE.md: línea que avisa de que proyectos está planificado y no implementado"
+  ],
+  "sha": "2dc424a",
+  "sha_completo": "2dc424adf970c1d9fa6a35e49dbded81827bd6d3",
+  "run": null,
+  "mock": "mocks/012-notas-exportar.html",
+  "build": "PR-B1-20260920-014",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Contestar las cinco preguntas de la sección 8 del plan (una nota en un solo proyecto, guardar sin proyecto, orden por actividad, sin color, sin IA que proponga proyecto). Con silencio se sigue con lo supuesto.",
+    "F14: backend de proyectos, mergeable sola porque no cambia nada visible.",
+    "F15 y F16: pantalla de proyectos, proyecto activo, mover notas, documentos y exportación por proyecto.",
+    "Probar el dictado arreglado en el móvil de verdad.",
+    "Elegir el modelo que redacta los documentos: definir la variable de repositorio LLM_MODELO_DOCUMENTO y relanzar deploy.yml a mano."
+  ],
+  "enlaces": [],
+  "notas": "Sesión de solo planificación: ni app/ ni docs/index.html cambian, así que no hay mock nuevo y el build sigue siendo el de la sesión anterior. El prompt es transcripción literal del dictado del usuario."
+}

@@ -54,6 +54,13 @@ pub struct NotaFuente {
     pub etiquetas: Vec<String>,
 }
 
+/// El proyecto del que salen las notas de un documento (D21): contexto para el
+/// modelo, que asi sabe de que va el encargo sin que el usuario lo repita.
+pub struct Proyecto {
+    pub nombre: String,
+    pub descripcion: String,
+}
+
 /// Lo que el modelo devuelve para un conjunto de notas (D11). `markdown` trae
 /// el documento entero menos la sección de notas de origen, que la escribe el
 /// backend para que sea fiel y no dependa de lo que el modelo recuerde.
@@ -137,13 +144,14 @@ impl Llm {
         &self,
         notas: &[NotaFuente],
         instruccion: &str,
+        proyecto: Option<&Proyecto>,
     ) -> Result<Documento, String> {
         if notas.is_empty() {
             return Err("no hay notas que documentar".into());
         }
         let texto = self
             .completar(
-                self.peticion_documento(notas, instruccion),
+                self.peticion_documento(notas, instruccion, proyecto),
                 "notas-documento",
                 ESPERA_DOCUMENTO,
             )
@@ -283,7 +291,12 @@ impl Llm {
     /// El cuerpo de la petición del documento (D11). Misma API que titular,
     /// otro encargo: aquí el modelo no clasifica, redacta un enunciado de
     /// trabajo a partir de lo que dictó el usuario.
-    fn peticion_documento(&self, notas: &[NotaFuente], instruccion: &str) -> Value {
+    fn peticion_documento(
+        &self,
+        notas: &[NotaFuente],
+        instruccion: &str,
+        proyecto: Option<&Proyecto>,
+    ) -> Value {
         let mut material = String::new();
         let mut recortadas = 0usize;
         for (i, n) in notas.iter().enumerate() {
@@ -324,6 +337,18 @@ impl Llm {
             ),
         };
 
+        let contexto = match proyecto {
+            None => String::new(),
+            Some(p) if p.descripcion.trim().is_empty() => {
+                format!("Todas las notas son del proyecto «{}».\n\n", p.nombre)
+            }
+            Some(p) => format!(
+                "Todas las notas son del proyecto «{}»: {}\n\n",
+                p.nombre,
+                p.descripcion.trim()
+            ),
+        };
+
         let mut cuerpo = json!({
             "messages": [
                 {
@@ -353,7 +378,7 @@ impl Llm {
                 },
                 {
                     "role": "user",
-                    "content": format!("{encargo}Notas dictadas, de la más antigua a la más reciente:\n\n{material}")
+                    "content": format!("{encargo}{contexto}Notas dictadas, de la más antigua a la más reciente:\n\n{material}")
                 }
             ],
             "max_tokens": 3000,

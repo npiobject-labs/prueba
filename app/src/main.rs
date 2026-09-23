@@ -95,6 +95,7 @@ fn abrir_db() -> Connection {
          CREATE INDEX IF NOT EXISTS documento_notas_nota ON documento_notas(nota_id);",
     )
     .expect("no se pudo crear el esquema");
+    migrar(&con);
     // Notas anteriores al indice (o indice desincronizado): se reconstruye entero, es barato.
     let (n_notas, n_fts): (i64, i64) = con
         .query_row(
@@ -128,6 +129,57 @@ fn abrir_db() -> Connection {
     con
 }
 
+/// Cambios de esquema que `CREATE ... IF NOT EXISTS` no cubre (D23): cada
+/// version de `user_version` se aplica una sola vez y en su transaccion.
+fn migrar(con: &Connection) {
+    let version: i64 = con
+        .query_row("PRAGMA user_version", [], |f| f.get(0))
+        .expect("no se pudo leer user_version");
+    if version < 1 {
+        // Proyectos (D14-D19): columnas nullable, asi todo lo que ya habia
+        // queda en «Sin proyecto» y nada cambia para la app anterior.
+        con.execute_batch(
+            "BEGIN;
+             CREATE TABLE IF NOT EXISTS proyectos (
+               id             TEXT PRIMARY KEY,
+               nombre         TEXT NOT NULL,
+               nombre_clave   TEXT NOT NULL UNIQUE,
+               descripcion    TEXT NOT NULL DEFAULT '',
+               archivado      INTEGER NOT NULL DEFAULT 0,
+               creado_en      TEXT NOT NULL,
+               actualizado_en TEXT NOT NULL
+             );
+             ALTER TABLE notas ADD COLUMN proyecto_id TEXT REFERENCES proyectos(id) ON DELETE SET NULL;
+             ALTER TABLE documentos ADD COLUMN proyecto_id TEXT REFERENCES proyectos(id) ON DELETE SET NULL;
+             CREATE INDEX IF NOT EXISTS notas_proyecto ON notas(proyecto_id, creada_en DESC);
+             CREATE INDEX IF NOT EXISTS documentos_proyecto ON documentos(proyecto_id, creado_en DESC);
+             PRAGMA user_version = 1;
+             COMMIT;",
+        )
+        .expect("no se pudo migrar el esquema a la version 1 (proyectos)");
+        println!("esquema migrado a la version 1: proyectos");
+    }
+}
+
+/// Nombre de proyecto comparable (D17): minusculas, sin acentos y con los
+/// espacios colapsados. `COLLATE NOCASE` no sirve: solo iguala ASCII.
+fn clave(s: &str) -> String {
+    s.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
+        .chars()
+        .map(|c| match c {
+            'á' | 'à' | 'ä' | 'â' => 'a',
+            'é' | 'è' | 'ë' | 'ê' => 'e',
+            'í' | 'ì' | 'ï' | 'î' => 'i',
+            'ó' | 'ò' | 'ö' | 'ô' => 'o',
+            'ú' | 'ù' | 'ü' | 'û' => 'u',
+            c => c,
+        })
+        .collect()
+}
+
 // Texto libre -> consulta FTS5: cada palabra entre comillas (sin sintaxis especial) y con
 // prefijo, unidas por AND implicito. Acentos y mayusculas los iguala el tokenizador.
 fn consulta_fts(q: &str) -> Option<String> {
@@ -152,6 +204,8 @@ struct Nota {
     creada_en: String,
     pendiente_ia: bool,
     etiquetas: Vec<String>,
+    /// Proyecto de la nota (D14), `null` si esta en «Sin proyecto».
+    proyecto: Option<ProyectoRef>,
     /// Rastro nota -> documento (D12). Solo se rellena en el detalle: en la
     /// lista costaria una consulta por nota y alli no se enseña.
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -161,6 +215,71 @@ struct Nota {
 #[derive(Deserialize)]
 struct NuevaNota {
     contenido: String,
+    /// Proyecto donde cae la nota (D15). Sin el, «Sin proyecto» (D16).
+    #[serde(default)]
+    proyecto: Option<String>,
+}
+
+/// `PATCH /notas/{id}`: hoy solo mueve la nota de proyecto (D20). `null` o
+/// ausente la deja en «Sin proyecto».
+#[derive(Deserialize)]
+struct CambioNota {
+    #[serde(default)]
+    proyecto: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct MoverNotas {
+    notas: Vec<String>,
+    #[serde(default)]
+    proyecto: Option<String>,
+}
+
+/// Referencia corta a un proyecto, la que viaja dentro de notas y documentos.
+#[derive(Serialize)]
+struct ProyectoRef {
+    id: String,
+    nombre: String,
+}
+
+/// Un proyecto con sus cifras. `id` es `null` solo en la fila virtual
+/// «Sin proyecto» que encabeza la lista (D16).
+#[derive(Serialize)]
+struct Proyecto {
+    id: Option<String>,
+    nombre: String,
+    descripcion: String,
+    archivado: bool,
+    creado_en: Option<String>,
+    actualizado_en: Option<String>,
+    notas: i64,
+    ultima_nota: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct NuevoProyecto {
+    nombre: String,
+    #[serde(default)]
+    descripcion: String,
+}
+
+#[derive(Deserialize)]
+struct CambioProyecto {
+    nombre: Option<String>,
+    descripcion: Option<String>,
+    archivado: Option<bool>,
+}
+
+#[derive(Deserialize, Default)]
+struct FiltroProyectos {
+    q: Option<String>,
+    orden: Option<String>,
+    archivados: Option<String>,
+}
+
+#[derive(Deserialize, Default)]
+struct SoloProyecto {
+    proyecto: Option<String>,
 }
 
 /// Tope de notas por documento (D11). Veinte notas dictadas dan de sobra para
@@ -179,6 +298,8 @@ struct Documento {
     editado: bool,
     creado_en: String,
     actualizado_en: String,
+    /// Proyecto comun de sus notas, si lo tenian (D21).
+    proyecto: Option<ProyectoRef>,
     notas: Vec<NotaDeDocumento>,
 }
 
@@ -223,9 +344,68 @@ struct Filtro {
     etiqueta: Option<String>,
     desde: Option<String>,
     hasta: Option<String>,
+    /// Id de proyecto o `ninguno` (D15/D16). Sin el, todas las notas (D23).
+    proyecto: Option<String>,
 }
 
 type Respuesta<T> = Result<T, (StatusCode, Json<serde_json::Value>)>;
+
+/// Filtro de proyecto en las listas: `None` sin filtro, `Some(None)` para
+/// «Sin proyecto» (`ninguno`) y `Some(Some(id))` para uno concreto.
+fn filtro_proyecto(p: Option<&str>) -> Option<Option<String>> {
+    match p.map(str::trim) {
+        None | Some("") => None,
+        Some("ninguno") => Some(None),
+        Some(id) => Some(Some(id.to_string())),
+    }
+}
+
+/// Anade al SQL la condicion de proyecto sobre la columna dada.
+fn sql_proyecto(sql: &mut String, args: &mut Vec<String>, columna: &str, p: Option<&str>) {
+    match filtro_proyecto(p) {
+        None => {}
+        Some(None) => sql.push_str(&format!(" AND {columna} IS NULL")),
+        Some(Some(id)) => {
+            args.push(id);
+            sql.push_str(&format!(" AND {columna} = ?{}", args.len()));
+        }
+    }
+}
+
+fn proyecto_de_fila(f: &rusqlite::Row, i: usize) -> rusqlite::Result<Option<ProyectoRef>> {
+    Ok(
+        match (
+            f.get::<_, Option<String>>(i)?,
+            f.get::<_, Option<String>>(i + 1)?,
+        ) {
+            (Some(id), Some(nombre)) => Some(ProyectoRef { id, nombre }),
+            _ => None,
+        },
+    )
+}
+
+/// Comprueba el proyecto que manda el cliente: vacio o `null` es «Sin
+/// proyecto»; un id que no existe es un 400, no una nota perdida.
+fn proyecto_valido(con: &Connection, p: Option<String>) -> Respuesta<Option<String>> {
+    let Some(id) = p
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty() && s != "ninguno")
+    else {
+        return Ok(None);
+    };
+    match con
+        .query_row("SELECT 1 FROM proyectos WHERE id = ?1", [&id], |_| Ok(()))
+        .optional()
+    {
+        Ok(Some(())) => Ok(Some(id)),
+        Ok(None) => error(StatusCode::BAD_REQUEST, "el proyecto no existe"),
+        Err(e) => interno(e),
+    }
+}
+
+fn es_duplicado(e: &rusqlite::Error) -> bool {
+    matches!(e, rusqlite::Error::SqliteFailure(f, _) if f.code == rusqlite::ErrorCode::ConstraintViolation)
+}
 
 fn error<T>(codigo: StatusCode, msg: impl ToString) -> Respuesta<T> {
     Err((codigo, Json(json!({ "error": msg.to_string() }))))
@@ -266,7 +446,8 @@ fn etiquetas_de(con: &Connection, id: &str) -> rusqlite::Result<Vec<String>> {
 fn leer_nota(con: &Connection, id: &str) -> rusqlite::Result<Option<Nota>> {
     let fila = con
         .prepare_cached(
-            "SELECT id, titulo, contenido, creada_en, pendiente_ia FROM notas WHERE id = ?1",
+            "SELECT n.id, n.titulo, n.contenido, n.creada_en, n.pendiente_ia, p.id, p.nombre
+             FROM notas n LEFT JOIN proyectos p ON p.id = n.proyecto_id WHERE n.id = ?1",
         )?
         .query_row([id], |f| {
             Ok(Nota {
@@ -276,6 +457,7 @@ fn leer_nota(con: &Connection, id: &str) -> rusqlite::Result<Option<Nota>> {
                 creada_en: f.get(3)?,
                 pendiente_ia: f.get::<_, i64>(4)? != 0,
                 etiquetas: vec![],
+                proyecto: proyecto_de_fila(f, 5)?,
                 documentos: vec![],
             })
         })
@@ -302,13 +484,14 @@ async fn crear_nota(
     // tomado mientras se espera al modelo.
     let id: String = {
         let con = db.lock().unwrap();
+        let proyecto = proyecto_valido(&con, nueva.proyecto)?;
         let titulo = titulo_respaldo(&contenido);
         // id aleatorio y fecha UTC los pone SQLite: sin dependencias extra.
         match con.query_row(
-            "INSERT INTO notas (id, titulo, contenido, creada_en, pendiente_ia)
-             VALUES (lower(hex(randomblob(8))), ?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1)
+            "INSERT INTO notas (id, titulo, contenido, creada_en, pendiente_ia, proyecto_id)
+             VALUES (lower(hex(randomblob(8))), ?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 1, ?3)
              RETURNING id",
-            params![titulo, contenido],
+            params![titulo, contenido, proyecto],
             |f| f.get(0),
         ) {
             Ok(id) => id,
@@ -385,6 +568,7 @@ async fn listar_notas(State(db): State<Db>, Query(f): Query<Filtro>) -> Respuest
         args.push(h.to_string());
         sql.push_str(&format!(" AND n.creada_en <= ?{}", args.len()));
     }
+    sql_proyecto(&mut sql, &mut args, "n.proyecto_id", f.proyecto.as_deref());
     sql.push_str(" ORDER BY n.creada_en DESC LIMIT 500");
 
     let ids: Vec<String> = match con.prepare(&sql).and_then(|mut s| {
@@ -446,6 +630,304 @@ async fn borrar_nota(State(db): State<Db>, Path(id): Path<String>) -> Respuesta<
     }
 }
 
+/// Mueve una nota de proyecto (D20). No toca titulo, etiquetas ni fecha.
+async fn cambiar_nota(
+    State(db): State<Db>,
+    Path(id): Path<String>,
+    Json(cambio): Json<CambioNota>,
+) -> Respuesta<Json<Nota>> {
+    let con = db.lock().unwrap();
+    let proyecto = proyecto_valido(&con, cambio.proyecto)?;
+    match con.execute(
+        "UPDATE notas SET proyecto_id = ?1 WHERE id = ?2",
+        params![proyecto, id],
+    ) {
+        Ok(0) => return error(StatusCode::NOT_FOUND, "nota no encontrada"),
+        Ok(_) => {}
+        Err(e) => return interno(e),
+    }
+    match leer_nota(&con, &id) {
+        Ok(Some(n)) => Ok(Json(n)),
+        Ok(None) => error(StatusCode::NOT_FOUND, "nota no encontrada"),
+        Err(e) => interno(e),
+    }
+}
+
+/// Mueve varias notas de una vez, desde el modo seleccion (D20). Todas o
+/// ninguna: si una no existe, no se mueve nada.
+async fn mover_notas(
+    State(db): State<Db>,
+    Json(m): Json<MoverNotas>,
+) -> Respuesta<Json<serde_json::Value>> {
+    let con = db.lock().unwrap();
+    let proyecto = proyecto_valido(&con, m.proyecto)?;
+    let mut ids: Vec<String> = Vec::new();
+    for id in m.notas {
+        let id = id.trim().to_string();
+        if !id.is_empty() && !ids.contains(&id) {
+            ids.push(id);
+        }
+    }
+    if ids.is_empty() {
+        return error(StatusCode::BAD_REQUEST, "no hay notas que mover");
+    }
+    let tx = match con.unchecked_transaction() {
+        Ok(tx) => tx,
+        Err(e) => return interno(e),
+    };
+    for id in &ids {
+        match tx.execute(
+            "UPDATE notas SET proyecto_id = ?1 WHERE id = ?2",
+            params![proyecto, id],
+        ) {
+            Ok(0) => return error(StatusCode::BAD_REQUEST, format!("la nota {id} no existe")),
+            Ok(_) => {}
+            Err(e) => return interno(e),
+        }
+    }
+    if let Err(e) = tx.commit() {
+        return interno(e);
+    }
+    Ok(Json(json!({ "movidas": ids.len(), "proyecto": proyecto })))
+}
+
+// ---------------------------------------------------------------------------
+// Proyectos (D14-D19): contenedores de notas que nombra el usuario.
+// ---------------------------------------------------------------------------
+
+const SQL_PROYECTO: &str =
+    "SELECT p.id, p.nombre, p.descripcion, p.archivado, p.creado_en, p.actualizado_en,
+       (SELECT COUNT(*) FROM notas n WHERE n.proyecto_id = p.id),
+       (SELECT MAX(n.creada_en) FROM notas n WHERE n.proyecto_id = p.id)
+     FROM proyectos p";
+
+fn fila_proyecto(f: &rusqlite::Row) -> rusqlite::Result<Proyecto> {
+    Ok(Proyecto {
+        id: f.get(0)?,
+        nombre: f.get(1)?,
+        descripcion: f.get(2)?,
+        archivado: f.get::<_, i64>(3)? != 0,
+        creado_en: f.get(4)?,
+        actualizado_en: f.get(5)?,
+        notas: f.get(6)?,
+        ultima_nota: f.get(7)?,
+    })
+}
+
+fn leer_proyecto(con: &Connection, id: &str) -> rusqlite::Result<Option<Proyecto>> {
+    con.prepare_cached(&format!("{SQL_PROYECTO} WHERE p.id = ?1"))?
+        .query_row([id], fila_proyecto)
+        .optional()
+}
+
+/// Nombre obligatorio, espacios colapsados, hasta 60 caracteres (D17).
+fn nombre_valido(nombre: &str) -> Result<String, &'static str> {
+    let nombre = nombre.split_whitespace().collect::<Vec<_>>().join(" ");
+    match nombre.chars().count() {
+        0 => Err("el proyecto necesita un nombre"),
+        n if n > 60 => Err("el nombre pasa de 60 caracteres"),
+        _ => Ok(nombre),
+    }
+}
+
+fn descripcion_valida(d: &str) -> String {
+    d.trim().chars().take(300).collect()
+}
+
+/// Lista de proyectos (D18). Son decenas: se leen todos con sus cifras y se
+/// filtran y ordenan aqui, sin indice de texto.
+async fn listar_proyectos(
+    State(db): State<Db>,
+    Query(f): Query<FiltroProyectos>,
+) -> Respuesta<Json<Vec<Proyecto>>> {
+    let con = db.lock().unwrap();
+    let mut v: Vec<Proyecto> = match con
+        .prepare_cached(SQL_PROYECTO)
+        .and_then(|mut st| st.query_map([], fila_proyecto)?.collect())
+    {
+        Ok(v) => v,
+        Err(e) => return interno(e),
+    };
+    let con_archivados = matches!(f.archivados.as_deref(), Some("1") | Some("true"));
+    v.retain(|p| con_archivados || !p.archivado);
+    let terminos: Vec<String> =
+        f.q.as_deref()
+            .map(|q| clave(q).split_whitespace().map(String::from).collect())
+            .unwrap_or_default();
+    if !terminos.is_empty() {
+        v.retain(|p| {
+            let texto = clave(&format!("{} {}", p.nombre, p.descripcion));
+            terminos.iter().all(|t| texto.contains(t.as_str()))
+        });
+    }
+    // Actividad = la nota mas reciente; sin notas, la creacion del proyecto.
+    let actividad = |p: &Proyecto| {
+        p.ultima_nota
+            .clone()
+            .or_else(|| p.creado_en.clone())
+            .unwrap_or_default()
+    };
+    match f.orden.as_deref().unwrap_or("actividad") {
+        "nombre" => v.sort_by_key(|p| clave(&p.nombre)),
+        "creacion" => v.sort_by(|a, b| b.creado_en.cmp(&a.creado_en)),
+        "notas" => v.sort_by(|a, b| {
+            b.notas
+                .cmp(&a.notas)
+                .then_with(|| actividad(b).cmp(&actividad(a)))
+        }),
+        _ => v.sort_by_key(|p| std::cmp::Reverse(actividad(p))),
+    }
+    // «Sin proyecto» encabeza la lista si tiene algo y no se esta buscando (D16).
+    if terminos.is_empty() {
+        let huerfanas = con.query_row(
+            "SELECT COUNT(*), MAX(creada_en) FROM notas WHERE proyecto_id IS NULL",
+            [],
+            |f| Ok((f.get::<_, i64>(0)?, f.get::<_, Option<String>>(1)?)),
+        );
+        match huerfanas {
+            Ok((n, ultima)) if n > 0 => v.insert(
+                0,
+                Proyecto {
+                    id: None,
+                    nombre: "Sin proyecto".into(),
+                    descripcion: String::new(),
+                    archivado: false,
+                    creado_en: None,
+                    actualizado_en: None,
+                    notas: n,
+                    ultima_nota: ultima,
+                },
+            ),
+            Ok(_) => {}
+            Err(e) => return interno(e),
+        }
+    }
+    Ok(Json(v))
+}
+
+async fn crear_proyecto(
+    State(db): State<Db>,
+    Json(nuevo): Json<NuevoProyecto>,
+) -> Respuesta<impl IntoResponse> {
+    let nombre = match nombre_valido(&nuevo.nombre) {
+        Ok(n) => n,
+        Err(m) => return error(StatusCode::BAD_REQUEST, m),
+    };
+    let con = db.lock().unwrap();
+    let id: String = match con.query_row(
+        "INSERT INTO proyectos (id, nombre, nombre_clave, descripcion, archivado, creado_en, actualizado_en)
+         VALUES (lower(hex(randomblob(8))), ?1, ?2, ?3, 0,
+                 strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+         RETURNING id",
+        params![nombre, clave(&nombre), descripcion_valida(&nuevo.descripcion)],
+        |f| f.get(0),
+    ) {
+        Ok(id) => id,
+        Err(e) if es_duplicado(&e) => {
+            return error(StatusCode::CONFLICT, "ya hay un proyecto con ese nombre")
+        }
+        Err(e) => return interno(e),
+    };
+    match leer_proyecto(&con, &id) {
+        Ok(Some(p)) => Ok((StatusCode::CREATED, Json(p))),
+        Ok(None) => error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "el proyecto no se guardo",
+        ),
+        Err(e) => interno(e),
+    }
+}
+
+async fn ver_proyecto(State(db): State<Db>, Path(id): Path<String>) -> Respuesta<Json<Proyecto>> {
+    let con = db.lock().unwrap();
+    match leer_proyecto(&con, &id) {
+        Ok(Some(p)) => Ok(Json(p)),
+        Ok(None) => error(StatusCode::NOT_FOUND, "proyecto no encontrado"),
+        Err(e) => interno(e),
+    }
+}
+
+/// Renombrar, describir, archivar o desarchivar (D17/D19).
+async fn editar_proyecto(
+    State(db): State<Db>,
+    Path(id): Path<String>,
+    Json(c): Json<CambioProyecto>,
+) -> Respuesta<Json<Proyecto>> {
+    let nombre = match c.nombre.as_deref().map(nombre_valido).transpose() {
+        Ok(n) => n,
+        Err(m) => return error(StatusCode::BAD_REQUEST, m),
+    };
+    let con = db.lock().unwrap();
+    match leer_proyecto(&con, &id) {
+        Ok(Some(_)) => {}
+        Ok(None) => return error(StatusCode::NOT_FOUND, "proyecto no encontrado"),
+        Err(e) => return interno(e),
+    }
+    let aplicar = || -> rusqlite::Result<()> {
+        let tx = con.unchecked_transaction()?;
+        if let Some(n) = &nombre {
+            tx.execute(
+                "UPDATE proyectos SET nombre = ?1, nombre_clave = ?2 WHERE id = ?3",
+                params![n, clave(n), id],
+            )?;
+        }
+        if let Some(d) = &c.descripcion {
+            tx.execute(
+                "UPDATE proyectos SET descripcion = ?1 WHERE id = ?2",
+                params![descripcion_valida(d), id],
+            )?;
+        }
+        if let Some(a) = c.archivado {
+            tx.execute(
+                "UPDATE proyectos SET archivado = ?1 WHERE id = ?2",
+                params![a as i64, id],
+            )?;
+        }
+        tx.execute(
+            "UPDATE proyectos SET actualizado_en = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?1",
+            [&id],
+        )?;
+        tx.commit()
+    };
+    match aplicar() {
+        Ok(()) => {}
+        Err(e) if es_duplicado(&e) => {
+            return error(StatusCode::CONFLICT, "ya hay un proyecto con ese nombre")
+        }
+        Err(e) => return interno(e),
+    }
+    match leer_proyecto(&con, &id) {
+        Ok(Some(p)) => Ok(Json(p)),
+        Ok(None) => error(StatusCode::NOT_FOUND, "proyecto no encontrado"),
+        Err(e) => interno(e),
+    }
+}
+
+/// Borrar un proyecto nunca borra notas ni documentos (D19): se quedan en
+/// «Sin proyecto». Se hace explicito, sin fiarlo todo a la clave ajena.
+async fn borrar_proyecto(State(db): State<Db>, Path(id): Path<String>) -> Respuesta<StatusCode> {
+    let con = db.lock().unwrap();
+    let borrar = || -> rusqlite::Result<usize> {
+        let tx = con.unchecked_transaction()?;
+        tx.execute(
+            "UPDATE notas SET proyecto_id = NULL WHERE proyecto_id = ?1",
+            [&id],
+        )?;
+        tx.execute(
+            "UPDATE documentos SET proyecto_id = NULL WHERE proyecto_id = ?1",
+            [&id],
+        )?;
+        let n = tx.execute("DELETE FROM proyectos WHERE id = ?1", [&id])?;
+        tx.commit()?;
+        Ok(n)
+    };
+    match borrar() {
+        Ok(0) => error(StatusCode::NOT_FOUND, "proyecto no encontrado"),
+        Ok(_) => Ok(StatusCode::NO_CONTENT),
+        Err(e) => interno(e),
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Documentos (D11): varias notas -> un encargo de trabajo redactado por la IA.
 // ---------------------------------------------------------------------------
@@ -453,8 +935,9 @@ async fn borrar_nota(State(db): State<Db>, Path(id): Path<String>) -> Respuesta<
 fn leer_documento(con: &Connection, id: &str) -> rusqlite::Result<Option<Documento>> {
     let doc = con
         .prepare_cached(
-            "SELECT id, titulo, instruccion, texto, estado, error, editado, creado_en, actualizado_en
-             FROM documentos WHERE id = ?1",
+            "SELECT d.id, d.titulo, d.instruccion, d.texto, d.estado, d.error, d.editado,
+                    d.creado_en, d.actualizado_en, p.id, p.nombre
+             FROM documentos d LEFT JOIN proyectos p ON p.id = d.proyecto_id WHERE d.id = ?1",
         )?
         .query_row([id], |f| {
             Ok(Documento {
@@ -467,6 +950,7 @@ fn leer_documento(con: &Connection, id: &str) -> rusqlite::Result<Option<Documen
                 editado: f.get::<_, i64>(6)? != 0,
                 creado_en: f.get(7)?,
                 actualizado_en: f.get(8)?,
+                proyecto: proyecto_de_fila(f, 9)?,
                 notas: vec![],
             })
         })
@@ -538,21 +1022,30 @@ async fn crear_documento(
         // Las notas entran en el documento de la mas antigua a la mas reciente:
         // asi el modelo lee la historia en el orden en que se dicto.
         let mut fuentes: Vec<(String, String, String)> = Vec::with_capacity(ids.len());
+        let mut proyectos: Vec<Option<String>> = Vec::with_capacity(ids.len());
         for nota_id in &ids {
             let fila = con
-                .prepare_cached("SELECT id, titulo, creada_en FROM notas WHERE id = ?1")
+                .prepare_cached(
+                    "SELECT id, titulo, creada_en, proyecto_id FROM notas WHERE id = ?1",
+                )
                 .and_then(|mut st| {
                     st.query_row([nota_id], |f| {
                         Ok((
-                            f.get::<_, String>(0)?,
-                            f.get::<_, String>(1)?,
-                            f.get::<_, String>(2)?,
+                            (
+                                f.get::<_, String>(0)?,
+                                f.get::<_, String>(1)?,
+                                f.get::<_, String>(2)?,
+                            ),
+                            f.get::<_, Option<String>>(3)?,
                         ))
                     })
                     .optional()
                 });
             match fila {
-                Ok(Some(f)) => fuentes.push(f),
+                Ok(Some((f, p))) => {
+                    fuentes.push(f);
+                    proyectos.push(p);
+                }
                 Ok(None) => {
                     return error(
                         StatusCode::BAD_REQUEST,
@@ -563,15 +1056,22 @@ async fn crear_documento(
             }
         }
         fuentes.sort_by(|a, b| a.2.cmp(&b.2));
+        // El documento es del proyecto solo si todas sus notas lo son (D21).
+        let proyecto: Option<String> = match proyectos.first() {
+            Some(Some(p)) if proyectos.iter().all(|x| x.as_deref() == Some(p.as_str())) => {
+                Some(p.clone())
+            }
+            _ => None,
+        };
 
         let crear = || -> rusqlite::Result<String> {
             let tx = con.unchecked_transaction()?;
             let id: String = tx.query_row(
-                "INSERT INTO documentos (id, titulo, instruccion, texto, estado, editado, creado_en, actualizado_en)
+                "INSERT INTO documentos (id, titulo, instruccion, texto, estado, editado, creado_en, actualizado_en, proyecto_id)
                  VALUES (lower(hex(randomblob(8))), ?1, ?2, '', 'pendiente', 0,
-                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), ?3)
                  RETURNING id",
-                params![titulo_provisional(&fuentes), instruccion],
+                params![titulo_provisional(&fuentes), instruccion, proyecto],
                 |f| f.get(0),
             )?;
             {
@@ -625,11 +1125,19 @@ fn titulo_provisional(fuentes: &[(String, String, String)]) -> String {
     }
 }
 
-async fn listar_documentos(State(db): State<Db>) -> Respuesta<Json<Vec<Documento>>> {
+async fn listar_documentos(
+    State(db): State<Db>,
+    Query(f): Query<SoloProyecto>,
+) -> Respuesta<Json<Vec<Documento>>> {
     let con = db.lock().unwrap();
-    let ids: rusqlite::Result<Vec<String>> = con
-        .prepare_cached("SELECT id FROM documentos ORDER BY creado_en DESC LIMIT 200")
-        .and_then(|mut st| st.query_map([], |f| f.get(0))?.collect());
+    let mut sql = String::from("SELECT id FROM documentos WHERE 1=1");
+    let mut args: Vec<String> = vec![];
+    sql_proyecto(&mut sql, &mut args, "proyecto_id", f.proyecto.as_deref());
+    sql.push_str(" ORDER BY creado_en DESC LIMIT 200");
+    let ids: rusqlite::Result<Vec<String>> = con.prepare(&sql).and_then(|mut st| {
+        st.query_map(rusqlite::params_from_iter(args.iter()), |f| f.get(0))?
+            .collect()
+    });
     let ids = match ids {
         Ok(v) => v,
         Err(e) => return interno(e),
@@ -763,8 +1271,22 @@ async fn generar_documento(db: &Db, id: &str) -> Result<(), String> {
 
     // Se lee todo y se suelta el candado antes de salir a la red: el modelo
     // puede tardar un minuto y la app tiene que seguir respondiendo.
-    let (instruccion, fuentes) = {
+    let (instruccion, fuentes, proyecto) = {
         let con = db.lock().unwrap();
+        let proyecto: Option<llm::Proyecto> = con
+            .query_row(
+                "SELECT p.nombre, p.descripcion FROM documentos d
+                 JOIN proyectos p ON p.id = d.proyecto_id WHERE d.id = ?1",
+                [id],
+                |f| {
+                    Ok(llm::Proyecto {
+                        nombre: f.get(0)?,
+                        descripcion: f.get(1)?,
+                    })
+                },
+            )
+            .optional()
+            .unwrap_or(None);
         let instruccion: String = con
             .query_row(
                 "SELECT instruccion FROM documentos WHERE id = ?1",
@@ -798,7 +1320,7 @@ async fn generar_documento(db: &Db, id: &str) -> Result<(), String> {
                 n
             })
             .collect();
-        (instruccion, notas)
+        (instruccion, notas, proyecto)
     };
 
     if fuentes.is_empty() {
@@ -806,7 +1328,9 @@ async fn generar_documento(db: &Db, id: &str) -> Result<(), String> {
         return Err("ya no queda ninguna de las notas de este documento".into());
     }
 
-    let documento = ia.documentar(&fuentes, &instruccion).await?;
+    let documento = ia
+        .documentar(&fuentes, &instruccion, proyecto.as_ref())
+        .await?;
     // La seccion de notas de origen la escribe la aplicacion, no el modelo:
     // asi es fiel a lo que habia y no depende de lo que el modelo recuerde.
     let texto = format!(
@@ -848,18 +1372,24 @@ fn notas_de_origen(fuentes: &[llm::NotaFuente]) -> String {
     texto
 }
 
-async fn listar_etiquetas(State(db): State<Db>) -> Respuesta<Json<serde_json::Value>> {
+async fn listar_etiquetas(
+    State(db): State<Db>,
+    Query(f): Query<SoloProyecto>,
+) -> Respuesta<Json<serde_json::Value>> {
     let con = db.lock().unwrap();
-    let res: rusqlite::Result<Vec<serde_json::Value>> = con
-        .prepare_cached(
-            "SELECT etiqueta, COUNT(*) FROM etiquetas GROUP BY etiqueta ORDER BY 2 DESC, 1",
-        )
-        .and_then(|mut s| {
-            s.query_map([], |f| {
-                Ok(json!({ "etiqueta": f.get::<_, String>(0)?, "notas": f.get::<_, i64>(1)? }))
-            })?
-            .collect()
-        });
+    // Con proyecto, los chips son solo los de ese proyecto (D15).
+    let mut sql = String::from(
+        "SELECT e.etiqueta, COUNT(*) FROM etiquetas e JOIN notas n ON n.id = e.nota_id WHERE 1=1",
+    );
+    let mut args: Vec<String> = vec![];
+    sql_proyecto(&mut sql, &mut args, "n.proyecto_id", f.proyecto.as_deref());
+    sql.push_str(" GROUP BY e.etiqueta ORDER BY 2 DESC, 1");
+    let res: rusqlite::Result<Vec<serde_json::Value>> = con.prepare(&sql).and_then(|mut s| {
+        s.query_map(rusqlite::params_from_iter(args.iter()), |f| {
+            Ok(json!({ "etiqueta": f.get::<_, String>(0)?, "notas": f.get::<_, i64>(1)? }))
+        })?
+        .collect()
+    });
     match res {
         Ok(v) => Ok(Json(json!(v))),
         Err(e) => interno(e),
@@ -1012,9 +1542,20 @@ async fn main() {
     // Las rutas de datos exigen el token si TOKEN_API esta definido; /salud y /holamundo no.
     let protegidas = Router::new()
         .route("/notas", get(listar_notas).post(crear_nota))
-        .route("/notas/{id}", get(ver_nota).delete(borrar_nota))
+        .route("/notas/mover", post(mover_notas))
+        .route(
+            "/notas/{id}",
+            get(ver_nota).delete(borrar_nota).patch(cambiar_nota),
+        )
         .route("/notas/{id}/reintentar-ia", post(reintentar_ia))
         .route("/etiquetas", get(listar_etiquetas))
+        .route("/proyectos", get(listar_proyectos).post(crear_proyecto))
+        .route(
+            "/proyectos/{id}",
+            get(ver_proyecto)
+                .patch(editar_proyecto)
+                .delete(borrar_proyecto),
+        )
         .route("/documentos", get(listar_documentos).post(crear_documento))
         .route(
             "/documentos/{id}",

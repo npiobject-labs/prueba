@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260923-015">
+  <meta name="build" content="PR-B1-20260920-014">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 13</title>
+  <title>Notas · mock 12</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -30,11 +30,7 @@
     header h1 { font-size:1.1rem; margin:0 0 .5rem; display:flex; justify-content:space-between; align-items:center; }
     /* Con cuatro iconos al lado, el estado tiene que ceder: se recorta el, no el titulo. */
     header h1 small { font-weight:400; color:var(--mut); font-size:.75rem; max-width:7.5rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    header h1 { gap:.4rem; }
-    header h1 .titulo { display:flex; align-items:center; gap:.1rem; min-width:0; flex:1 1 auto; }
-    header h1 #cab { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-    header h1 .fila { flex:0 0 auto; }
-    @media (max-width:430px) { header h1 small { max-width:6rem; } header h1 small[data-rutina="1"] { display:none; } }
+    header h1 #cab { white-space:nowrap; }
     header h1 .fila { gap:.15rem; }
     main { max-width:40rem; margin:0 auto; padding:1rem 1rem 6rem; }
     input, textarea, select { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; width:100%; }
@@ -53,8 +49,8 @@
     .nota { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; }
     .nota { position:relative; padding-right:3rem; }
     .nota h2 { font-size:1rem; margin:0 0 .25rem; }
-    .papelera { position:absolute; top:.5rem; right:.5rem; width:2.4rem; height:2.4rem; border:0; border-radius:50%; background:transparent; color:var(--mut); font-size:1.1rem; cursor:pointer; }
-    .papelera:hover, .papelera:focus-visible { background:var(--acc2); color:var(--danger); }
+    .nota .papelera { position:absolute; top:.5rem; right:.5rem; width:2.4rem; height:2.4rem; border:0; border-radius:50%; background:transparent; color:var(--mut); font-size:1.1rem; cursor:pointer; }
+    .nota .papelera:hover, .nota .papelera:focus-visible { background:var(--acc2); color:var(--danger); }
     .velo { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
     .hoja { background:var(--panel); color:var(--txt); width:100%; max-width:40rem; border-radius:16px 16px 0 0; padding:1.25rem 1rem calc(1.25rem + env(safe-area-inset-bottom)); }
     .hoja h3 { margin:0 0 .5rem; font-size:1.05rem; }
@@ -101,24 +97,6 @@
     .marca.fallido { color:var(--danger); border-color:var(--danger); }
     .md { min-height:55vh; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.85rem; }
     .hoja textarea { min-height:5.5rem; }
-    /* Proyectos (D14-D22) */
-    .proy { position:relative; padding-right:3rem; }
-    .proy p { margin:.35rem 0 0; color:var(--mut); font-size:.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .proy.actual { border-color:var(--acc); }
-    .proy.sinProy h2 { font-style:italic; font-weight:500; }
-    .chip.proy { background:transparent; border:1px dashed var(--acc); color:var(--acc); font-size:.75rem; padding:.15rem .55rem; }
-    button.chip.proy { cursor:pointer; }
-    span.chip.proy { cursor:default; }
-    .filtros { display:flex; align-items:center; gap:.5rem; margin-top:.5rem; }
-    .filtros .chipsBtn { margin-top:0; flex:1 1 auto; width:auto; }
-    .todos { display:flex; align-items:center; gap:.3rem; font-size:.85rem; color:var(--mut); white-space:nowrap; margin-left:auto; }
-    .todos input { width:auto; margin:0; }
-    .cabProy { display:flex; align-items:center; gap:.5rem; margin-bottom:.75rem; color:var(--mut); font-size:.85rem; }
-    .cabProy span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .etq { display:block; font-size:.85rem; color:var(--mut); margin:.6rem 0 .3rem; }
-    .listaMover { max-height:40vh; overflow:auto; display:flex; flex-direction:column; gap:.4rem; }
-    .listaMover .btn { text-align:left; }
-    .ambito { margin:.75rem 0; }
     .hoja p.libre { white-space:normal; overflow:visible; }
     .hidden { display:none !important; }
     .enlaces { margin-top:2rem; padding-top:1rem; border-top:1px solid var(--line); font-size:.85rem; color:var(--mut); }
@@ -127,18 +105,15 @@
 </head>
 <body>
 <header>
-  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 13 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span id="cab">Notas</span><span class="fila"><small id="estado">mock 12 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
       <input id="fecha" type="date" style="width:auto" title="Filtrar por día">
     </div>
-    <div class="filtros">
-      <button class="chipsBtn hidden" id="chipsBtn" type="button" aria-expanded="false" aria-controls="chips">
-        <span id="chipsTxt">Etiquetas</span><span class="flecha" id="chipsFlecha" aria-hidden="true">▾</span>
-      </button>
-      <label class="todos"><input type="checkbox" id="enTodos"> En todos los proyectos</label>
-    </div>
+    <button class="chipsBtn hidden" id="chipsBtn" type="button" aria-expanded="false" aria-controls="chips">
+      <span id="chipsTxt">Etiquetas</span><span class="flecha" id="chipsFlecha" aria-hidden="true">▾</span>
+    </button>
     <div class="chips hidden" id="chips"></div>
   </div>
 </header>
@@ -147,31 +122,11 @@
 <div id="nuevaVersion" class="banda aviso-version hidden">Hay una versión nueva de la app. <button class="btn" id="recargarVersion" type="button">Actualizar</button></div>
 
 <main>
-  <div id="cabProyecto" class="cabProy hidden"><span id="cpDesc"></span><span class="marca hidden" id="cpArch" style="flex:0 0 auto">archivado</span><button class="btn" id="cpEditar" type="button">Proyecto ⋯</button></div>
   <section id="lista"></section>
-
-  <!-- Proyectos (D14-D19): contenedores de notas que nombra el usuario -->
-  <section id="proyectos" class="hidden">
-    <div class="fila">
-      <input id="pq" type="search" placeholder="Buscar proyecto…" autocomplete="off">
-      <select id="porden" style="width:auto" title="Orden" aria-label="Orden de los proyectos">
-        <option value="actividad">Actividad</option>
-        <option value="nombre">Nombre</option>
-        <option value="creacion">Creación</option>
-        <option value="notas">Nº de notas</option>
-      </select>
-    </div>
-    <div id="listaProyectos" style="margin-top:.75rem"></div>
-    <button class="chipsBtn hidden" id="archBtn" type="button" aria-expanded="false" aria-controls="listaArchivados">
-      <span id="archTxt">Archivados</span><span class="flecha" id="archFlecha" aria-hidden="true">▾</span>
-    </button>
-    <div id="listaArchivados" class="hidden" style="margin-top:.5rem"></div>
-  </section>
 
   <!-- Documentos (D11): un encargo redactado a partir de varias notas -->
   <section id="documentos" class="hidden">
     <button class="btn" id="volverDocumentos" type="button">← Volver a las notas</button>
-    <div class="chips ambito"><button class="chip on" id="docsEste" type="button">Este proyecto</button><button class="chip" id="docsTodos" type="button">Todos</button></div>
     <div id="listaDocs"></div>
   </section>
 
@@ -230,7 +185,6 @@
       <button class="btn pri" id="guardar" type="button">Guardar</button>
     </div>
     <p class="aviso" id="avisoMic"></p>
-    <p class="aviso" id="avisoProyecto"></p>
     <p class="aviso">Al guardar, el título y las etiquetas los pone el modelo. Si no contesta, la nota se guarda igual y queda marcada para reintentarlo.</p>
   </section>
 
@@ -238,15 +192,14 @@
     <button class="btn" id="volver" type="button">← Volver</button>
     <h2 id="dTitulo"></h2>
     <time id="dFecha" style="color:var(--mut);font-size:.85rem"></time>
-    <div class="chips" id="dProyecto"></div>
     <div class="chips" id="dEtiquetas"></div>
     <div id="dIa"></div>
     <div id="dDocs"></div>
     <article id="dContenido"></article>
-    <div class="acciones"><button class="btn" id="moverNota" type="button">Mover a…</button><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
+    <div class="acciones"><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260923-015</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260920-014</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -263,7 +216,6 @@
 <div id="barraSel" class="barraSel hidden">
   <small id="cuentaSel">Toca las notas que quieras incluir</small>
   <button class="btn" id="todasSel" type="button">Todas</button>
-  <button class="btn" id="moverSel" type="button" disabled>Mover</button>
   <button class="btn" id="salirSel" type="button">Cancelar</button>
   <button class="btn pri" id="generarSel" type="button" disabled>Generar</button>
 </div>
@@ -279,42 +231,6 @@
       <button class="btn" id="gaNo" type="button">Cancelar</button>
       <button class="btn pri" id="gaSi" type="button">Generar</button>
     </div>
-  </div>
-</div>
-
-<!-- Crear y editar un proyecto -->
-<div id="hojaProyecto" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="hpTitulo">
-  <div class="hoja">
-    <h3 id="hpTitulo">Nuevo proyecto</h3>
-    <label class="etq" for="hpNombre">Nombre</label>
-    <input id="hpNombre" maxlength="60" autocomplete="off" placeholder="Por ejemplo: App de notas">
-    <label class="etq" for="hpDesc">Descripción (opcional: la IA la usa como contexto al generar documentos)</label>
-    <textarea id="hpDesc" maxlength="300"></textarea>
-    <p class="aviso libre" id="hpAviso"></p>
-    <div class="acciones">
-      <button class="btn" id="hpNo" type="button">Cancelar</button>
-      <button class="btn pri" id="hpSi" type="button">Crear</button>
-    </div>
-    <div class="acciones" id="hpMas">
-      <button class="btn" id="hpArchivar" type="button">Archivar</button>
-      <button class="btn" id="hpExportar" type="button">Exportar</button>
-      <button class="btn peligro" id="hpBorrar" type="button">Borrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Mover notas de proyecto (D20) -->
-<div id="hojaMover" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="hmTitulo">
-  <div class="hoja">
-    <h3 id="hmTitulo">Mover a…</h3>
-    <p class="libre" id="hmResumen"></p>
-    <div id="hmLista" class="listaMover"></div>
-    <div class="fila" style="margin-top:.75rem">
-      <input id="hmNuevo" maxlength="60" autocomplete="off" placeholder="Nuevo proyecto…">
-      <button class="btn" id="hmCrear" type="button" style="white-space:nowrap">Crear y mover</button>
-    </div>
-    <p class="aviso libre" id="hmAviso"></p>
-    <div class="acciones"><button class="btn" id="hmNo" type="button">Cancelar</button></div>
   </div>
 </div>
 
@@ -350,9 +266,7 @@
       throw e;
     } finally { clearTimeout(avisador); }
   }
-  // «mock 13 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
-  // Los avisos («arrancando el backend…») y los errores se siguen viendo.
-  const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); $('estado').dataset.rutina = !err && txt.startsWith('mock ') ? '1' : ''; };
+  const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); };
 
   let notas = [], etiquetas = [], etiquetaActiva = null, actual = null;
   // Seleccion multiple (D11): se guarda la nota entera, no solo el id, para
@@ -361,53 +275,16 @@
   const seleccion = new Map();
   const TOPE_NOTAS = 20, TOPE_CARACTERES = 30000;
 
-  // --- Proyecto activo (D15): la app trabaja siempre dentro de uno ---
-  // `id: null` es «Sin proyecto» (D16). Se recuerda entre visitas.
-  const CLAVE_PROYECTO = 'notas-proyecto', CLAVE_ORDEN = 'notas-orden-proyectos';
-  let proyectoActivo = (() => { try { const p = JSON.parse(localStorage.getItem(CLAVE_PROYECTO)); return p && typeof p.nombre === 'string' ? p : null; } catch { return null; } })();
-  let enTodos = false;
-  function fijarProyecto(p) {
-    proyectoActivo = p ? { id: p.id ?? null, nombre: p.nombre, descripcion: p.descripcion || '', archivado: !!p.archivado } : null;
-    try { p ? localStorage.setItem(CLAVE_PROYECTO, JSON.stringify(proyectoActivo)) : localStorage.removeItem(CLAVE_PROYECTO); } catch {}
-  }
-  // Valor del filtro `proyecto` de la API para lo que se está mirando; null = todas.
-  const ambitoNotas = () => (!enTodos && proyectoActivo) ? (proyectoActivo.id ?? 'ninguno') : null;
-
-  const vistas = ['lista', 'editor', 'detalle', 'ajustes', 'documentos', 'documento', 'proyectos'];
+  const vistas = ['lista', 'editor', 'detalle', 'ajustes', 'documentos', 'documento'];
   function ver(v) {
     vistas.forEach(x => $(x).classList.toggle('hidden', x !== v));
     $('buscador').classList.toggle('hidden', v !== 'lista');
-    $('nueva').classList.toggle('hidden', !((v === 'lista' && !modoSel) || v === 'proyectos'));
-    $('nueva').title = v === 'proyectos' ? 'Nuevo proyecto' : 'Nueva nota';
-    $('nueva').setAttribute('aria-label', $('nueva').title);
-    $('proyectosBtn').classList.toggle('hidden', v !== 'lista' || modoSel);
+    $('nueva').classList.toggle('hidden', v !== 'lista' || modoSel);
     $('seleccionarBtn').classList.toggle('hidden', v !== 'lista');
     $('documentosBtn').classList.toggle('hidden', v !== 'lista');
     $('barraSel').classList.toggle('hidden', !(modoSel && v === 'lista'));
-    const nombre = proyectoActivo ? proyectoActivo.nombre : 'Notas';
-    $('cab').textContent = { lista: modoSel ? 'Elegir' : nombre, editor: 'Nueva nota', detalle: 'Nota', ajustes: 'Ajustes', documentos: 'Documentos', documento: 'Documento', proyectos: 'Proyectos' }[v];
-    if (v === 'lista') pintarCabProyecto(); else $('cabProyecto').classList.add('hidden');
+    $('cab').textContent = { lista: modoSel ? 'Elegir' : 'Notas', editor: 'Nueva nota', detalle: 'Nota', ajustes: 'Ajustes', documentos: 'Documentos', documento: 'Documento' }[v];
     window.scrollTo(0, 0);
-  }
-  // Volver «a las notas» es volver al proyecto activo; sin él, a la lista de proyectos.
-  function irALista() {
-    if (!proyectoActivo) { cargarProyectos(); return; }
-    ver('lista'); cargar();
-  }
-  function pintarCabProyecto() {
-    const p = proyectoActivo;
-    const texto = enTodos ? 'Buscando en todos los proyectos.'
-      : !p ? '' : p.id === null ? 'Notas que no están en ningún proyecto.' : p.descripcion;
-    $('cpDesc').textContent = texto;
-    $('cpArch').classList.toggle('hidden', !(p && p.archivado) || enTodos);
-    $('cpEditar').classList.toggle('hidden', !(p && p.id) || modoSel);
-    $('cabProyecto').classList.toggle('hidden', !texto && !(p && p.id));
-  }
-  // «hoy», «ayer», «hace 5 días»; más allá, la fecha.
-  function hace(iso) {
-    const d = new Date(iso), h = new Date();
-    const dias = Math.round((new Date(h.getFullYear(), h.getMonth(), h.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
-    return dias <= 0 ? 'hoy' : dias === 1 ? 'ayer' : dias < 30 ? `hace ${dias} días` : d.toLocaleDateString('es-ES', { dateStyle: 'medium' });
   }
   const fmt = iso => new Date(iso).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
   // Día local → rango UTC (D7).
@@ -448,7 +325,7 @@
   };
   function pintarLista(filtrando) {
     const l = $('lista'); l.innerHTML = '';
-    if (!notas.length) { l.innerHTML = `<p class="vacio">${filtrando ? 'Nada coincide con el filtro.' : proyectoActivo ? 'Sin notas en este proyecto. Pulsa + para dictar la primera.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`; return; }
+    if (!notas.length) { l.innerHTML = `<p class="vacio">${filtrando ? 'Nada coincide con el filtro.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`; return; }
     notas.forEach(n => {
       const d = document.createElement('div'); d.className = 'nota';
       d.innerHTML = `<h2></h2><time></time><div class="chips"></div><p></p><button class="papelera" type="button" title="Borrar nota" aria-label="Borrar nota">🗑</button>`;
@@ -456,8 +333,6 @@
       d.querySelector('h2').textContent = n.titulo;
       d.querySelector('time').textContent = fmt(n.creada_en);
       d.querySelector('p').textContent = n.contenido;
-      // Buscando en todos los proyectos (D22), cada nota dice de cuál es.
-      if (enTodos && n.proyecto) { const s = document.createElement('span'); s.className = 'chip proy'; s.textContent = '📁 ' + n.proyecto.nombre; d.querySelector('.chips').appendChild(s); }
       n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; d.querySelector('.chips').appendChild(s); });
       // Sin IA la nota se guarda igual (D6); el distintivo dice que le falta su titulo bueno.
       if (n.pendiente_ia) { const s = document.createElement('span'); s.className = 'chip ia'; s.textContent = 'sin titular'; d.querySelector('.chips').appendChild(s); }
@@ -491,8 +366,6 @@
       : n > TOPE_NOTAS ? `${n} notas: el máximo es ${TOPE_NOTAS}` : `${n} nota${n === 1 ? '' : 's'} · ${tamano}`;
     $('cuentaSel').classList.toggle('error', n > TOPE_NOTAS);
     $('generarSel').disabled = n === 0 || n > TOPE_NOTAS;
-    // Mover no tiene tope: sirve para repartir de golpe las notas de antes (D20).
-    $('moverSel').disabled = n === 0;
     // El boton refleja lo que hara: marcar las visibles o vaciar la seleccion.
     $('todasSel').textContent = todasVisibles() ? 'Ninguna' : 'Todas';
     $('todasSel').disabled = !notas.length;
@@ -521,7 +394,6 @@
   $('seleccionarBtn').onclick = () => modoSel ? salirSeleccion() : entrarSeleccion(null);
   $('todasSel').onclick = alternarTodas;
   $('salirSel').onclick = salirSeleccion;
-  $('moverSel').onclick = () => abrirMover([...seleccion.keys()], 'seleccion');
   $('generarSel').onclick = () => {
     const caracteres = [...seleccion.values()].reduce((t, x) => t + x.contenido.length, 0);
     const n = seleccion.size;
@@ -569,18 +441,16 @@
     if (q) p.set('q', q);
     if (etiquetaActiva) p.set('etiqueta', etiquetaActiva);
     if (ymd) { const r = rangoDia(ymd); p.set('desde', r.desde); p.set('hasta', r.hasta); }
-    const ambito = ambitoNotas();
-    if (ambito) p.set('proyecto', ambito);
     const mia = ++cargaActual;
     estado('cargando…');
     try {
-      const [ns, es] = await Promise.all([api('/notas?' + p), api('/etiquetas' + (ambito ? '?proyecto=' + encodeURIComponent(ambito) : ''))]);
+      const [ns, es] = await Promise.all([api('/notas?' + p), api('/etiquetas')]);
       if (mia !== cargaActual) return;
       notas = ns; etiquetas = es;
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
       // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
       if (modoSel) pintarSeleccion();
-      estado(`mock 13 · ${API.replace('https://', '')}`);
+      estado(`mock 12 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -591,12 +461,6 @@
   function abrir(n, refrescar = false) {
     actual = n;
     $('dTitulo').textContent = n.titulo; $('dFecha').textContent = fmt(n.creada_en); $('dContenido').textContent = n.contenido;
-    const zp = $('dProyecto'); zp.innerHTML = '';
-    const bp = document.createElement('button'); bp.type = 'button'; bp.className = 'chip proy';
-    bp.textContent = '📁 ' + (n.proyecto ? n.proyecto.nombre : 'Sin proyecto');
-    bp.title = 'Ir al proyecto';
-    bp.onclick = () => entrarProyecto(n.proyecto || { id: null, nombre: 'Sin proyecto' });
-    zp.appendChild(bp);
     const c = $('dEtiquetas'); c.innerHTML = '';
     n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; c.appendChild(s); });
     pintarReintento(n);
@@ -650,23 +514,15 @@
   // --- Documentos: lista, detalle, sondeo mientras se genera ---
   let docActual = null, sondeo = null;
 
-  // Los documentos se ven por proyecto (D21), con «Todos» a mano.
-  let docsTodos = false;
   async function cargarDocumentos() {
     const l = $('listaDocs');
     l.innerHTML = '<p class="vacio">cargando…</p>';
     ver('documentos');
-    const ambito = proyectoActivo ? (proyectoActivo.id ?? 'ninguno') : null;
-    const filtrados = !docsTodos && ambito;
-    $('docsEste').classList.toggle('on', !!filtrados);
-    $('docsTodos').classList.toggle('on', !filtrados);
-    $('docsEste').classList.toggle('hidden', !ambito);
-    $('docsEste').textContent = proyectoActivo ? proyectoActivo.nombre : 'Este proyecto';
     try {
-      const docs = await api('/documentos' + (filtrados ? '?proyecto=' + encodeURIComponent(ambito) : ''));
+      const docs = await api('/documentos');
       l.innerHTML = '';
       if (!docs.length) {
-        l.innerHTML = `<p class="vacio">${filtrados ? 'Sin documentos en este proyecto.' : 'Sin documentos.'} Elige varias notas con ☑ y pulsa Generar.</p>`;
+        l.innerHTML = '<p class="vacio">Sin documentos. Elige varias notas con ☑ y pulsa Generar.</p>';
         return;
       }
       docs.forEach(d => {
@@ -675,7 +531,6 @@
         e.querySelector('h2').textContent = d.titulo;
         e.querySelector('time').textContent = fmt(d.creado_en) + ' · ' + d.notas.length + ' nota' + (d.notas.length === 1 ? '' : 's');
         const c = e.querySelector('.chips');
-        if (!filtrados && d.proyecto) { const s = document.createElement('span'); s.className = 'chip proy'; s.textContent = '📁 ' + d.proyecto.nombre; c.appendChild(s); }
         if (d.estado !== 'listo') c.appendChild(marca(d.estado === 'pendiente' ? 'generando…' : 'falló', d.estado));
         if (d.editado) c.appendChild(marca('editado', ''));
         e.onclick = () => abrirDocumento(d);
@@ -695,7 +550,7 @@
   function abrirDocumento(d) {
     docActual = d;
     $('gTitulo').textContent = d.titulo;
-    $('gFecha').textContent = fmt(d.creado_en) + (d.proyecto ? ' · 📁 ' + d.proyecto.nombre : '');
+    $('gFecha').textContent = fmt(d.creado_en);
     $('gTexto').value = d.texto;
     $('gAviso').textContent = '';
     $('gGuardar').disabled = true;
@@ -739,10 +594,8 @@
     catch (e) { $('gAviso').textContent = 'No se pudo abrir la nota (' + e.message + ').'; }
   }
 
-  $('documentosBtn').onclick = () => { docsTodos = false; cargarDocumentos(); };
-  $('docsEste').onclick = () => { docsTodos = false; cargarDocumentos(); };
-  $('docsTodos').onclick = () => { docsTodos = true; cargarDocumentos(); };
-  $('volverDocumentos').onclick = irALista;
+  $('documentosBtn').onclick = cargarDocumentos;
+  $('volverDocumentos').onclick = () => { ver('lista'); cargar(); };
   $('volverDocumento').onclick = () => { clearTimeout(sondeo); cargarDocumentos(); };
   $('gTexto').oninput = () => { $('gGuardar').disabled = !docActual || $('gTexto').value.trim() === docActual.texto.trim(); };
 
@@ -863,41 +716,34 @@
     };
   }
   $('nueva').onclick = () => {
-    if (!$('proyectos').classList.contains('hidden')) { abrirHojaProyecto(null); return; }
     $('texto').value = ''; base = ''; trozos = []; parcial = '';
     if (SR) $('avisoMic').textContent = '';
-    $('avisoProyecto').textContent = proyectoActivo && proyectoActivo.id
-      ? `Se guarda en el proyecto «${proyectoActivo.nombre}».` : 'Se guarda sin proyecto.';
     ver('editor'); $('texto').focus();
   };
   const cortarDictado = () => { if (rec) { dictando = false; try { rec.stop(); } catch {} } micParado(); };
-  $('cancelar').onclick = () => { cortarDictado(); irALista(); };
+  $('cancelar').onclick = () => { cortarDictado(); ver('lista'); };
   $('guardar').onclick = async () => {
     cortarDictado();
     const contenido = $('texto').value.trim();
     if (!contenido) { $('texto').focus(); return; }
     $('guardar').disabled = true; $('guardar').textContent = 'Guardando…';
     try {
-      const proyecto = proyectoActivo ? proyectoActivo.id : null;
-      await api('/notas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contenido, proyecto }) });
-      irALista();
+      await api('/notas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contenido }) });
+      ver('lista'); cargar();
     } catch (e) {
       $('avisoMic').textContent = 'No se pudo guardar (' + e.message + '). El texto sigue aquí: pulsa Guardar otra vez.';
       estado('sin conexión con ' + API, true);
     } finally { $('guardar').disabled = false; $('guardar').textContent = 'Guardar'; }
   };
-  $('volver').onclick = irALista;
-  $('moverNota').onclick = () => abrirMover([actual.id], 'detalle');
+  $('volver').onclick = () => { ver('lista'); cargar(); };
 
   // --- Borrado con confirmación (hoja propia: el confirm() nativo falla en algunos webviews) ---
   let aBorrar = null, tipoBorrado = 'nota';
   function pedirBorrado(n, tipo = 'nota') {
     aBorrar = n; tipoBorrado = tipo;
-    $('cTitulo').textContent = { documento: '¿Borrar este documento?', proyecto: '¿Borrar este proyecto?' }[tipo] || '¿Borrar esta nota?';
-    // Borrar un proyecto nunca borra notas (D19): se dice cuántas se quedan sueltas.
-    $('cNota').textContent = tipo === 'proyecto'
-      ? `${n.nombre} · ${n.notas ? `sus ${n.notas} nota${n.notas === 1 ? '' : 's'} pasan a «Sin proyecto»` : 'no tiene notas'}; no se borra ninguna.`
-      : `${n.titulo} · ${fmt(tipo === 'documento' ? n.creado_en : n.creada_en)}` + (tipo === 'documento' ? ' · las notas no se tocan' : '');
+    $('cTitulo').textContent = tipo === 'documento' ? '¿Borrar este documento?' : '¿Borrar esta nota?';
+    $('cNota').textContent = `${n.titulo} · ${fmt(tipo === 'documento' ? n.creado_en : n.creada_en)}`
+      + (tipo === 'documento' ? ' · las notas no se tocan' : '');
     $('cSi').disabled = false; $('cSi').textContent = 'Borrar';
     $('confirmar').classList.remove('hidden');
     $('cNo').focus();
@@ -909,8 +755,6 @@
     if (ev.key !== 'Escape') return;
     if (aBorrar) cerrarConfirmacion();
     else if (!$('hojaGen').classList.contains('hidden')) cerrarHojaGen();
-    else if (!$('hojaMover').classList.contains('hidden')) cerrarMover();
-    else if (!$('hojaProyecto').classList.contains('hidden')) cerrarHojaProyecto();
     else if (modoSel) salirSeleccion();
   });
   $('cSi').onclick = async () => {
@@ -918,15 +762,7 @@
     const documento = tipoBorrado === 'documento';
     $('cSi').disabled = true; $('cSi').textContent = 'Borrando…';
     try {
-      const ruta = { documento: '/documentos/', proyecto: '/proyectos/' }[tipoBorrado] || '/notas/';
-      await api(ruta + encodeURIComponent(aBorrar.id), { method: 'DELETE' });
-      if (tipoBorrado === 'proyecto') {
-        const era = aBorrar.id;
-        cerrarConfirmacion();
-        if (proyectoActivo && proyectoActivo.id === era) fijarProyecto(null);
-        cargarProyectos();
-        return;
-      }
+      await api((documento ? '/documentos/' : '/notas/') + encodeURIComponent(aBorrar.id), { method: 'DELETE' });
       cerrarConfirmacion();
       if (documento) { cargarDocumentos(); return; }
       if (!$('detalle').classList.contains('hidden')) ver('lista');
@@ -939,7 +775,6 @@
   $('borrar').onclick = () => pedirBorrado(actual);
   let t; $('q').oninput = () => { clearTimeout(t); t = setTimeout(cargar, 250); };
   $('fecha').onchange = cargar;
-  $('enTodos').onchange = () => { enTodos = $('enTodos').checked; etiquetaActiva = null; pintarCabProyecto(); cargar(); };
 
   // --- Ajustes: token e instalación ---
   function abrirAjustes(msg) {
@@ -954,8 +789,8 @@
     ver('ajustes');
   }
   $('ajustesBtn').onclick = () => abrirAjustes('');
-  $('volverAjustes').onclick = irALista;
-  $('aGuardar').onclick = () => { try { localStorage.setItem(CLAVE_TOKEN, $('aToken').value.trim()); } catch {} arrancar(); };
+  $('volverAjustes').onclick = () => { ver('lista'); cargar(); };
+  $('aGuardar').onclick = () => { try { localStorage.setItem(CLAVE_TOKEN, $('aToken').value.trim()); } catch {} ver('lista'); cargar(); };
   $('aQuitar').onclick = () => { try { localStorage.removeItem(CLAVE_TOKEN); } catch {} $('aToken').value = ''; };
   let promptInstalar = null;
   window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); promptInstalar = ev; $('aInstalarFila').classList.remove('hidden'); });
@@ -975,28 +810,17 @@
   // Todas las notas en un solo markdown. El backend devuelve como mucho 500 y
   // el fichero lo dice, para que un recorte nunca pase por copia completa.
   const TOPE_LISTA = 500;
-  // `agrupar`: una sección por proyecto, «Sin proyecto» al final (D25).
-  function notasComoMarkdown(notas, { titulo = 'Notas', agrupar = false } = {}) {
+  function notasComoMarkdown(notas) {
     const ahora = new Date().toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
-    const lineas = ['# ' + titulo, '', `Exportadas el ${ahora} · ${notas.length} nota${notas.length === 1 ? '' : 's'}.`];
+    const lineas = ['# Notas', '', `Exportadas el ${ahora} · ${notas.length} nota${notas.length === 1 ? '' : 's'}.`];
     if (notas.length >= TOPE_LISTA) lineas.push('', `**Aviso:** solo caben ${TOPE_LISTA} notas por exportación; faltan las más antiguas.`);
-    const bloque = (n, nivel) => {
-      lineas.push('', '---', '', nivel + ' ' + n.titulo, '');
+    notas.forEach(n => {
+      lineas.push('', '---', '', '## ' + n.titulo, '');
       const meta = [fmt(n.creada_en)];
       if (n.etiquetas.length) meta.push('etiquetas: ' + n.etiquetas.join(', '));
       if (n.pendiente_ia) meta.push('sin titular por la IA');
       lineas.push('*' + meta.join(' · ') + '*', '', n.contenido.trim());
-    };
-    if (!agrupar) notas.forEach(n => bloque(n, '##'));
-    else {
-      const grupos = new Map();
-      notas.forEach(n => { const k = n.proyecto ? n.proyecto.nombre : ''; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(n); });
-      [...grupos.keys()].sort((a, b) => a === '' ? 1 : b === '' ? -1 : a.localeCompare(b, 'es')).forEach(k => {
-        const g = grupos.get(k);
-        lineas.push('', '## ' + (k || 'Sin proyecto') + ` (${g.length})`);
-        g.forEach(n => bloque(n, '###'));
-      });
-    }
+    });
     return lineas.join('\n') + '\n';
   }
   let notasExportadas = '';
@@ -1008,7 +832,7 @@
       // Sin filtros: lo que se exporta es todo, no lo que se esté mirando.
       const todas = await api('/notas');
       if (!todas.length) { $('aExportaAviso').textContent = 'No hay ninguna nota que exportar.'; return; }
-      notasExportadas = notasComoMarkdown(todas, { agrupar: true });
+      notasExportadas = notasComoMarkdown(todas);
       descargarMd('notas-' + new Date().toISOString().slice(0, 10), notasExportadas);
       $('aExportaAviso').textContent = `${todas.length} nota${todas.length === 1 ? '' : 's'} en el fichero. Si no lo ves, míralo en las descargas del navegador.`;
       // Compartir es lo que sirve en el móvil para mandárselo a otro sitio.
@@ -1110,196 +934,7 @@
     });
   }
 
-  // --- Proyectos: lista, búsqueda, orden, crear, editar, archivar, borrar ---
-  let cargaProy = 0, archAbiertos = false;
-  try { const o = localStorage.getItem(CLAVE_ORDEN); if (o) $('porden').value = o; } catch {}
-  if (!$('porden').value) $('porden').value = 'actividad';
-  async function cargarProyectos() {
-    ver('proyectos');
-    const p = new URLSearchParams({ orden: $('porden').value, archivados: '1' });
-    const q = $('pq').value.trim();
-    if (q) p.set('q', q);
-    const mia = ++cargaProy;
-    estado('cargando…');
-    try {
-      const ps = await api('/proyectos?' + p);
-      if (mia !== cargaProy) return;
-      pintarProyectos(ps, !!q);
-      estado(`mock 13 · ${API.replace('https://', '')}`);
-    } catch (e) {
-      if (mia !== cargaProy) return;
-      $('listaProyectos').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentarProy" type="button">Reintentar</button></p>`;
-      $('reintentarProy').onclick = cargarProyectos;
-      estado('sin conexión con ' + API, true);
-    }
-  }
-  function tarjetaProyecto(p) {
-    const d = document.createElement('div'); d.className = 'doc proy';
-    d.innerHTML = '<h2></h2><time></time><p></p><button class="papelera" type="button" title="Editar proyecto" aria-label="Editar proyecto">⋯</button>';
-    d.querySelector('h2').textContent = p.nombre;
-    d.querySelector('time').textContent = `${p.notas} nota${p.notas === 1 ? '' : 's'}` + (p.ultima_nota ? ' · última ' + hace(p.ultima_nota) : '');
-    const desc = d.querySelector('p');
-    if (p.descripcion) desc.textContent = p.descripcion; else desc.remove();
-    if (p.id === null) { d.classList.add('sinProy'); d.querySelector('.papelera').remove(); }
-    else d.querySelector('.papelera').onclick = ev => { ev.stopPropagation(); abrirHojaProyecto(p); };
-    if (proyectoActivo && proyectoActivo.id === p.id) d.classList.add('actual');
-    d.onclick = () => entrarProyecto(p);
-    return d;
-  }
-  function pintarProyectos(ps, buscando) {
-    const activos = ps.filter(p => !p.archivado), arch = ps.filter(p => p.archivado);
-    const l = $('listaProyectos'); l.innerHTML = '';
-    if (!activos.length) l.innerHTML = `<p class="vacio">${buscando ? 'Ningún proyecto coincide.' : 'Sin proyectos todavía. Pulsa + para crear el primero.'}</p>`;
-    activos.forEach(p => l.appendChild(tarjetaProyecto(p)));
-    // Archivados: plegados al final, como las etiquetas (D19).
-    const a = $('listaArchivados'); a.innerHTML = '';
-    arch.forEach(p => a.appendChild(tarjetaProyecto(p)));
-    const abierto = archAbiertos && arch.length > 0;
-    $('archBtn').classList.toggle('hidden', !arch.length);
-    $('archTxt').textContent = `Archivados · ${arch.length}`;
-    $('archBtn').setAttribute('aria-expanded', String(abierto));
-    $('archFlecha').textContent = abierto ? '▴' : '▾';
-    a.classList.toggle('hidden', !abierto);
-  }
-  $('archBtn').onclick = () => { archAbiertos = !archAbiertos; cargarProyectos(); };
-  let tp; $('pq').oninput = () => { clearTimeout(tp); tp = setTimeout(cargarProyectos, 250); };
-  $('porden').onchange = () => { try { localStorage.setItem(CLAVE_ORDEN, $('porden').value); } catch {} cargarProyectos(); };
-  $('proyectosBtn').onclick = () => { $('pq').value = ''; cargarProyectos(); };
-
-  // Entrar en un proyecto: filtros limpios y la lista acotada a él. Luego se
-  // refresca nombre y descripción, por si cambiaron desde otro sitio.
-  async function entrarProyecto(p) {
-    fijarProyecto(p);
-    modoSel = false; seleccion.clear();
-    etiquetaActiva = null; enTodos = false; $('enTodos').checked = false;
-    $('q').value = ''; $('fecha').value = '';
-    ver('lista'); cargar();
-    if (p.id === null) return;
-    try {
-      const fresco = await api('/proyectos/' + encodeURIComponent(p.id));
-      if (proyectoActivo && proyectoActivo.id === fresco.id) {
-        fijarProyecto(fresco);
-        if (!$('lista').classList.contains('hidden')) { $('cab').textContent = modoSel ? 'Elegir' : fresco.nombre; pintarCabProyecto(); }
-      }
-    } catch (e) {
-      // Borrado desde otro sitio: a la lista de proyectos.
-      if (/HTTP 404/.test(e.message)) { fijarProyecto(null); cargarProyectos(); }
-    }
-  }
-
-  let editandoProy = null;
-  function abrirHojaProyecto(p) {
-    editandoProy = p || null;
-    $('hpTitulo').textContent = p ? 'Proyecto' : 'Nuevo proyecto';
-    $('hpNombre').value = p ? p.nombre : '';
-    $('hpDesc').value = p ? p.descripcion || '' : '';
-    $('hpSi').textContent = p ? 'Guardar' : 'Crear';
-    $('hpSi').disabled = false;
-    $('hpMas').classList.toggle('hidden', !p);
-    if (p) $('hpArchivar').textContent = p.archivado ? 'Desarchivar' : 'Archivar';
-    $('hpAviso').textContent = ''; $('hpAviso').classList.remove('error');
-    $('hojaProyecto').classList.remove('hidden');
-    $('hpNombre').focus();
-  }
-  const cerrarHojaProyecto = () => { $('hojaProyecto').classList.add('hidden'); editandoProy = null; };
-  $('hpNo').onclick = cerrarHojaProyecto;
-  $('hojaProyecto').onclick = ev => { if (ev.target === $('hojaProyecto')) cerrarHojaProyecto(); };
-  const avisoHoja = (id, texto) => { $(id).textContent = texto; $(id).classList.add('error'); };
-  const errorProyecto = e => /HTTP 409/.test(e.message) ? 'Ya hay un proyecto con ese nombre.' : 'No se pudo guardar (' + e.message + ').';
-  // Tras cambiar un proyecto: si es el activo se actualiza, y se repinta lo que se esté viendo.
-  function proyectoCambiado(r) {
-    if (proyectoActivo && proyectoActivo.id === r.id) fijarProyecto(r);
-    if (!$('proyectos').classList.contains('hidden')) cargarProyectos();
-    else if (!$('lista').classList.contains('hidden')) { $('cab').textContent = modoSel ? 'Elegir' : proyectoActivo.nombre; pintarCabProyecto(); }
-  }
-  async function guardarProyecto(cambio) {
-    const p = editandoProy;
-    const r = await api('/proyectos' + (p ? '/' + encodeURIComponent(p.id) : ''), {
-      method: p ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cambio)
-    });
-    cerrarHojaProyecto();
-    if (p) proyectoCambiado(r); else entrarProyecto(r);
-  }
-  $('hpSi').onclick = async () => {
-    const nombre = $('hpNombre').value.trim();
-    if (!nombre) { avisoHoja('hpAviso', 'El proyecto necesita un nombre.'); $('hpNombre').focus(); return; }
-    $('hpSi').disabled = true;
-    try { await guardarProyecto({ nombre, descripcion: $('hpDesc').value.trim() }); }
-    catch (e) { avisoHoja('hpAviso', errorProyecto(e)); $('hpSi').disabled = false; }
-  };
-  $('hpNombre').onkeydown = ev => { if (ev.key === 'Enter') $('hpSi').click(); };
-  $('hpArchivar').onclick = async () => {
-    try { await guardarProyecto({ archivado: !editandoProy.archivado }); }
-    catch (e) { avisoHoja('hpAviso', errorProyecto(e)); }
-  };
-  $('hpBorrar').onclick = () => { const p = editandoProy; cerrarHojaProyecto(); pedirBorrado(p, 'proyecto'); };
-  $('hpExportar').onclick = async () => {
-    const p = editandoProy;
-    try {
-      const ns = await api('/notas?proyecto=' + encodeURIComponent(p.id));
-      if (!ns.length) { $('hpAviso').classList.remove('error'); $('hpAviso').textContent = 'Este proyecto no tiene notas que exportar.'; return; }
-      descargarMd(nombreDeFichero(p.nombre, 'proyecto') + '-' + new Date().toISOString().slice(0, 10), notasComoMarkdown(ns, { titulo: p.nombre }));
-      $('hpAviso').classList.remove('error');
-      $('hpAviso').textContent = `${ns.length} nota${ns.length === 1 ? '' : 's'} en el fichero.`;
-    } catch (e) { avisoHoja('hpAviso', 'No se pudo exportar (' + e.message + ').'); }
-  };
-  $('cpEditar').onclick = async () => {
-    if (!proyectoActivo || !proyectoActivo.id) return;
-    try { abrirHojaProyecto(await api('/proyectos/' + encodeURIComponent(proyectoActivo.id))); }
-    catch (e) { estado('no se pudo abrir el proyecto', true); }
-  };
-
-  // --- Mover notas de proyecto (D20): una desde el detalle, varias desde la selección ---
-  let aMover = null;
-  async function abrirMover(ids, origen) {
-    if (!ids.length) return;
-    aMover = { ids, origen };
-    const aqui = origen === 'detalle' ? (actual && actual.proyecto ? actual.proyecto.id : null)
-      : (!enTodos && proyectoActivo ? proyectoActivo.id : undefined);
-    $('hmResumen').textContent = ids.length === 1 ? 'Una nota.' : `${ids.length} notas.`;
-    $('hmAviso').textContent = ''; $('hmAviso').classList.remove('error');
-    $('hmNuevo').value = '';
-    const l = $('hmLista'); l.innerHTML = '<p class="vacio">cargando…</p>';
-    $('hojaMover').classList.remove('hidden');
-    try {
-      const ps = (await api('/proyectos?orden=nombre')).filter(p => p.id !== null);
-      l.innerHTML = '';
-      [{ id: null, nombre: 'Sin proyecto' }, ...ps].forEach(p => {
-        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn';
-        b.textContent = (p.id === null ? '— ' : '📁 ') + p.nombre + (p.id === aqui ? ' · aquí' : '');
-        b.disabled = p.id === aqui;
-        b.onclick = () => moverA(p);
-        l.appendChild(b);
-      });
-    } catch (e) { l.innerHTML = ''; avisoHoja('hmAviso', 'No se pudieron cargar los proyectos (' + e.message + ').'); }
-  }
-  const cerrarMover = () => { $('hojaMover').classList.add('hidden'); aMover = null; };
-  $('hmNo').onclick = cerrarMover;
-  $('hojaMover').onclick = ev => { if (ev.target === $('hojaMover')) cerrarMover(); };
-  async function moverA(p) {
-    if (!aMover) return;
-    const { ids, origen } = aMover;
-    $('hmAviso').classList.remove('error'); $('hmAviso').textContent = 'moviendo…';
-    try {
-      await api('/notas/mover', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notas: ids, proyecto: p.id }) });
-      cerrarMover();
-      if (origen === 'detalle') abrir(await api('/notas/' + encodeURIComponent(ids[0])));
-      else { salirSeleccion(); cargar(); }
-      estado(`${ids.length === 1 ? 'nota movida' : ids.length + ' notas movidas'} a ${p.nombre}`);
-    } catch (e) { avisoHoja('hmAviso', 'No se pudo mover (' + e.message + ').'); }
-  }
-  $('hmCrear').onclick = async () => {
-    const nombre = $('hmNuevo').value.trim();
-    if (!nombre) { $('hmNuevo').focus(); return; }
-    try {
-      const p = await api('/proyectos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre }) });
-      await moverA(p);
-    } catch (e) { avisoHoja('hmAviso', errorProyecto(e)); }
-  };
-
-  // Arranque: al último proyecto usado; sin él, a la lista de proyectos (D15).
-  function arrancar() { if (proyectoActivo) entrarProyecto(proyectoActivo); else cargarProyectos(); }
-  arrancar();
+  ver('lista'); cargar();
 })();
 </script>
 </body>

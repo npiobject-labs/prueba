@@ -226,6 +226,59 @@ jobs:
             || { echo "::error::DELETE /notas/${id} no devolvio 204"; exit 1; }
           echo "OK: /notas crea, busca sin acentos y borra"
 
+      # F14: proyectos (D14-D23). Crear, nota dentro, filtrar, mover, el 409 del
+      # nombre repetido, y que borrar el proyecto deja la nota viva y sin proyecto.
+      - name: Verificar /proyectos
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+          TOKEN_API: ${{ secrets.TOKEN_API }}
+        run: |
+          base="https://${FLY_APP}.fly.dev"
+          auth="Authorization: Bearer ${TOKEN_API}"
+          json='Content-Type: application/json'
+          marca="${GITHUB_SHA:0:7}-${GITHUB_RUN_ATTEMPT}"
+          proy="$(curl -fsS --max-time 20 -X POST "${base}/proyectos" -H "${json}" -H "${auth}" \
+            -d "{\"nombre\":\"Verificación ${marca}\",\"descripcion\":\"proyecto de deploy.yml\"}")"
+          echo "Creado: ${proy}"
+          pid="$(printf '%s' "${proy}" | sed -n 's/^{"id":"\([^"]*\)".*/\1/p')"
+          [ -n "${pid}" ] || { echo "::error::POST /proyectos no devolvio id"; exit 1; }
+          nid=""
+          trap 'curl -sS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/proyectos/${pid}" || true; [ -z "${nid}" ] || curl -fsS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/notas/${nid}" || true' EXIT
+
+          codigo="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' -X POST "${base}/proyectos" -H "${json}" -H "${auth}" \
+            -d "{\"nombre\":\"VERIFICACION  ${marca}\"}")"
+          [ "${codigo}" = "409" ] || { echo "::error::nombre repetido devolvio ${codigo}, se esperaba 409"; exit 1; }
+          echo "OK: nombre repetido sin distinguir mayusculas ni acentos -> 409"
+
+          nota="$(curl -fsS --max-time 30 -X POST "${base}/notas" -H "${json}" -H "${auth}" \
+            -d "{\"contenido\":\"Nota de proyecto ${marca}\",\"proyecto\":\"${pid}\"}")"
+          nid="$(printf '%s' "${nota}" | sed -n 's/^{"id":"\([^"]*\)".*/\1/p')"
+          [ -n "${nid}" ] || { echo "::error::POST /notas con proyecto no devolvio id"; exit 1; }
+          printf '%s' "${nota}" | grep -q "\"proyecto\":{\"id\":\"${pid}\"" \
+            || { echo "::error::la nota no quedo en su proyecto: ${nota}"; exit 1; }
+          curl -fsS --max-time 20 -H "${auth}" "${base}/notas?proyecto=${pid}" | grep -q "\"id\":\"${nid}\"" \
+            || { echo "::error::GET /notas?proyecto= no trae la nota"; exit 1; }
+          if curl -fsS --max-time 20 -H "${auth}" "${base}/notas?proyecto=ninguno" | grep -q "\"id\":\"${nid}\""; then
+            echo "::error::la nota del proyecto sale en «Sin proyecto»"; exit 1
+          fi
+          curl -fsS --max-time 20 -H "${auth}" "${base}/proyectos?q=verificacion+${marca}" | grep -q "\"id\":\"${pid}\".*\"notas\":1" \
+            || { echo "::error::GET /proyectos?q= no encuentra el proyecto con su nota"; exit 1; }
+          echo "OK: /proyectos crea, busca sin acentos y cuenta; /notas filtra por proyecto"
+
+          curl -fsS --max-time 20 -X PATCH "${base}/notas/${nid}" -H "${json}" -H "${auth}" -d '{"proyecto":null}' \
+            | grep -q '"proyecto":null' || { echo "::error::PATCH /notas no la saco del proyecto"; exit 1; }
+          curl -fsS --max-time 20 -X POST "${base}/notas/mover" -H "${json}" -H "${auth}" \
+            -d "{\"notas\":[\"${nid}\"],\"proyecto\":\"${pid}\"}" | grep -q '"movidas":1' \
+            || { echo "::error::POST /notas/mover no la movio"; exit 1; }
+          echo "OK: mover una nota (PATCH) y en bloque (POST /notas/mover)"
+
+          curl -fsS --max-time 20 -o /dev/null -w '%{http_code}\n' -X DELETE -H "${auth}" "${base}/proyectos/${pid}" | grep -q '^204$' \
+            || { echo "::error::DELETE /proyectos no devolvio 204"; exit 1; }
+          curl -fsS --max-time 20 -H "${auth}" "${base}/notas/${nid}" | grep -q '"proyecto":null' \
+            || { echo "::error::al borrar el proyecto la nota no quedo en «Sin proyecto»"; exit 1; }
+          echo "OK: borrar el proyecto no borra su nota (D19)"
+
       # F2: con clave, una nota real tiene que volver titulada y etiquetada.
       # Cuesta una fraccion de centimo y es la unica forma de saber que la
       # cadena entera (Fly -> servicio -> modelo) funciona de verdad.
@@ -327,6 +380,7 @@ jobs:
             echo "- Hola mundo: https://${FLY_APP}.fly.dev/holamundo"
             echo "- Notas: https://${FLY_APP}.fly.dev/notas"
             echo "- Documentos: https://${FLY_APP}.fly.dev/documentos"
+            echo "- Proyectos: https://${FLY_APP}.fly.dev/proyectos"
             echo "- Comprobacion desde Pages: https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/holamundo.html"
             echo "- Build (SHA): \`${GITHUB_SHA}\`"
           } >> "$GITHUB_STEP_SUMMARY"
