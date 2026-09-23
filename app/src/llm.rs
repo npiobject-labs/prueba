@@ -45,6 +45,9 @@ const ESPERA_TRANSCRIPCION: Duration = Duration::from_secs(110);
 /// titular por defecto es un «lite», que con audio separa peor las voces.
 const MODELO_AUDIO: &str = "google/gemini-2.5-flash";
 
+/// Intentos del resumen de una entrevista si la respuesta llega rota.
+const INTENTOS_RESUMEN: usize = 3;
+
 /// Una hora de conversación son unos 60 000 caracteres; el doble da margen sin
 /// que una transcripción desmesurada dispare el coste.
 const MAXIMO_TRANSCRIPCION: usize = 120_000;
@@ -211,21 +214,42 @@ impl Llm {
         if transcripcion.trim().is_empty() {
             return Err("no hay transcripción que resumir".into());
         }
-        let texto = self
-            .completar(
-                self.peticion_resumen(transcripcion, con_quien, duracion, proyecto),
-                "entrevista-resumir",
-                ESPERA_DOCUMENTO,
-            )
-            .await?;
-        let mut r: Resumen = serde_json::from_str(&texto)
-            .map_err(|e| format!("el modelo no devolvió el JSON esperado: {e}"))?;
-        r.titulo = recortar_adornos(&r.titulo).chars().take(80).collect();
-        r.ejecutivo = sin_cerco(&r.ejecutivo);
-        if r.ejecutivo.is_empty() {
-            return Err("el modelo devolvió un resumen vacío".into());
+        // A veces el modelo corta el JSON a mitad de una cadena: se reintenta
+        // antes de dar el resumen por fallido. Tres llamadas iguales quedan
+        // lejos del corte por bucle del proxy (cinco en un minuto).
+        let mut ultimo_error = String::new();
+        for _ in 0..INTENTOS_RESUMEN {
+            let texto = match self
+                .completar(
+                    self.peticion_resumen(transcripcion, con_quien, duracion, proyecto),
+                    "entrevista-resumir",
+                    ESPERA_DOCUMENTO,
+                )
+                .await
+            {
+                Ok(t) => t,
+                Err(e) => {
+                    ultimo_error = e;
+                    continue;
+                }
+            };
+            let mut r: Resumen = match serde_json::from_str(&sin_cerco(&texto)) {
+                Ok(r) => r,
+                Err(e) => {
+                    ultimo_error = format!("el modelo no devolvió el JSON esperado: {e}");
+                    eprintln!("resumen: {ultimo_error}; se reintenta");
+                    continue;
+                }
+            };
+            r.titulo = recortar_adornos(&r.titulo).chars().take(80).collect();
+            r.ejecutivo = sin_cerco(&r.ejecutivo);
+            if r.ejecutivo.is_empty() {
+                ultimo_error = "el modelo devolvió un resumen vacío".into();
+                continue;
+            }
+            return Ok(r);
         }
-        Ok(r)
+        Err(ultimo_error)
     }
 
     fn peticion_transcripcion(&self, datos_b64: &str, ctx: &ContextoTrozo<'_>) -> Value {
@@ -482,6 +506,15 @@ impl Llm {
             ));
         }
 
+        // Una respuesta cortada por el tope de tokens llega con éxito pero a
+        // medias: mejor decirlo que intentar leerla.
+        if cuerpo
+            .pointer("/choices/0/finish_reason")
+            .and_then(Value::as_str)
+            == Some("length")
+        {
+            return Err("el modelo cortó la respuesta por longitud".into());
+        }
         cuerpo
             .pointer("/choices/0/message/content")
             .and_then(Value::as_str)
