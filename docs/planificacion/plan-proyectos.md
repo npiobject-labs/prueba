@@ -1,12 +1,13 @@
 # Plan — notas por proyectos
 
-Fecha: 2026-09-23 · Estado: v1, **solo planificación**, nada implementado · Continúa `plan-notas.md` (F0 a F12) · Fuente de verdad: este fichero (la copia en Drive es solo copia).
+Fecha: 2026-09-23 · Estado: v2, **F13 a F16 hechas** (backend, pantalla de proyectos, mover, documentos y exportación por proyecto); F17 opcional sin hacer · Continúa `plan-notas.md` (F0 a F12) · Fuente de verdad: este fichero (la copia en Drive es solo copia).
 
 ## 1. Qué se pide (notas del usuario, en sus términos)
 
 1. Además de las etiquetas, las notas se han de poder ir guardando **por proyectos**: se abre un proyecto y ahí se van poniendo notas.
 2. Los distintos proyectos se han de poder **buscar, ordenar y demás**.
 3. Es una mejora sustancial en la utilización. En esta sesión, solamente planificación.
+4. (Misma sesión, después) «Ahora lo que quiero es que desarrolles ese plan esa planificación que has hecho y lo despliegues para probar cómo funciona».
 
 ## 2. Qué es un proyecto aquí
 
@@ -31,8 +32,8 @@ Numeración continua con `plan-notas.md` (última: D13).
 | D22 | **Búsqueda dentro y fuera.** `q`, etiqueta y día filtran dentro del proyecto activo. Un conmutador «En todos los proyectos» en el buscador, apagado por defecto y no recordado, hace la misma búsqueda contra toda la base; en ese modo cada nota de la lista lleva un chip con su proyecto. | Decidido. |
 | D23 | **Migración con versión.** Hoy el esquema es todo `CREATE ... IF NOT EXISTS`; añadir columnas exige `PRAGMA user_version`: 0 → 1 crea `proyectos` y añade `proyecto_id` a `notas` y `documentos`. Idempotente y dentro de una transacción. `GET /notas` **sin** `proyecto` sigue devolviendo todas: la app antigua que el service worker tenga cacheada (F12) sigue funcionando contra el backend nuevo hasta que el usuario pulse «Actualizar». | Decidido. Nada de lo actual cambia de forma ni de código de respuesta. |
 | D24 | **Orden de las notas dentro del proyecto**: por fecha, la más reciente arriba, como hoy. Sin orden manual. | [SUPUESTO] No hace falta arrastrar notas. Plan B: columna `orden` y `PATCH /notas/{id} {orden}`. |
-| D25 | **Exportación (F11)** agrupada por proyecto (`# Proyecto` → `## Nota`), «Sin proyecto» al final. Y desde la pantalla de un proyecto, «Exportar este proyecto» con el mismo formato y solo sus notas. | Decidido. |
-| D26 | **Fuera de esta versión**: subproyectos, compartir proyectos, orden manual, color, IA que sugiera proyecto al guardar. Lo último es lo único tentador (una nota que dice «para la app de notas» podría ir sola a su proyecto), y queda como F16 opcional. | Decidido. |
+| D25 | **Exportación (F11)** agrupada por proyecto (`## Proyecto (N)` → `### Nota`, bajo el `# Notas` de siempre), «Sin proyecto» al final. Y desde la pantalla de un proyecto, «Exportar este proyecto» con el mismo formato y solo sus notas. | Decidido. |
+| D26 | **Fuera de esta versión**: subproyectos, compartir proyectos, orden manual, color, IA que sugiera proyecto al guardar. Lo último es lo único tentador (una nota que dice «para la app de notas» podría ir sola a su proyecto), y queda como F17 opcional. | Decidido. |
 
 ## 4. Modelo de datos
 
@@ -93,10 +94,10 @@ La primera vez tras desplegar, el usuario aterriza en Proyectos con solo «Sin p
 
 | Fase | Entregable | Verificación |
 |---|---|---|
-| **F13** | Este plan. | Revisión del usuario: preguntas de la sección 8. |
-| **F14** | Backend: migración con `user_version` (D23), tabla `proyectos`, las cinco rutas de `/proyectos`, filtro `proyecto` en `/notas`, `/etiquetas` y `/documentos`, `proyecto` al crear nota, `PATCH /notas/{id}` y `POST /notas/mover`, contexto de proyecto en `documentar()` (D21). Compatible con la app actual. | Paso «Verificar /proyectos» en `deploy.yml` (sección 5). Antes, en local contra SQLite: migrar una base con notas y documentos existentes y comprobar que todo queda en «Sin proyecto». |
-| **F15** | App, parte 1 (mock 13): pantalla Proyectos con buscar, ordenar, crear, renombrar, archivar y borrar; proyecto activo recordado; cabecera con nombre y vuelta; «Nueva nota» dentro del proyecto; lista, búsqueda y chips acotados; conmutador «En todos». | Chromium a 390×844 contra backend simulado: crear y entrar, orden por cada criterio, búsqueda de proyectos, archivar y desplegar archivados, borrar con las notas pasando a «Sin proyecto», arranque con proyecto recordado y con proyecto borrado, «En todos» con chip de proyecto en cada nota. Sin errores de consola. |
-| **F16** | App, parte 2 (mock 14): «Mover a…» en el detalle y «Mover» en selección; documentos filtrados por proyecto y con su chip; exportación agrupada y por proyecto. | Chromium: mover una y varias (con y sin filtro activo, como F9), selección con cuatro botones sin desbordar a 390 px, documento generado dentro de un proyecto trae `proyecto`, `.md` exportado con una cabecera por proyecto y «Sin proyecto» al final. |
+| **F13** ✅ | Este plan. | El usuario pidió implementarlo sin contestar la sección 8: se siguió con lo supuesto. |
+| **F14** ✅ | Backend: migración con `user_version` (D23), tabla `proyectos`, las cinco rutas de `/proyectos`, filtro `proyecto` en `/notas`, `/etiquetas` y `/documentos`, `proyecto` al crear nota, `PATCH /notas/{id}` y `POST /notas/mover`, contexto de proyecto en `documentar()` (D21). Compatible con la app actual. | Paso «Verificar /proyectos» en `deploy.yml` (sección 5). Antes, en local contra SQLite: migrar una base con notas y documentos existentes y comprobar que todo queda en «Sin proyecto». |
+| **F15** ✅ | App, parte 1 (mock 13, `PR-B1-20260923-015`): pantalla Proyectos con buscar, ordenar, crear, renombrar, archivar y borrar; proyecto activo recordado; cabecera con nombre y vuelta; «Nueva nota» dentro del proyecto; lista, búsqueda y chips acotados; conmutador «En todos». | Hecho: 37 comprobaciones con Chromium a 390×844 contra el backend real en local (base migrada desde el esquema de `main`) y una IA simulada, cubriendo F15 y F16: crear y entrar, orden por cada criterio, búsqueda de proyectos, archivar y desplegar archivados, borrar con las notas pasando a «Sin proyecto», arranque con proyecto recordado y con proyecto borrado, «En todos» con chip de proyecto en cada nota. Sin errores de consola. |
+| **F16** ✅ | App, parte 2 (en el mismo mock 13: salieron en la misma sesión): «Mover a…» en el detalle y «Mover» en selección; documentos filtrados por proyecto y con su chip; exportación agrupada y por proyecto. | Chromium: mover una y varias (con y sin filtro activo, como F9), selección con cuatro botones sin desbordar a 390 px, documento generado dentro de un proyecto trae `proyecto`, `.md` exportado con una cabecera por proyecto y «Sin proyecto» al final. |
 | **F17** (opcional, D26) | La IA propone proyecto al guardar una nota sin proyecto o desde «Sin proyecto» («¿Va a *X*?», un toque para aceptar). Sale de pasar al modelo los nombres y descripciones de los proyectos activos igual que hoy se le pasan las etiquetas. | Solo si el usuario lo pide tras usar F15/F16. |
 
 F14 va primero y se puede mergear solo: no cambia nada visible y deja la base lista. F15 y F16 pueden ir en un mismo PR si salen en la misma sesión; la división es por si no.
@@ -118,3 +119,11 @@ Todas tienen respuesta supuesta; con silencio, se sigue con ella.
 - **Migración en producción**: `deploy.yml` despliega sobre el volumen con las notas reales. La migración es aditiva (columnas nullable y tabla nueva), pero conviene descargar antes la exportación de F11 como copia: es la única vía de sacar los datos, porque el sandbox no llega a Fly.
 - **App cacheada**: tras desplegar F14, el móvil puede seguir con el mock 12 hasta que acepte «Actualizar» (F12). Funciona igual, porque las rutas viejas no cambian (D23).
 - **Barra de selección con cuatro botones** a 390 px: probablemente haga falta un icono en lugar de texto en alguno. Se decide en F16 con la captura delante.
+
+## 10. Cómo quedó (2026-09-23)
+
+- **Migración**: probada creando la base con el binario de `main` y arrancando el nuevo encima: `user_version` pasa a 1, las notas quedan en «Sin proyecto» y un segundo arranque no vuelve a migrar.
+- **`PATCH /notas/{id}`**: `proyecto` ausente o `null` deja la nota en «Sin proyecto». Hoy es el único campo; si un día se añaden más, habrá que distinguir ausente de `null`.
+- **Búsqueda de proyectos**: se leen todos y se filtran en el backend con la misma normalización que el nombre (minúsculas, sin acentos), por nombre y descripción, AND de palabras.
+- **Cabecera en el móvil**: el texto «mock 13 · host» se oculta por debajo de 430 px para que quepa el nombre del proyecto; los avisos y errores se siguen viendo.
+- **Barra de selección**: los cuatro botones (Todas · Mover · Cancelar · Generar) caben a 390 px sin iconos.
