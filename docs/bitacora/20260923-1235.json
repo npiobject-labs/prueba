@@ -1,0 +1,27 @@
+{
+  "fecha": "2026-09-23T12:35:00+02:00",
+  "titulo": "Copiar una nota al portapapeles",
+  "objetivo": "Poder llevar una nota entera (título, proyecto, fecha, etiquetas y contenido) a otro sitio con un botón.",
+  "prompts": [
+    {
+      "texto": "Al abrir una nueva nota como puedes ver en la imagen adjunta tienes que poner el icono de copiar de copiar en el portapapeles entonces lo que tiene que hacer es copiar el de la parte del título de la nota eh esa información que que hay ahí del proyecto la fecha y demás y sobre todo el contenido de la nota esto me servirá para llevarlo a otro sitio toda esta información y y hacer un resumen que a lo mejor más adelante y tendría que llevarlo uh como opción la propia nota pero de momento no nos adelantemos solamente eh botón de copiar",
+      "nota": "Con captura del detalle de una nota en el móvil."
+    }
+  ],
+  "cambios": [
+    "docs/index.html: mock 16; botón «📋 Copiar» en el detalle de la nota, texto en markdown y respaldo con execCommand",
+    "docs/mocks/016-notas-pestanas.html: mock 15 archivado",
+    "docs/sw.js: caché al build nuevo",
+    "CLAUDE.md: anotado"
+  ],
+  "sha": "ca6fe16",
+  "sha_completo": "ca6fe16fac24db3264e9d28cdc9dd1cc2c374882",
+  "run": "35849746116",
+  "mock": "mocks/016-notas-pestanas.html",
+  "build": "PR-B1-20260923-018",
+  "pagina": "index.html",
+  "fly": null,
+  "pendiente": ["Probarlo en el móvil.", "Más adelante: resumen desde la propia nota."],
+  "enlaces": [{ "texto": "PR #32", "url": "https://github.com/npiobject-labs/prueba/pull/32" }],
+  "notas": "Solo frontend. El prompt es transcripción literal del dictado."
+}
