@@ -268,6 +268,15 @@ jobs:
 
           curl -fsS --max-time 20 -X PATCH "${base}/notas/${nid}" -H "${json}" -H "${auth}" -d '{"proyecto":null}' \
             | grep -q '"proyecto":null' || { echo "::error::PATCH /notas no la saco del proyecto"; exit 1; }
+          # PUT corrige el texto y lo guarda entero: 6000 caracteres vuelven tal cual.
+          largo="$(printf 'x%.0s' $(seq 1 6000))"
+          editada="$(curl -fsS --max-time 20 -X PUT "${base}/notas/${nid}" -H "${json}" -H "${auth}" \
+            -d "{\"contenido\":\"${largo} ${marca}\",\"titulo\":\"Editada ${marca}\"}")"
+          printf '%s' "${editada}" | grep -q "\"titulo\":\"Editada ${marca}\"" \
+            || { echo "::error::PUT /notas no cambio el titulo"; exit 1; }
+          printf '%s' "${editada}" | grep -q "${largo} ${marca}" \
+            || { echo "::error::PUT /notas no guardo el contenido entero"; exit 1; }
+          echo "OK: PUT /notas edita titulo y contenido largo"
           curl -fsS --max-time 20 -X POST "${base}/notas/mover" -H "${json}" -H "${auth}" \
             -d "{\"notas\":[\"${nid}\"],\"proyecto\":\"${pid}\"}" | grep -q '"movidas":1' \
             || { echo "::error::POST /notas/mover no la movio"; exit 1; }
