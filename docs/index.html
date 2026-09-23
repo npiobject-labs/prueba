@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260923-022">
+  <meta name="build" content="PR-B1-20260923-023">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -174,6 +174,10 @@
     #captura .principal { height:128px; background:#c62828; }
     #captura[data-estado="inactiva"] .pausa, #captura[data-estado="cuenta"] .pausa, #captura[data-estado="pidiendo"] .pausa, #captura[data-estado="sin_permiso"] .pausa { visibility:hidden; }
     #captura .ico { font-size:1.6rem; }
+    .entsProy { margin-bottom:1rem; }
+    .entsCab { display:flex; justify-content:space-between; align-items:center; color:var(--mut); font-size:.85rem; margin-bottom:.4rem; }
+    .ent.compacta { padding:.6rem .9rem; margin-bottom:.5rem; border-color:var(--acc); }
+    .ent.compacta h2 { font-size:.95rem; margin-bottom:.2rem; }
     .nuevoProy { display:block; width:100%; margin:.75rem 0; border-style:dashed; border-color:var(--acc); color:var(--acc); font-weight:600; }
     .hoja p.libre { white-space:normal; overflow:visible; }
     .hidden { display:none !important; }
@@ -332,7 +336,7 @@
     <div class="acciones"><button class="btn peligro" id="entBorrarAudio" type="button">Borrar audio</button><button class="btn peligro" id="entBorrar" type="button">Borrar</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260923-022</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260923-023</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -641,9 +645,36 @@
     try { localStorage.setItem(CLAVE_CHIPS, chipsAbiertos ? '1' : '0'); } catch {}
     pintarChips();
   };
+  // Las entrevistas del proyecto se ven también aquí, arriba: viven en su
+  // pestaña, pero entrar en un proyecto y no verlas parecía que se habían perdido.
+  let entsDelProyecto = [];
+  function bloqueEntrevistas() {
+    if (modoSel || !entsDelProyecto.length) return null;
+    const z = document.createElement('div'); z.className = 'entsProy';
+    const cab = document.createElement('div'); cab.className = 'entsCab';
+    cab.innerHTML = '<span></span><button class="enlace" type="button"></button>';
+    const n = entsDelProyecto.length;
+    cab.querySelector('span').textContent = `🎙 ${n} entrevista${n === 1 ? '' : 's'}`;
+    cab.querySelector('button').textContent = 'Ver todas';
+    cab.querySelector('button').onclick = () => { entrevistas = []; cargarEntrevistas(); };
+    z.appendChild(cab);
+    entsDelProyecto.slice(0, 3).forEach(e => {
+      const d = document.createElement('div'); d.className = 'ent compacta';
+      d.innerHTML = '<h2></h2><div class="meta"><span></span><span class="marca"></span></div>';
+      d.querySelector('h2').textContent = '🎙 ' + e.titulo;
+      const [f, m] = d.querySelectorAll('.meta span');
+      f.textContent = fechaCorta(e.creada_en) + ' · ' + reloj(e.duracion_s);
+      const [txt, cls] = marcaEnt(e); m.textContent = txt; if (cls) m.classList.add(cls);
+      d.onclick = () => abrirEntrevista(e, true);
+      z.appendChild(d);
+    });
+    return z;
+  }
   function pintarLista(filtrando) {
     const l = $('lista'); l.innerHTML = '';
-    if (!notas.length) { l.innerHTML = `<p class="vacio">${filtrando ? 'Nada coincide con el filtro.' : proyectoActivo ? 'Sin notas en este proyecto. Pulsa + para dictar la primera.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`; return; }
+    const be = filtrando ? null : bloqueEntrevistas();
+    if (be) l.appendChild(be);
+    if (!notas.length) { l.insertAdjacentHTML('beforeend', `<p class="vacio">${filtrando ? 'Nada coincide con el filtro.' : proyectoActivo ? 'Sin notas en este proyecto. Pulsa + para dictar la primera.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`); return; }
     notas.forEach(n => {
       const d = document.createElement('div'); d.className = 'nota';
       d.innerHTML = `<h2></h2><time></time><div class="chips"></div><p></p><button class="papelera" type="button" title="Borrar nota" aria-label="Borrar nota">🗑</button>`;
@@ -769,9 +800,10 @@
     const mia = ++cargaActual;
     estado('cargando…');
     try {
-      const [ns, es] = await Promise.all([api('/notas?' + p), api('/etiquetas' + (ambito ? '?proyecto=' + encodeURIComponent(ambito) : ''))]);
+      const [ns, es, ents] = await Promise.all([api('/notas?' + p), api('/etiquetas' + (ambito ? '?proyecto=' + encodeURIComponent(ambito) : '')),
+        ambito ? api('/entrevistas?proyecto=' + encodeURIComponent(ambito)).catch(() => []) : Promise.resolve([])]);
       if (mia !== cargaActual) return;
-      notas = ns; etiquetas = es;
+      notas = ns; etiquetas = es; entsDelProyecto = ents;
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
       // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
       if (modoSel) pintarSeleccion();
