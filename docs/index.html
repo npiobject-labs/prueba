@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260923-023">
+  <meta name="build" content="PR-B1-20260923-024">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -336,7 +336,7 @@
     <div class="acciones"><button class="btn peligro" id="entBorrarAudio" type="button">Borrar audio</button><button class="btn peligro" id="entBorrar" type="button">Borrar</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260923-023</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260923-024</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -1450,7 +1450,10 @@
     const d = document.createElement('div'); d.className = 'doc proy';
     d.innerHTML = '<h2></h2><time></time><p></p><button class="papelera" type="button" title="Editar proyecto" aria-label="Editar proyecto">⋯</button>';
     d.querySelector('h2').textContent = p.nombre;
-    d.querySelector('time').textContent = `${p.notas} nota${p.notas === 1 ? '' : 's'}` + (p.ultima_nota ? ' · última ' + hace(p.ultima_nota) : '');
+    const ents = p.entrevistas || 0;
+    d.querySelector('time').textContent = `${p.notas} nota${p.notas === 1 ? '' : 's'}`
+      + (ents ? ` · ${ents} entrevista${ents === 1 ? '' : 's'}` : '')
+      + (p.ultima_nota ? ' · última ' + hace(p.ultima_nota) : '');
     const desc = d.querySelector('p');
     if (p.descripcion) desc.textContent = p.descripcion; else desc.remove();
     if (p.id === null) { d.classList.add('sinProy'); d.querySelector('.papelera').remove(); }

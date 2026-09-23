@@ -303,6 +303,9 @@ struct Proyecto {
     creado_en: Option<String>,
     actualizado_en: Option<String>,
     notas: i64,
+    /// Entrevistas del proyecto (D35): la tarjeta las cuenta junto a las notas.
+    entrevistas: i64,
+    /// Lo más reciente del proyecto, nota o entrevista (orden por actividad).
     ultima_nota: Option<String>,
 }
 
@@ -777,7 +780,9 @@ async fn mover_notas(
 const SQL_PROYECTO: &str =
     "SELECT p.id, p.nombre, p.descripcion, p.archivado, p.creado_en, p.actualizado_en,
        (SELECT COUNT(*) FROM notas n WHERE n.proyecto_id = p.id),
-       (SELECT MAX(n.creada_en) FROM notas n WHERE n.proyecto_id = p.id)
+       (SELECT MAX(c) FROM (SELECT MAX(n.creada_en) AS c FROM notas n WHERE n.proyecto_id = p.id
+          UNION ALL SELECT MAX(e.creada_en) FROM entrevistas e WHERE e.proyecto_id = p.id)),
+       (SELECT COUNT(*) FROM entrevistas e WHERE e.proyecto_id = p.id)
      FROM proyectos p";
 
 fn fila_proyecto(f: &rusqlite::Row) -> rusqlite::Result<Proyecto> {
@@ -790,6 +795,7 @@ fn fila_proyecto(f: &rusqlite::Row) -> rusqlite::Result<Proyecto> {
         actualizado_en: f.get(5)?,
         notas: f.get(6)?,
         ultima_nota: f.get(7)?,
+        entrevistas: f.get(8)?,
     })
 }
 
@@ -861,7 +867,9 @@ async fn listar_proyectos(
     // llegar a ella.
     if terminos.is_empty() {
         let huerfanas = con.query_row(
-            "SELECT COUNT(*), MAX(creada_en),
+            "SELECT COUNT(*),
+                    (SELECT MAX(c) FROM (SELECT MAX(creada_en) AS c FROM notas WHERE proyecto_id IS NULL
+                       UNION ALL SELECT MAX(creada_en) FROM entrevistas WHERE proyecto_id IS NULL)),
                     (SELECT COUNT(*) FROM entrevistas WHERE proyecto_id IS NULL)
              FROM notas WHERE proyecto_id IS NULL",
             [],
@@ -884,6 +892,7 @@ async fn listar_proyectos(
                     creado_en: None,
                     actualizado_en: None,
                     notas: n,
+                    entrevistas,
                     ultima_nota: ultima,
                 },
             ),
