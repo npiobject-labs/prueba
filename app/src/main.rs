@@ -228,6 +228,15 @@ struct CambioNota {
     proyecto: Option<String>,
 }
 
+/// `PUT /notas/{id}`: corregir el texto de una nota. Sin `titulo` (o vacío)
+/// se queda el que tenía; el proyecto y las etiquetas no se tocan.
+#[derive(Deserialize)]
+struct EdicionNota {
+    contenido: String,
+    #[serde(default)]
+    titulo: Option<String>,
+}
+
 #[derive(Deserialize)]
 struct MoverNotas {
     notas: Vec<String>,
@@ -641,6 +650,35 @@ async fn cambiar_nota(
     match con.execute(
         "UPDATE notas SET proyecto_id = ?1 WHERE id = ?2",
         params![proyecto, id],
+    ) {
+        Ok(0) => return error(StatusCode::NOT_FOUND, "nota no encontrada"),
+        Ok(_) => {}
+        Err(e) => return interno(e),
+    }
+    match leer_nota(&con, &id) {
+        Ok(Some(n)) => Ok(Json(n)),
+        Ok(None) => error(StatusCode::NOT_FOUND, "nota no encontrada"),
+        Err(e) => interno(e),
+    }
+}
+
+async fn editar_nota(
+    State(db): State<Db>,
+    Path(id): Path<String>,
+    Json(e): Json<EdicionNota>,
+) -> Respuesta<Json<Nota>> {
+    let contenido = e.contenido.trim().to_string();
+    if contenido.is_empty() {
+        return error(StatusCode::BAD_REQUEST, "contenido vacío");
+    }
+    let titulo: Option<String> = e
+        .titulo
+        .map(|t| t.trim().chars().take(120).collect::<String>())
+        .filter(|t| !t.is_empty());
+    let con = db.lock().unwrap();
+    match con.execute(
+        "UPDATE notas SET contenido = ?1, titulo = COALESCE(?2, titulo) WHERE id = ?3",
+        params![contenido, titulo, id],
     ) {
         Ok(0) => return error(StatusCode::NOT_FOUND, "nota no encontrada"),
         Ok(_) => {}
@@ -1545,7 +1583,10 @@ async fn main() {
         .route("/notas/mover", post(mover_notas))
         .route(
             "/notas/{id}",
-            get(ver_nota).delete(borrar_nota).patch(cambiar_nota),
+            get(ver_nota)
+                .put(editar_nota)
+                .delete(borrar_nota)
+                .patch(cambiar_nota),
         )
         .route("/notas/{id}/reintentar-ia", post(reintentar_ia))
         .route("/etiquetas", get(listar_etiquetas))
