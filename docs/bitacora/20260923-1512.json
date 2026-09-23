@@ -1,0 +1,37 @@
+{
+  "fecha": "2026-09-23T15:12:00+02:00",
+  "titulo": "Entrevista: ajustes tras la primera prueba real",
+  "objetivo": "Corregir lo que salió al usar la sección Entrevista en el móvil por primera vez.",
+  "prompts": [
+    { "texto": "Eh dame un resumen ejecutivo de todo lo que has hecho" },
+    { "texto": "Me refiero a este último a esta no está a esta última funcionalidad de la entrevista" },
+    { "texto": "Según ten eso en la imagen adjunta y he grabado la entrevista ha hecho el resumen bien y todo perfecto pero a la hora de encajarlo en el proyecto entrevista aparece en gris no me lo dejas seleccionar y es ahí en ese proyecto en el que quiero introducir si añadir este esta entrevista a la carpeta entrevista mmm por qué ocurre esto. Y repáralo", "nota": "Con captura de la hoja «Mover a…»." },
+    { "texto": "Pues si están entrevistas el problema es que alira a la sección de de proyectos y entrar en entrevistas eh solamente eh sale una una nota que es la nota que en la nota pero no sale eh la propia entrevista que acabo de hacer", "nota": "Con captura de la lista de notas del proyecto." },
+    { "texto": "Ahí pone que entrevistar tiene una nota pero hay una nota y una entrevista corríjalo", "nota": "Con captura de la pantalla de proyectos." },
+    { "texto": "Cierra sesión" }
+  ],
+  "cambios": [
+    "«Mover a…»: la fila del proyecto actual dice «✓ … · ya está aquí» y la hoja explica dónde está (PR #40)",
+    "La lista de notas de un proyecto enseña arriba sus entrevistas, con «Ver todas» (PR #41)",
+    "GET /proyectos trae el recuento de entrevistas; la tarjeta dice «1 nota · 1 entrevista» y la actividad cuenta la entrevista más reciente (PR #42)",
+    "El resumen de una entrevista se reintenta hasta 3 veces si el modelo corta el JSON; una respuesta cortada por longitud se dice como tal (PR #43)"
+  ],
+  "sha": "0d1daa6",
+  "sha_completo": "0d1daa6de78d07a426cdc376a59824eee432f905",
+  "run": 35864985516,
+  "mock": "mocks/018-entrevista.html",
+  "build": "PR-B1-20260923-024",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Guía de pruebas en el móvil (sección 9 del plan): pantalla apagada, auriculares, notificación, acceso directo.",
+    "Comprobar con una conversación real de dos personas la separación de voces."
+  ],
+  "enlaces": [
+    { "texto": "PR #40", "url": "https://github.com/npiobject-labs/prueba/pull/40" },
+    { "texto": "PR #41", "url": "https://github.com/npiobject-labs/prueba/pull/41" },
+    { "texto": "PR #42", "url": "https://github.com/npiobject-labs/prueba/pull/42" },
+    { "texto": "PR #43", "url": "https://github.com/npiobject-labs/prueba/pull/43" }
+  ],
+  "notas": "El gris de «Mover a…» no era un fallo: la entrevista ya estaba en ese proyecto; faltaba explicarlo. El despliegue de #42 falló en la verificación por un JSON cortado del modelo al resumir, que se arregló en #43."
+}
