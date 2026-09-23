@@ -4,13 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = "0.8"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal"] }
+axum = { version = "0.8", features = ["multipart"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "fs", "io-util", "process", "time"] }
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 tower-http = { version = "0.6", features = ["cors"] }
 # rustls en vez de OpenSSL: el Dockerfile no instala libssl-dev y no hace falta.
+# Audio de las entrevistas hacia el modelo (D30): va en base64 dentro del JSON.
+base64 = "0.22"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "http2"] }
 
 [profile.release]

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260923-019">
+  <meta name="build" content="PR-B1-20260923-021">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 17</title>
+  <title>Notas · mock 18</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -125,6 +125,55 @@
     .pestanas { display:flex; gap:.25rem; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:.2rem; margin:0 0 .5rem; }
     .pestanas button { flex:1 1 0; min-width:0; border:0; background:transparent; color:var(--mut); font:inherit; font-size:.9rem; padding:.45rem .5rem; border-radius:8px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .pestanas button.on { background:var(--acc); color:#fff; font-weight:600; }
+    /* Tres pestañas a 390 px: sin esto «Entrevistas» se recorta (D35). */
+    @media (max-width:420px) { .pestanas button { font-size:.8rem; padding:.45rem .15rem; } }
+    /* --- Entrevistas (D27-D42) --- */
+    .ent { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; }
+    .ent h2 { font-size:1rem; margin:0 0 .3rem; }
+    .meta { color:var(--mut); font-size:.8rem; display:flex; gap:.35rem .7rem; flex-wrap:wrap; align-items:center; }
+    .marca.ok { background:var(--acc2); color:var(--acc); border-color:transparent; }
+    .bandaEnt { background:var(--acc2); color:var(--acc); border-radius:10px; padding:.6rem .8rem; margin-bottom:.75rem; font-size:.9rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+    .bandaEnt span { flex:1 1 12rem; }
+    .bandaEnt .btn { padding:.3rem .8rem; }
+    .enlace { border:0; background:transparent; color:var(--mut); text-decoration:underline; font:inherit; font-size:.9rem; padding:.4rem 0; cursor:pointer; }
+    .fabEnt { position:fixed; right:1rem; bottom:calc(1rem + env(safe-area-inset-bottom)); border:0; border-radius:999px; background:var(--acc); color:#fff; font:inherit; font-size:1rem; font-weight:600; padding:.95rem 1.25rem; box-shadow:0 4px 14px rgba(0,0,0,.25); cursor:pointer; z-index:3; }
+    .bloque { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin:.75rem 0; }
+    .bloque h3 { margin:0 0 .5rem; font-size:1rem; }
+    .bloque .texto { white-space:pre-wrap; line-height:1.55; }
+    .bloque details > summary { cursor:pointer; font-weight:600; list-style-position:outside; }
+    .bloque details[open] > summary { margin-bottom:.5rem; }
+    .bloque audio { width:100%; margin-top:.25rem; }
+    .avance { height:6px; background:var(--line); border-radius:3px; margin:.5rem 0; overflow:hidden; }
+    .avance i { display:block; height:100%; background:var(--acc); border-radius:3px; transition:width .4s; }
+    .hoja .fila3 { display:flex; flex-direction:column; gap:.5rem; }
+    .hoja .fila3 .btn { text-align:left; }
+    /* Captura rápida (D38): pantalla completa, tres botones, el fondo dice el estado */
+    #captura { position:fixed; inset:0; z-index:10; display:flex; flex-direction:column; color:#fff; background:#2b2f36; transition:background .25s; user-select:none; -webkit-user-select:none; touch-action:manipulation; padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+    #captura[data-estado="grabando"] { background:#5a1414; }
+    #captura[data-estado="pausada"] { background:#5e4a00; }
+    #captura[data-estado="cuenta"] { background:#1f3a44; }
+    #captura .arriba { display:flex; justify-content:space-between; align-items:center; gap:.5rem; padding:.5rem .75rem; }
+    #captura .cerrar { height:56px; padding:0 1.25rem; border:0; border-radius:12px; background:rgba(255,255,255,.14); color:#fff; font:inherit; font-size:1.1rem; cursor:pointer; }
+    #captura .proyecto { font-size:.85rem; opacity:.75; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    #captura .centro { flex:1 1 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.5rem; padding:0 1rem; text-align:center; }
+    #captura .estadoTxt { font-size:1.25rem; letter-spacing:.08em; text-transform:uppercase; opacity:.9; display:flex; align-items:center; gap:.5rem; }
+    #captura .punto { width:.9rem; height:.9rem; border-radius:50%; background:#ff5252; display:none; }
+    #captura[data-estado="grabando"] .punto { display:inline-block; animation:late 1.2s infinite; }
+    @keyframes late { 50% { opacity:.25; } }
+    #captura .crono { font-size:4rem; font-variant-numeric:tabular-nums; font-weight:300; line-height:1; }
+    #captura .cuentaAtras { font-size:7rem; font-weight:200; line-height:1; }
+    #captura .nivel { display:flex; gap:4px; align-items:flex-end; height:2.2rem; }
+    #captura .nivel i { width:7px; background:rgba(255,255,255,.7); border-radius:2px; height:10%; }
+    #captura .pista { font-size:.9rem; opacity:.7; max-width:24rem; line-height:1.4; }
+    #captura .pista a { color:#fff; }
+    #captura .botones { display:flex; flex-direction:column; gap:.75rem; padding:.75rem; }
+    #captura .grande { width:100%; border:0; border-radius:18px; font:inherit; font-size:1.5rem; font-weight:700; letter-spacing:.04em; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:.6rem; }
+    #captura .grande:active { filter:brightness(1.15); }
+    #captura .grande:disabled { opacity:.45; }
+    #captura .pausa { height:96px; background:#e0a100; color:#1a1a1a; }
+    #captura .principal { height:128px; background:#c62828; }
+    #captura[data-estado="inactiva"] .pausa, #captura[data-estado="cuenta"] .pausa, #captura[data-estado="pidiendo"] .pausa, #captura[data-estado="sin_permiso"] .pausa { visibility:hidden; }
+    #captura .ico { font-size:1.6rem; }
     .nuevoProy { display:block; width:100%; margin:.75rem 0; border-style:dashed; border-color:var(--acc); color:var(--acc); font-weight:600; }
     .hoja p.libre { white-space:normal; overflow:visible; }
     .hidden { display:none !important; }
@@ -134,10 +183,11 @@
 </head>
 <body>
 <header>
-  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 17 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 18 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <nav class="pestanas" id="pestanas" aria-label="Secciones">
     <button type="button" id="tabProy">📁 Proyectos</button>
     <button type="button" id="tabNotas">📝 <span id="tabNotasTxt">Notas</span></button>
+    <button type="button" id="tabEnt"><span id="tabEntIco">🎙</span> Entrevistas</button>
   </nav>
   <div id="buscador">
     <div class="fila">
@@ -261,7 +311,28 @@
     <div class="acciones"><button class="btn" id="editarNota" type="button">✏️ Editar</button><button class="btn" id="moverNota" type="button">Mover a…</button><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260923-019</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <!-- Entrevistas (D27-D42): grabar, transcribir y resumir una conversación -->
+  <section id="entrevistas" class="hidden">
+    <div id="pendientesEnt"></div>
+    <div id="listaEnt"></div>
+    <button class="enlace" id="subirAudioBtn" type="button">Subir un audio ya grabado…</button>
+    <input id="subirAudio" type="file" accept="audio/*,.m4a,.mp3,.ogg,.oga,.opus,.webm,.wav,.aac,.3gp,.amr,.flac" hidden>
+  </section>
+
+  <section id="entrevista" class="hidden detalle">
+    <div class="barraDet"><button class="btn" id="volverEnt" type="button">← Volver</button><button class="btn" id="copiarEnt" type="button" title="Copiar resúmenes y transcripción">📋 Copiar</button></div>
+    <p class="aviso" id="entAviso" role="status"></p>
+    <h2 id="entTitulo"></h2>
+    <div class="meta" id="entMeta"></div>
+    <div class="chips" id="entProyecto"></div>
+    <div class="bloque" id="entAudio"></div>
+    <div id="entTrans"></div>
+    <div id="entResumen"></div>
+    <div class="acciones"><button class="btn" id="entEditar" type="button">✏️ Editar</button><button class="btn" id="entMover" type="button">Mover a…</button></div>
+    <div class="acciones"><button class="btn peligro" id="entBorrarAudio" type="button">Borrar audio</button><button class="btn peligro" id="entBorrar" type="button">Borrar</button></div>
+  </section>
+
+  <p class="enlaces">Build <code>PR-B1-20260923-021</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -334,6 +405,104 @@
 </div>
 
 <button class="fab" id="nueva" title="Nueva nota" aria-label="Nueva nota">+</button>
+<button class="fabEnt hidden" id="nuevaEnt" type="button">🎙 Nueva entrevista</button>
+
+<!-- Captura rápida (D38): solo Grabar/Parar, Pausa y Cerrar, grandes -->
+<div id="captura" class="hidden" data-estado="inactiva" role="dialog" aria-modal="true" aria-label="Grabar entrevista">
+  <div class="arriba">
+    <button class="cerrar" type="button" id="capCerrar">✕ Cerrar</button>
+    <span class="proyecto" id="capProyecto"></span>
+  </div>
+  <div class="centro" id="capCentro">
+    <div class="estadoTxt"><span class="punto"></span><span id="capEstado">Listo para grabar</span></div>
+    <div class="crono" id="capCrono">00:00</div>
+    <div class="cuentaAtras hidden" id="capCuenta">3</div>
+    <div class="nivel" id="capNivel"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="pista" id="capPista"></div>
+  </div>
+  <div class="botones">
+    <button class="grande pausa" type="button" id="capPausa"><span class="ico">⏸</span> PAUSA</button>
+    <button class="grande principal" type="button" id="capPrincipal"><span class="ico">●</span> GRABAR</button>
+  </div>
+</div>
+
+<!-- Aviso de consentimiento (D36), una sola vez -->
+<div id="hojaConsent" class="velo hidden" style="z-index:11" role="dialog" aria-modal="true" aria-labelledby="hcTitulo">
+  <div class="hoja">
+    <h3 id="hcTitulo">Antes de grabar</h3>
+    <p class="libre">Grabar a otra persona requiere su permiso: pídeselo antes de empezar.</p>
+    <p class="libre">El móvil te pedirá permiso para el <b>micrófono</b> y para enseñar una <b>notificación</b> con Pausa y Parar mientras grabas. Si tienes auriculares Bluetooth, su botón también pausa y sigue.</p>
+    <div class="acciones">
+      <button class="btn" id="hcNo" type="button">Cancelar</button>
+      <button class="btn pri" id="hcSi" type="button">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<!-- Al parar o al subir un fichero: con quién, y guardar o descartar -->
+<div id="hojaGrab" class="velo hidden" style="z-index:11" role="dialog" aria-modal="true" aria-labelledby="hgTitulo">
+  <div class="hoja">
+    <h3 id="hgTitulo">Grabación</h3>
+    <p class="libre" id="hgResumen"></p>
+    <label class="etq" for="hgConQuien">Con quién (opcional: ayuda a nombrar a los hablantes)</label>
+    <input id="hgConQuien" maxlength="120" autocomplete="off" placeholder="Por ejemplo: Marta, compras de Norte S.L.">
+    <div class="avance hidden" id="hgAvance"><i style="width:0"></i></div>
+    <p class="aviso libre" id="hgAviso"></p>
+    <div class="acciones">
+      <button class="btn peligro" id="hgDescartar" type="button">Descartar</button>
+      <button class="btn" id="hgLuego" type="button">Luego</button>
+      <button class="btn pri" id="hgGuardar" type="button">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cerrar la captura mientras se graba -->
+<div id="hojaCerrarGrab" class="velo hidden" style="z-index:11" role="dialog" aria-modal="true" aria-labelledby="hxTitulo">
+  <div class="hoja">
+    <h3 id="hxTitulo">Estás grabando</h3>
+    <p class="libre" id="hxResumen"></p>
+    <div class="fila3">
+      <button class="btn pri" id="hxGuardar" type="button">■ Parar y guardar</button>
+      <button class="btn" id="hxSeguir" type="button">Seguir grabando</button>
+      <button class="btn peligro" id="hxDescartar" type="button">Descartar la grabación</button>
+    </div>
+  </div>
+</div>
+
+<!-- Editar una entrevista -->
+<div id="hojaEditEnt" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="heTitulo">
+  <div class="hoja" style="max-height:92vh;overflow:auto">
+    <h3 id="heTitulo">Editar entrevista</h3>
+    <label class="etq" for="heNombre">Título</label>
+    <input id="heNombre" maxlength="120" autocomplete="off">
+    <label class="etq" for="heConQuien">Con quién</label>
+    <input id="heConQuien" maxlength="120" autocomplete="off">
+    <div id="heTransZona"><label class="etq" for="heTrans">Transcripción</label>
+    <textarea id="heTrans" style="min-height:30vh"></textarea></div>
+    <div id="heEjecZona"><label class="etq" for="heEjec">Resumen ejecutivo</label>
+    <textarea id="heEjec" style="min-height:8rem"></textarea></div>
+    <p class="aviso libre" id="heAviso"></p>
+    <div class="acciones">
+      <button class="btn" id="heNo" type="button">Cancelar</button>
+      <button class="btn pri" id="heSi" type="button">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Guardar un resumen como nota (D33) -->
+<div id="hojaNotaEnt" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="hnTitulo">
+  <div class="hoja">
+    <h3 id="hnTitulo">Guardar como nota</h3>
+    <p class="libre">La nota va al proyecto de la entrevista y la IA le pone título y etiquetas, como a cualquier otra.</p>
+    <div class="fila3">
+      <button class="btn pri" type="button" data-cual="ejecutivo">Resumen ejecutivo</button>
+      <button class="btn" type="button" data-cual="amplio">Resumen amplio</button>
+      <button class="btn" type="button" data-cual="ambos">Los dos</button>
+    </div>
+    <p class="aviso libre" id="hnAviso"></p>
+    <div class="acciones"><button class="btn" id="hnNo" type="button">Cancelar</button></div>
+  </div>
+</div>
 
 <script>
 (() => {
@@ -365,7 +534,7 @@
       throw e;
     } finally { clearTimeout(avisador); }
   }
-  // «mock 17 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
+  // «mock 18 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
   // Los avisos («arrancando el backend…») y los errores se siguen viendo.
   const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); $('estado').dataset.rutina = !err && txt.startsWith('mock ') ? '1' : ''; };
 
@@ -388,7 +557,7 @@
   // Valor del filtro `proyecto` de la API para lo que se está mirando; null = todas.
   const ambitoNotas = () => (!enTodos && proyectoActivo) ? (proyectoActivo.id ?? 'ninguno') : null;
 
-  const vistas = ['lista', 'editor', 'detalle', 'ajustes', 'documentos', 'documento', 'proyectos'];
+  const vistas = ['lista', 'editor', 'detalle', 'ajustes', 'documentos', 'documento', 'proyectos', 'entrevistas', 'entrevista'];
   function ver(v) {
     vistas.forEach(x => $(x).classList.toggle('hidden', x !== v));
     $('buscador').classList.toggle('hidden', v !== 'lista');
@@ -397,16 +566,20 @@
     $('nueva').setAttribute('aria-label', $('nueva').title);
     // Las pestañas sustituyen al 📁 de la cabecera, que no se entendía.
     $('proyectosBtn').classList.add('hidden');
-    $('pestanas').classList.toggle('hidden', !((v === 'lista' && !modoSel) || v === 'proyectos'));
+    $('pestanas').classList.toggle('hidden', !((v === 'lista' && !modoSel) || v === 'proyectos' || v === 'entrevistas'));
     $('tabProy').classList.toggle('on', v === 'proyectos');
     $('tabNotas').classList.toggle('on', v === 'lista');
-    $('tabNotasTxt').textContent = proyectoActivo ? 'Notas · ' + proyectoActivo.nombre : 'Todas las notas';
+    $('tabEnt').classList.toggle('on', v === 'entrevistas');
+    $('nuevaEnt').classList.toggle('hidden', v !== 'entrevistas');
+    if (v !== 'entrevista' && typeof soltarAudio === 'function') soltarAudio();
+    // Con tres pestañas no cabe el nombre del proyecto: ya lo dice la cabecera.
+    $('tabNotasTxt').textContent = proyectoActivo ? 'Notas' : 'Todas las notas';
     $('enTodos').parentElement.classList.toggle('hidden', !proyectoActivo);
     $('seleccionarBtn').classList.toggle('hidden', v !== 'lista');
     $('documentosBtn').classList.toggle('hidden', v !== 'lista');
     $('barraSel').classList.toggle('hidden', !(modoSel && v === 'lista'));
     const nombre = proyectoActivo ? proyectoActivo.nombre : 'Todas las notas';
-    $('cab').textContent = { lista: modoSel ? 'Elegir' : nombre, editor: editando ? 'Editar nota' : 'Nueva nota', detalle: 'Nota', ajustes: 'Ajustes', documentos: 'Documentos', documento: 'Documento', proyectos: 'Proyectos' }[v];
+    $('cab').textContent = { lista: modoSel ? 'Elegir' : nombre, editor: editando ? 'Editar nota' : 'Nueva nota', detalle: 'Nota', ajustes: 'Ajustes', documentos: 'Documentos', documento: 'Documento', proyectos: 'Proyectos', entrevistas: nombre, entrevista: 'Entrevista' }[v];
     if (v === 'lista') pintarCabProyecto(); else $('cabProyecto').classList.add('hidden');
     window.scrollTo(0, 0);
   }
@@ -602,7 +775,7 @@
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
       // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
       if (modoSel) pintarSeleccion();
-      estado(`mock 17 · ${API.replace('https://', '')}`);
+      estado(`mock 18 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -989,9 +1162,12 @@
   let aBorrar = null, tipoBorrado = 'nota';
   function pedirBorrado(n, tipo = 'nota') {
     aBorrar = n; tipoBorrado = tipo;
-    $('cTitulo').textContent = { documento: '¿Borrar este documento?', proyecto: '¿Borrar este proyecto?' }[tipo] || '¿Borrar esta nota?';
+    $('cTitulo').textContent = { documento: '¿Borrar este documento?', proyecto: '¿Borrar este proyecto?', entrevista: '¿Borrar esta entrevista?', audio: '¿Borrar el audio?', grabacion: '¿Descartar esta grabación?' }[tipo] || '¿Borrar esta nota?';
     // Borrar un proyecto nunca borra notas (D19): se dice cuántas se quedan sueltas.
-    $('cNota').textContent = tipo === 'proyecto'
+    $('cNota').textContent = tipo === 'entrevista' ? `${n.titulo} · se borran el audio, la transcripción y los resúmenes; las notas que guardaste de ella se quedan.`
+      : tipo === 'audio' ? `${n.titulo} · ${megas(n.audio_bytes)}. Se quedan la transcripción y los resúmenes; ya no se podrá escuchar ni volver a transcribir.`
+      : tipo === 'grabacion' ? `Grabación de ${reloj(n.duracion_s)} del ${fechaCorta(n.empezada)}. Solo está en este móvil: se pierde.`
+      : tipo === 'proyecto'
       ? `${n.nombre} · ${n.notas ? `sus ${n.notas} nota${n.notas === 1 ? '' : 's'} pasan a «Sin proyecto»` : 'no tiene notas'}; no se borra ninguna.`
       : `${n.titulo} · ${fmt(tipo === 'documento' ? n.creado_en : n.creada_en)}` + (tipo === 'documento' ? ' · las notas no se tocan' : '');
     $('cSi').disabled = false; $('cSi').textContent = 'Borrar';
@@ -1007,6 +1183,8 @@
     else if (!$('hojaGen').classList.contains('hidden')) cerrarHojaGen();
     else if (!$('hojaMover').classList.contains('hidden')) cerrarMover();
     else if (!$('hojaProyecto').classList.contains('hidden')) cerrarHojaProyecto();
+    else if (!$('hojaEditEnt').classList.contains('hidden')) $('hojaEditEnt').classList.add('hidden');
+    else if (!$('hojaNotaEnt').classList.contains('hidden')) $('hojaNotaEnt').classList.add('hidden');
     else if (modoSel) salirSeleccion();
   });
   $('cSi').onclick = async () => {
@@ -1014,6 +1192,9 @@
     const documento = tipoBorrado === 'documento';
     $('cSi').disabled = true; $('cSi').textContent = 'Borrando…';
     try {
+      if (tipoBorrado === 'grabacion') { await idbBorrar(aBorrar.id); cerrarConfirmacion(); pintarPestanaEnt(); cargarEntrevistas(); return; }
+      if (tipoBorrado === 'audio') { const f = await api('/entrevistas/' + encodeURIComponent(aBorrar.id) + '/audio', { method: 'DELETE' }); cerrarConfirmacion(); abrirEntrevista(f); return; }
+      if (tipoBorrado === 'entrevista') { await api('/entrevistas/' + encodeURIComponent(aBorrar.id), { method: 'DELETE' }); cerrarConfirmacion(); entActual = null; cargarEntrevistas(); return; }
       const ruta = { documento: '/documentos/', proyecto: '/proyectos/' }[tipoBorrado] || '/notas/';
       await api(ruta + encodeURIComponent(aBorrar.id), { method: 'DELETE' });
       if (tipoBorrado === 'proyecto') {
@@ -1105,8 +1286,12 @@
       const todas = await api('/notas');
       if (!todas.length) { $('aExportaAviso').textContent = 'No hay ninguna nota que exportar.'; return; }
       notasExportadas = notasComoMarkdown(todas, { agrupar: true });
+      // Las entrevistas van detrás, con sus resúmenes y la transcripción. Si el
+      // backend aún no las conoce, el fichero sale solo con las notas.
+      const ents = await api('/entrevistas?textos=1').catch(() => []);
+      if (ents.length) notasExportadas += '\n# Entrevistas\n\n' + ents.map(e => entrevistaComoTexto(e).replace(/^#/gm, '##')).join('\n---\n\n');
       descargarMd('notas-' + new Date().toISOString().slice(0, 10), notasExportadas);
-      $('aExportaAviso').textContent = `${todas.length} nota${todas.length === 1 ? '' : 's'} en el fichero. Si no lo ves, míralo en las descargas del navegador.`;
+      $('aExportaAviso').textContent = `${todas.length} nota${todas.length === 1 ? '' : 's'}${ents.length ? ` y ${ents.length} entrevista${ents.length === 1 ? '' : 's'}` : ''} en el fichero. Si no lo ves, míralo en las descargas del navegador.`;
       // Compartir es lo que sirve en el móvil para mandárselo a otro sitio.
       if (navigator.share) $('aCompartirNotas').classList.remove('hidden');
     } catch (e) {
@@ -1221,7 +1406,7 @@
       const ps = await api('/proyectos?' + p);
       if (mia !== cargaProy) return;
       pintarProyectos(ps, !!q);
-      estado(`mock 17 · ${API.replace('https://', '')}`);
+      estado(`mock 18 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaProy) return;
       $('listaProyectos').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentarProy" type="button">Reintentar</button></p>`;
@@ -1359,8 +1544,9 @@
     if (!ids.length) return;
     aMover = { ids, origen };
     const aqui = origen === 'detalle' ? (actual && actual.proyecto ? actual.proyecto.id : null)
+      : origen === 'entrevista' ? (entActual && entActual.proyecto ? entActual.proyecto.id : null)
       : (!enTodos && proyectoActivo ? proyectoActivo.id : undefined);
-    $('hmResumen').textContent = ids.length === 1 ? 'Una nota.' : `${ids.length} notas.`;
+    $('hmResumen').textContent = origen === 'entrevista' ? 'Una entrevista.' : ids.length === 1 ? 'Una nota.' : `${ids.length} notas.`;
     $('hmAviso').textContent = ''; $('hmAviso').classList.remove('error');
     $('hmNuevo').value = '';
     const l = $('hmLista'); l.innerHTML = '<p class="vacio">cargando…</p>';
@@ -1385,6 +1571,10 @@
     const { ids, origen } = aMover;
     $('hmAviso').classList.remove('error'); $('hmAviso').textContent = 'moviendo…';
     try {
+      if (origen === 'entrevista') {
+        const f = await api('/entrevistas/' + encodeURIComponent(ids[0]) + '/mover', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proyecto: p.id }) });
+        cerrarMover(); abrirEntrevista(f); estado('entrevista movida a ' + p.nombre); return;
+      }
       await api('/notas/mover', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notas: ids, proyecto: p.id }) });
       cerrarMover();
       if (origen === 'detalle') abrir(await api('/notas/' + encodeURIComponent(ids[0])));
@@ -1401,9 +1591,706 @@
     } catch (e) { avisoHoja('hmAviso', errorProyecto(e)); }
   };
 
+  // ===================== Entrevistas (D27-D42) =====================
+  // Una entrevista es una grabación con lo que sale de ella: audio,
+  // transcripción con hablantes y dos resúmenes. Vive en el proyecto activo.
+  const ambitoEnt = () => proyectoActivo ? (proyectoActivo.id ?? 'ninguno') : null;
+  const reloj = s => {
+    s = Math.max(0, Math.round(s || 0));
+    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+    return (h ? h + ':' + String(m).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(x).padStart(2, '0');
+  };
+  const megas = b => b < 1048576 ? Math.max(1, Math.round(b / 1024)) + ' KB' : (b / 1048576).toLocaleString('es-ES', { maximumFractionDigits: 1 }) + ' MB';
+  const fechaCorta = iso => new Date(iso).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  // Chrome no deja vibrar hasta el primer toque en la página: al abrir por el
+  // acceso directo, la cuenta atrás no vibra (sí se ve).
+  function vibrar(p) {
+    try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(p); } catch {}
+  }
+  async function copiarTexto(texto) {
+    try { await navigator.clipboard.writeText(texto); return true; }
+    catch {
+      const t = document.createElement('textarea');
+      t.value = texto; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch {}
+      t.remove(); return ok;
+    }
+  }
+
+  // --- IndexedDB (D28): lo grabado se guarda a trozos de 10 s mientras se graba ---
+  // Dos almacenes: la ficha de cada grabación y sus trozos por separado, para
+  // no reescribir todo el audio en cada trozo.
+  let idbPromesa = null;
+  function idbAbrir() {
+    if (!idbPromesa) idbPromesa = new Promise((ok, ko) => {
+      if (!window.indexedDB) { ko(new Error('sin IndexedDB')); return; }
+      const r = indexedDB.open('notas-grabaciones', 1);
+      r.onupgradeneeded = () => {
+        r.result.createObjectStore('grabaciones', { keyPath: 'id' });
+        r.result.createObjectStore('trozos', { keyPath: ['g', 'n'] });
+      };
+      r.onsuccess = () => ok(r.result);
+      r.onerror = () => ko(r.error);
+    });
+    return idbPromesa;
+  }
+  async function idb(almacenes, modo, fn) {
+    const d = await idbAbrir();
+    return new Promise((ok, ko) => {
+      const tx = d.transaction(almacenes, modo);
+      let resultado;
+      const peticion = fn(tx);
+      if (peticion) peticion.onsuccess = () => { resultado = peticion.result; };
+      tx.oncomplete = () => ok(resultado);
+      tx.onerror = () => ko(tx.error);
+      tx.onabort = () => ko(tx.error);
+    });
+  }
+  const rangoTrozos = g => IDBKeyRange.bound([g, 0], [g, Infinity]);
+  const idbFicha = ficha => idb('grabaciones', 'readwrite', tx => tx.objectStore('grabaciones').put(ficha));
+  const idbTrozo = (g, n, blob) => idb('trozos', 'readwrite', tx => tx.objectStore('trozos').put({ g, n, blob }));
+  const idbFichas = () => idb('grabaciones', 'readonly', tx => tx.objectStore('grabaciones').getAll()).catch(() => []);
+  async function idbAudio(ficha) {
+    const trozos = await idb('trozos', 'readonly', tx => tx.objectStore('trozos').getAll(rangoTrozos(ficha.id)));
+    return new Blob((trozos || []).sort((a, b) => a.n - b.n).map(t => t.blob), { type: ficha.tipo });
+  }
+  const idbBorrar = g => idb(['grabaciones', 'trozos'], 'readwrite', tx => {
+    tx.objectStore('trozos').delete(rangoTrozos(g));
+    return tx.objectStore('grabaciones').delete(g);
+  });
+
+  // --- Grabadora: una máquina de estados (D42) ---
+  // Los botones, los auriculares (D39), la notificación (D40) y el acceso
+  // directo (D41) solo mandan eventos; todo cambio pasa por `evento`.
+  const G = {
+    estado: 'inactiva', rec: null, stream: null, id: null, n: 0, trozos: [], tipo: '',
+    acumulado: 0, t0: 0, tic: null, cuenta: null, proyecto: null, empezada: null,
+    escrituras: Promise.resolve(), idbFallo: false, wake: null, ctx: null, raf: null,
+    silencio: null, urlSilencio: null, parado: null
+  };
+  const segundos = () => (G.acumulado + (G.estado === 'grabando' ? performance.now() - G.t0 : 0)) / 1000;
+  const CLAVE_CONSENT = 'notas-consentimiento';
+  const consentido = () => { try { return localStorage.getItem(CLAVE_CONSENT) === '1'; } catch { return false; } };
+
+  function pintarCaptura(msg) {
+    const e = G.estado, c = $('captura');
+    c.dataset.estado = e;
+    $('capProyecto').textContent = '📁 ' + (G.proyecto ? G.proyecto.nombre : proyectoActivo ? proyectoActivo.nombre : 'Sin proyecto');
+    $('capEstado').textContent = { inactiva: 'Listo para grabar', cuenta: 'Empieza en…', pidiendo: 'Pidiendo el micrófono…', grabando: 'Grabando', pausada: 'En pausa', parando: 'Guardando…', sin_permiso: 'Sin micrófono' }[e] || e;
+    $('capCuenta').classList.toggle('hidden', e !== 'cuenta');
+    $('capCrono').classList.toggle('hidden', e === 'cuenta' || e === 'sin_permiso');
+    $('capNivel').classList.toggle('hidden', e === 'cuenta' || e === 'sin_permiso');
+    const grabandoYa = e === 'grabando' || e === 'pausada' || e === 'parando';
+    $('capPrincipal').innerHTML = grabandoYa ? '<span class="ico">■</span> PARAR' : '<span class="ico">●</span> GRABAR';
+    $('capPrincipal').disabled = e === 'pidiendo' || e === 'parando';
+    $('capPausa').innerHTML = e === 'pausada' ? '<span class="ico">▶</span> SEGUIR' : '<span class="ico">⏸</span> PAUSA';
+    $('capPausa').disabled = e === 'parando';
+    $('capPista').innerHTML = msg || {
+      inactiva: 'Pulsa Grabar. Vibra al empezar, al pausar y al parar.',
+      cuenta: 'Toca en cualquier sitio para cancelar',
+      grabando: 'Pausa y Parar también desde la notificación' + (navigator.mediaSession ? ', y Pausa desde los auriculares' : '') + '.',
+      pausada: 'La pausa no se graba.',
+      parando: ''
+    }[e] || '';
+    $('capCrono').textContent = reloj(segundos());
+  }
+  function cambiar(e, msg) { G.estado = e; pintarCaptura(msg); if (e === 'grabando' || e === 'pausada') { notificar(); sesionMedios(); } }
+
+  function abrirCaptura({ directo = false } = {}) {
+    if (G.estado === 'grabando' || G.estado === 'pausada') { $('captura').classList.remove('hidden'); pintarCaptura(); return; }
+    G.acumulado = 0; G.proyecto = null; G.estado = 'inactiva';
+    $('captura').classList.remove('hidden');
+    pintarCaptura();
+    if (directo && consentido()) {
+      // Con el permiso ya dado, el acceso directo arranca solo tras 3 s (6.2).
+      const pedir = navigator.permissions ? navigator.permissions.query({ name: 'microphone' }).then(p => p.state) : Promise.resolve('prompt');
+      pedir.catch(() => 'prompt').then(st => { if (st === 'granted' && G.estado === 'inactiva') cuentaAtras(); });
+    }
+  }
+  function cuentaAtras() {
+    let n = 3;
+    cambiar('cuenta'); $('capCuenta').textContent = n; vibrar(40);
+    G.cuenta = setInterval(() => {
+      n--;
+      if (n > 0) { $('capCuenta').textContent = n; vibrar(40); return; }
+      clearInterval(G.cuenta); G.cuenta = null; iniciar();
+    }, 1000);
+  }
+  function cancelarCuenta() { if (G.cuenta) { clearInterval(G.cuenta); G.cuenta = null; } if (G.estado === 'cuenta') cambiar('inactiva'); }
+  function cerrarCaptura() {
+    cancelarCuenta();
+    $('captura').classList.add('hidden');
+    if (G.estado === 'sin_permiso') G.estado = 'inactiva';
+    if (!$('entrevistas').classList.contains('hidden') || $('entrevista').classList.contains('hidden')) cargarEntrevistas();
+  }
+
+  function evento(ev) {
+    const e = G.estado;
+    if (ev === 'principal') {
+      if (e === 'inactiva' || e === 'sin_permiso') iniciar();
+      else if (e === 'cuenta') { cancelarCuenta(); iniciar(); }
+      else if (e === 'grabando' || e === 'pausada') parar();
+    } else if (ev === 'pausa') evento(e === 'pausada' ? 'seguir' : 'pausar');
+    else if (ev === 'pausar' && e === 'grabando') {
+      G.rec.pause(); G.acumulado += performance.now() - G.t0;
+      if (G.silencio) G.silencio.pause();
+      cambiar('pausada'); vibrar([60, 60, 60]);
+    } else if (ev === 'seguir' && e === 'pausada') {
+      G.rec.resume(); G.t0 = performance.now();
+      if (G.silencio) G.silencio.play().catch(() => {});
+      cambiar('grabando'); vibrar(80);
+    } else if (ev === 'parar' && (e === 'grabando' || e === 'pausada')) parar();
+    else if (ev === 'cerrar') {
+      if (e === 'grabando' || e === 'pausada') {
+        $('hxResumen').textContent = `Llevas ${reloj(segundos())} grabados${e === 'pausada' ? ' (en pausa)' : ''}.`;
+        $('hojaCerrarGrab').classList.remove('hidden');
+      } else if (e !== 'parando' && e !== 'pidiendo') cerrarCaptura();
+    } else if (ev === 'abrir') { $('captura').classList.remove('hidden'); pintarCaptura(); }
+  }
+
+  const TIPOS = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+  async function iniciar() {
+    if (!consentido()) { $('hojaConsent').classList.remove('hidden'); return; }
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      cambiar('sin_permiso', 'Este navegador no puede grabar. Usa la grabadora del móvil y luego «Subir un audio ya grabado».');
+      return;
+    }
+    cambiar('pidiendo');
+    try {
+      G.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+    } catch (err) {
+      cambiar('sin_permiso', err && err.name === 'NotAllowedError'
+        ? 'El micrófono está bloqueado para esta app. En Chrome: toca el candado o ⓘ junto a la dirección → Permisos → Micrófono → Permitir. Con la app instalada: mantén pulsado su icono → Información de la app → Permisos.'
+        : 'No se pudo abrir el micrófono (' + (err && err.message || err) + ').');
+      return;
+    }
+    const tipo = TIPOS.find(t => MediaRecorder.isTypeSupported(t)) || '';
+    try { G.rec = new MediaRecorder(G.stream, tipo ? { mimeType: tipo, audioBitsPerSecond: 32000 } : { audioBitsPerSecond: 32000 }); }
+    catch { G.rec = new MediaRecorder(G.stream); }
+    G.tipo = (G.rec.mimeType || tipo || 'audio/webm').split(';')[0];
+    G.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    G.n = 0; G.trozos = []; G.acumulado = 0; G.idbFallo = false; G.escrituras = Promise.resolve();
+    G.proyecto = proyectoActivo ? { id: proyectoActivo.id ?? null, nombre: proyectoActivo.nombre } : null;
+    G.empezada = new Date().toISOString();
+    const ficha = () => ({ id: G.id, tipo: G.tipo, proyecto: G.proyecto, empezada: G.empezada, duracion_s: Math.round(segundos()), trozos: G.n });
+    G.escrituras = G.escrituras.then(() => idbFicha(ficha())).catch(() => { G.idbFallo = true; });
+    G.rec.ondataavailable = ev => {
+      if (!ev.data || !ev.data.size) return;
+      const n = G.n++;
+      G.trozos.push(ev.data);
+      if (!G.idbFallo) G.escrituras = G.escrituras.then(() => idbTrozo(G.id, n, ev.data)).then(() => idbFicha(ficha())).catch(() => { G.idbFallo = true; });
+    };
+    G.parado = new Promise(ok => { G.rec.onstop = ok; });
+    G.rec.start(10000);
+    G.t0 = performance.now();
+    cambiar('grabando'); vibrar(80);
+    G.tic = setInterval(() => {
+      $('capCrono').textContent = reloj(segundos());
+      if (G.estado === 'grabando' && Math.round(segundos()) % 10 === 0) notificar();
+    }, 1000);
+    medidor(); pedirWake(); silencioEnMarcha();
+  }
+
+  async function parar() {
+    if (!G.rec) return;
+    if (G.estado === 'grabando') G.acumulado += performance.now() - G.t0;
+    cambiar('parando'); vibrar(250);
+    try { G.rec.stop(); } catch {}
+    await G.parado; await G.escrituras;
+    soltarGrabadora();
+    const s = segundos();
+    const blob = new Blob(G.trozos, { type: G.tipo });
+    const ficha = { id: G.id, tipo: G.tipo, proyecto: G.proyecto, empezada: G.empezada, duracion_s: Math.round(s), trozos: G.n, parada: true };
+    if (!G.idbFallo) await idbFicha(ficha).catch(() => {});
+    G.estado = 'inactiva'; G.trozos = [];
+    $('captura').classList.add('hidden');
+    pintarPestanaEnt();
+    abrirHojaGrab({ blob, tipo: G.tipo, nombre: 'grabacion.' + extDe(G.tipo), dur: s, proyecto: G.proyecto, empezada: G.empezada, gid: G.idbFallo ? null : G.id });
+  }
+  async function descartarEnCurso() {
+    if (!G.rec) return;
+    try { G.rec.ondataavailable = null; G.rec.stop(); } catch {}
+    const g = G.id;
+    soltarGrabadora();
+    G.estado = 'inactiva'; G.trozos = []; G.acumulado = 0;
+    vibrar(250);
+    await G.escrituras.then(() => idbBorrar(g)).catch(() => {});
+    cerrarCaptura();
+  }
+  function soltarGrabadora() {
+    clearInterval(G.tic); G.tic = null;
+    if (G.stream) G.stream.getTracks().forEach(t => t.stop());
+    G.stream = null; G.rec = null;
+    if (G.raf) cancelAnimationFrame(G.raf); G.raf = null;
+    if (G.ctx) { G.ctx.close().catch(() => {}); G.ctx = null; }
+    for (const i of $('capNivel').children) i.style.height = '10%';
+    if (G.wake) { G.wake.release().catch(() => {}); G.wake = null; }
+    if (G.silencio) { G.silencio.pause(); }
+    if (navigator.mediaSession) { try { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; } catch {} }
+    cerrarNotificacion();
+  }
+  const extDe = tipo => /mp4/.test(tipo) ? 'm4a' : /ogg/.test(tipo) ? 'ogg' : 'webm';
+
+  // Nivel de audio: 12 barras. Cosmético; si el navegador no deja, no pasa nada.
+  function medidor() {
+    try {
+      G.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const an = G.ctx.createAnalyser(); an.fftSize = 256;
+      G.ctx.createMediaStreamSource(G.stream).connect(an);
+      const datos = new Uint8Array(an.fftSize), barras = [...$('capNivel').children];
+      const paso = () => {
+        G.raf = requestAnimationFrame(paso);
+        if (document.hidden) return;
+        an.getByteTimeDomainData(datos);
+        let suma = 0; for (const v of datos) suma += (v - 128) ** 2;
+        const rms = Math.min(1, Math.sqrt(suma / datos.length) / 40);
+        barras.forEach((b, i) => { b.style.height = (G.estado === 'grabando' ? 10 + 90 * rms * (0.55 + 0.45 * Math.abs(Math.sin(i * 1.7 + performance.now() / 180))) : 10) + '%'; });
+      };
+      paso();
+    } catch {}
+  }
+  // Wake Lock (D27): la pantalla no se apaga sola mientras se graba.
+  async function pedirWake() { try { if (navigator.wakeLock) G.wake = await navigator.wakeLock.request('screen'); } catch {} }
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && (G.estado === 'grabando' || G.estado === 'pausada')) { pedirWake(); pintarCaptura(); }
+  });
+  window.addEventListener('beforeunload', ev => { if (G.estado === 'grabando' || G.estado === 'pausada') { ev.preventDefault(); ev.returnValue = ''; } });
+
+  // --- D39: auriculares y pantalla de bloqueo por Media Session ---
+  // Para ser «lo que suena», la página reproduce en bucle un segundo de
+  // silencio; con eso el botón del manos libres y la tarjeta de medios llegan
+  // aquí. [SUPUESTO] Chrome en Android la mantiene; si no, queda la notificación.
+  function silencioEnMarcha() {
+    if (!navigator.mediaSession) return;
+    try {
+      if (!G.urlSilencio) {
+        const sr = 8000, b = new ArrayBuffer(44 + sr), v = new DataView(b);
+        const w = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+        w(0, 'RIFF'); v.setUint32(4, 36 + sr, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true);
+        v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr, true);
+        v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, sr, true);
+        new Uint8Array(b, 44).fill(128);
+        G.urlSilencio = URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+      }
+      if (!G.silencio) { G.silencio = new Audio(G.urlSilencio); G.silencio.loop = true; }
+      G.silencio.play().catch(() => {});
+      const ms = navigator.mediaSession;
+      const accion = (a, f) => { try { ms.setActionHandler(a, f); } catch {} };
+      accion('play', () => evento('seguir'));
+      accion('pause', () => evento('pausar'));
+      accion('stop', () => evento('parar'));
+      sesionMedios();
+    } catch {}
+  }
+  function sesionMedios() {
+    if (!navigator.mediaSession || !G.rec) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: G.estado === 'pausada' ? 'Entrevista en pausa' : 'Grabando entrevista',
+        artist: G.proyecto ? G.proyecto.nombre : 'Notas',
+        artwork: [{ src: 'icono-192.png', sizes: '192x192', type: 'image/png' }]
+      });
+      navigator.mediaSession.playbackState = G.estado === 'pausada' ? 'paused' : 'playing';
+    } catch {}
+  }
+
+  // --- D40: notificación con Pausa/Seguir y Parar; el service worker nos pasa el botón ---
+  async function notificar() {
+    if (!('Notification' in window) || Notification.permission !== 'granted' || !navigator.serviceWorker) return;
+    if (G.estado !== 'grabando' && G.estado !== 'pausada') return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const grabando = G.estado === 'grabando';
+      await reg.showNotification(grabando ? '● Grabando entrevista' : '⏸ Entrevista en pausa', {
+        tag: 'grabacion', renotify: false, silent: true, requireInteraction: true,
+        body: reloj(segundos()) + (G.proyecto ? ' · ' + G.proyecto.nombre : ''),
+        icon: 'icono-192.png', badge: 'icono-192.png',
+        actions: [grabando ? { action: 'pausar', title: '⏸ Pausa' } : { action: 'seguir', title: '▶ Seguir' }, { action: 'parar', title: '■ Parar' }]
+      });
+    } catch {}
+  }
+  async function cerrarNotificacion() {
+    try { const reg = await navigator.serviceWorker.ready; (await reg.getNotifications({ tag: 'grabacion' })).forEach(n => n.close()); } catch {}
+  }
+  if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', ev => {
+    if (ev.data && ev.data.tipo === 'grabadora') evento(ev.data.accion);
+  });
+
+  // --- Botones de la captura y sus hojas ---
+  $('capPrincipal').onclick = () => evento('principal');
+  $('capPausa').onclick = () => evento('pausa');
+  $('capCerrar').onclick = () => evento('cerrar');
+  $('capCentro').onclick = () => { if (G.estado === 'cuenta') { cancelarCuenta(); vibrar(40); } };
+  $('hxSeguir').onclick = () => $('hojaCerrarGrab').classList.add('hidden');
+  $('hxGuardar').onclick = () => { $('hojaCerrarGrab').classList.add('hidden'); parar(); };
+  $('hxDescartar').onclick = () => { $('hojaCerrarGrab').classList.add('hidden'); descartarEnCurso(); };
+  $('hcNo').onclick = () => $('hojaConsent').classList.add('hidden');
+  $('hcSi').onclick = async () => {
+    try { localStorage.setItem(CLAVE_CONSENT, '1'); } catch {}
+    $('hojaConsent').classList.add('hidden');
+    // El permiso de notificaciones se pide aquí, con el toque del usuario.
+    try { if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); } catch {}
+    iniciar();
+  };
+
+  // --- Guardar (subir) una grabación o un fichero ---
+  let aSubir = null;
+  function abrirHojaGrab(s) {
+    aSubir = s;
+    s.titulo = 'Entrevista · ' + fechaCorta(s.empezada || new Date().toISOString());
+    $('hgTitulo').textContent = s.desdeFichero ? 'Subir audio' : `Grabación de ${reloj(s.dur)}`;
+    $('hgResumen').textContent = (s.desdeFichero ? `${s.nombre} · ${megas(s.blob.size)}${s.dur ? ' · ' + reloj(s.dur) : ''}. ` : '')
+      + `Se guarda en ${s.proyecto ? s.proyecto.nombre : 'Sin proyecto'}. El título, la transcripción y los resúmenes llegan después.`;
+    $('hgConQuien').value = s.conQuien || '';
+    $('hgAviso').textContent = G.idbFallo && !s.desdeFichero ? 'Ojo: este navegador no dejó guardar la copia de seguridad en el móvil; si la subida falla, «Luego» no podrá recuperarla.' : '';
+    $('hgAviso').classList.remove('error');
+    $('hgAvance').classList.add('hidden');
+    $('hgDescartar').textContent = 'Descartar'; $('hgDescartar').dataset.seguro = '';
+    $('hgLuego').classList.toggle('hidden', !s.gid);
+    [$('hgGuardar'), $('hgDescartar'), $('hgLuego')].forEach(b => { b.disabled = false; });
+    $('hgGuardar').textContent = 'Guardar';
+    $('hojaGrab').classList.remove('hidden');
+  }
+  function cerrarHojaGrab() { $('hojaGrab').classList.add('hidden'); aSubir = null; cargarEntrevistas(); }
+  $('hgLuego').onclick = cerrarHojaGrab;
+  $('hgDescartar').onclick = async () => {
+    const b = $('hgDescartar');
+    if (!b.dataset.seguro) { b.dataset.seguro = '1'; b.textContent = '¿Seguro? Se pierde'; return; }
+    if (aSubir && aSubir.gid) await idbBorrar(aSubir.gid).catch(() => {});
+    cerrarHojaGrab();
+  };
+  $('hgGuardar').onclick = async () => {
+    const s = aSubir; if (!s) return;
+    s.conQuien = $('hgConQuien').value.trim();
+    [$('hgGuardar'), $('hgDescartar'), $('hgLuego')].forEach(b => { b.disabled = true; });
+    $('hgGuardar').textContent = 'Subiendo…';
+    $('hgAvance').classList.remove('hidden'); $('hgAvance').firstElementChild.style.width = '0';
+    $('hgAviso').classList.remove('error'); $('hgAviso').textContent = '';
+    try {
+      const e = await subirEntrevista(s, p => { $('hgAvance').firstElementChild.style.width = Math.round(p * 100) + '%'; $('hgGuardar').textContent = `Subiendo… ${Math.round(p * 100)} %`; });
+      if (s.gid) await idbBorrar(s.gid).catch(() => {});
+      $('hojaGrab').classList.add('hidden'); aSubir = null;
+      pintarPestanaEnt();
+      abrirEntrevista(e);
+    } catch (err) {
+      [$('hgGuardar'), $('hgDescartar'), $('hgLuego')].forEach(b => { b.disabled = false; });
+      $('hgGuardar').textContent = 'Reintentar';
+      $('hgAviso').classList.add('error');
+      $('hgAviso').textContent = 'No se pudo subir (' + err.message + ').' + (s.gid ? ' La grabación sigue guardada en el móvil: puedes reintentar ahora o más tarde desde Entrevistas.' : '');
+    }
+  };
+  // XMLHttpRequest y no fetch: es lo que da el avance de subida en todos los Chrome.
+  function subirEntrevista(s, progreso) {
+    return new Promise((ok, ko) => {
+      const fd = new FormData();
+      if (s.proyecto && s.proyecto.id) fd.append('proyecto', s.proyecto.id);
+      fd.append('con_quien', s.conQuien || '');
+      fd.append('duracion_s', String(Math.round(s.dur || 0)));
+      fd.append('titulo', s.titulo);
+      fd.append('audio', s.blob, s.nombre);
+      const x = new XMLHttpRequest();
+      x.open('POST', API + '/entrevistas');
+      const t = leerToken(); if (t) x.setRequestHeader('Authorization', 'Bearer ' + t);
+      x.timeout = 20 * 60 * 1000;
+      x.upload.onprogress = ev => { if (ev.lengthComputable) progreso(ev.loaded / ev.total); };
+      x.onload = () => {
+        if (x.status === 201) { try { ok(JSON.parse(x.responseText)); } catch { ko(new Error('respuesta ilegible')); } return; }
+        let m = 'HTTP ' + x.status; try { m += ': ' + JSON.parse(x.responseText).error; } catch {}
+        if (x.status === 401) m = 'HTTP 401: falta el token de acceso (⚙ Ajustes)';
+        ko(new Error(m));
+      };
+      x.onerror = () => ko(new Error('sin conexión'));
+      x.ontimeout = () => ko(new Error('la subida tardó demasiado'));
+      x.send(fd);
+    });
+  }
+  $('subirAudioBtn').onclick = () => { $('subirAudio').value = ''; $('subirAudio').click(); };
+  $('subirAudio').onchange = async () => {
+    const f = $('subirAudio').files[0]; if (!f) return;
+    // La duración la dice el propio navegador; si no la sabe, la mide el servidor.
+    const dur = await new Promise(ok => {
+      const a = new Audio(); const url = URL.createObjectURL(f);
+      const fin = d => { URL.revokeObjectURL(url); ok(Number.isFinite(d) ? d : 0); };
+      a.preload = 'metadata'; a.onloadedmetadata = () => fin(a.duration); a.onerror = () => fin(0);
+      setTimeout(() => fin(0), 4000); a.src = url;
+    });
+    abrirHojaGrab({ blob: f, tipo: f.type, nombre: f.name, dur, desdeFichero: true, gid: null,
+      proyecto: proyectoActivo ? { id: proyectoActivo.id ?? null, nombre: proyectoActivo.nombre } : null,
+      empezada: new Date(f.lastModified || Date.now()).toISOString() });
+  };
+
+  // --- Lista de entrevistas ---
+  let entrevistas = [], sondeoLista = null, cargaEnt = 0;
+  function marcaEnt(e) {
+    if (e.estado === 'transcribiendo') return [`Transcribiendo ${e.trozos_hechos} de ${e.trozos_total || '…'}`, 'pendiente'];
+    if (e.estado === 'fallida') return ['Transcripción fallida', 'fallido'];
+    if (e.estado === 'grabada') return ['Sin transcribir', ''];
+    if (e.estado_resumen === 'pendiente') return ['Resumiendo…', 'pendiente'];
+    if (e.estado_resumen === 'listo') return ['Resumida', 'ok'];
+    return ['Transcrita', 'ok'];
+  }
+  // Con grabaciones sin subir, el icono de la pestaña avisa sin alargarla.
+  function marcarPestanaEnt(n) {
+    $('tabEntIco').textContent = n ? '⚠️' : '🎙';
+    $('tabEnt').title = n ? `${n} grabación${n === 1 ? '' : 'es'} sin subir` : '';
+  }
+  async function pintarPestanaEnt() {
+    const n = (await idbFichas()).filter(f => f.id !== G.id || G.estado === 'inactiva').length;
+    marcarPestanaEnt(n);
+    return n;
+  }
+  async function pintarPendientes() {
+    const zona = $('pendientesEnt'); zona.innerHTML = '';
+    const fichas = (await idbFichas()).filter(f => f.id !== G.id || G.estado === 'inactiva');
+    fichas.sort((a, b) => a.empezada < b.empezada ? 1 : -1).forEach(f => {
+      const d = document.createElement('div'); d.className = 'bandaEnt';
+      d.innerHTML = '<span></span><button class="btn pri" type="button">Subir</button><button class="btn" type="button">Descartar</button>';
+      d.querySelector('span').textContent = `⚠ Grabación de ${reloj(f.duracion_s)} del ${fechaCorta(f.empezada)} sin subir` + (f.proyecto ? ` · ${f.proyecto.nombre}` : '');
+      const [subir, descartar] = d.querySelectorAll('button');
+      subir.onclick = async () => {
+        subir.disabled = true;
+        try {
+          const blob = await idbAudio(f);
+          if (!blob.size) throw new Error('vacía');
+          abrirHojaGrab({ blob, tipo: f.tipo, nombre: 'grabacion.' + extDe(f.tipo), dur: f.duracion_s, proyecto: f.proyecto, empezada: f.empezada, gid: f.id });
+        } catch (e) { subir.disabled = false; estado('no se pudo leer la grabación guardada', true); }
+      };
+      descartar.onclick = () => pedirBorrado(f, 'grabacion');
+      zona.appendChild(d);
+    });
+    marcarPestanaEnt(fichas.length);
+  }
+  async function cargarEntrevistas() {
+    clearTimeout(sondeoLista); clearTimeout(sondeoEnt);
+    ver('entrevistas');
+    pintarPendientes();
+    const l = $('listaEnt'), mia = ++cargaEnt;
+    if (!entrevistas.length) l.innerHTML = '<p class="vacio">cargando…</p>';
+    const a = ambitoEnt();
+    try {
+      const lista = await api('/entrevistas' + (a ? '?proyecto=' + encodeURIComponent(a) : ''));
+      if (mia !== cargaEnt) return;
+      entrevistas = lista;
+      pintarEntrevistas();
+      estado(`mock 18 · ${API.replace('https://', '')}`);
+      // Mientras algo se transcribe o se resume, la lista se refresca sola.
+      if (lista.some(e => e.estado === 'transcribiendo' || e.estado_resumen === 'pendiente'))
+        sondeoLista = setTimeout(() => { if (!$('entrevistas').classList.contains('hidden')) cargarEntrevistas(); }, 5000);
+    } catch (e) {
+      if (mia !== cargaEnt) return;
+      l.innerHTML = `<p class="vacio error">No se pudieron cargar las entrevistas (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentarEnt" type="button">Reintentar</button></p>`;
+      $('reintentarEnt').onclick = cargarEntrevistas;
+      estado('sin conexión con ' + API, true);
+    }
+  }
+  function pintarEntrevistas() {
+    const l = $('listaEnt'); l.innerHTML = '';
+    if (!entrevistas.length) { l.innerHTML = `<p class="vacio">${proyectoActivo ? 'Sin entrevistas en este proyecto.' : 'Sin entrevistas.'} Pulsa «🎙 Nueva entrevista» para grabar la primera.</p>`; return; }
+    entrevistas.forEach(e => {
+      const d = document.createElement('div'); d.className = 'ent';
+      d.innerHTML = '<h2></h2><div class="meta"><span></span><span></span><span class="marca"></span></div>';
+      d.querySelector('h2').textContent = e.titulo;
+      const [f, t, m] = d.querySelectorAll('.meta span');
+      f.textContent = fechaCorta(e.creada_en); t.textContent = reloj(e.duracion_s) + (e.con_quien ? ' · ' + e.con_quien : '');
+      const [txt, cls] = marcaEnt(e); m.textContent = txt; if (cls) m.classList.add(cls);
+      d.onclick = () => abrirEntrevista(e, true);
+      l.appendChild(d);
+    });
+  }
+  $('tabEnt').onclick = () => { entrevistas = []; cargarEntrevistas(); };
+  $('nuevaEnt').onclick = () => abrirCaptura();
+
+  // --- Detalle de una entrevista ---
+  let entActual = null, sondeoEnt = null, urlAudio = null;
+  function soltarAudio() { if (urlAudio) { URL.revokeObjectURL(urlAudio); urlAudio = null; } }
+  function abrirEntrevista(e, refrescar = false) {
+    clearTimeout(sondeoEnt); clearTimeout(sondeoLista);
+    const otra = !entActual || entActual.id !== e.id;
+    if (otra) { soltarAudio(); $('entAviso').textContent = ''; }
+    entActual = e;
+    pintarEntrevista(e, otra);
+    ver('entrevista');
+    if (refrescar || e.transcripcion === undefined) api('/entrevistas/' + encodeURIComponent(e.id))
+      .then(f => { if (entActual && entActual.id === f.id && !$('entrevista').classList.contains('hidden')) { entActual = f; pintarEntrevista(f, false); } })
+      .catch(err => { if (/HTTP 404/.test(err.message)) cargarEntrevistas(); });
+  }
+  function boton(texto, clase, fn) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + (clase || ''); b.textContent = texto; b.onclick = fn; return b; }
+  function parrafo(texto, clase) { return Object.assign(document.createElement('p'), { className: clase || 'aviso libre', textContent: texto }); }
+  function pintarEntrevista(e, audioNuevo) {
+    $('entTitulo').textContent = e.titulo;
+    const meta = [fechaCorta(e.creada_en), reloj(e.duracion_s)];
+    if (e.audio) meta.push(megas(e.audio_bytes));
+    if (e.con_quien) meta.push('con ' + e.con_quien);
+    $('entMeta').textContent = meta.join(' · ');
+    const zp = $('entProyecto'); zp.innerHTML = '';
+    zp.appendChild(boton('📁 ' + (e.proyecto ? e.proyecto.nombre : 'Sin proyecto'), 'chip proy', () => { entrarProyecto(e.proyecto || { id: null, nombre: 'Sin proyecto' }).then(cargarEntrevistas); }));
+    zp.firstChild.className = 'chip proy';
+    // Audio: se baja con el token solo cuando se pide (una hora son 14 MB).
+    const za = $('entAudio');
+    if (audioNuevo || !e.audio || !za.querySelector('audio')) {
+      if (!e.audio) soltarAudio();
+      za.innerHTML = '';
+      if (!e.audio) za.appendChild(parrafo('Audio borrado. La transcripción y los resúmenes siguen aquí.'));
+      else za.appendChild(boton('▶ Escuchar la grabación', '', async ev => {
+        const b = ev.currentTarget; b.disabled = true; b.textContent = 'Cargando el audio…';
+        try {
+          const cab = {}; const t = leerToken(); if (t) cab['Authorization'] = 'Bearer ' + t;
+          const r = await fetch(API + '/entrevistas/' + encodeURIComponent(e.id) + '/audio', { headers: cab });
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          soltarAudio(); urlAudio = URL.createObjectURL(await r.blob());
+          const a = document.createElement('audio'); a.controls = true; a.src = urlAudio; a.preload = 'auto';
+          za.innerHTML = ''; za.appendChild(a); a.play().catch(() => {});
+        } catch (err) { b.disabled = false; b.textContent = '▶ Escuchar la grabación'; za.appendChild(parrafo('No se pudo cargar el audio (' + err.message + ').', 'aviso libre error')); }
+      }));
+    }
+    // Transcripción (D30-D32)
+    const zt = $('entTrans'); zt.innerHTML = '';
+    const bt = document.createElement('div'); bt.className = 'bloque'; zt.appendChild(bt);
+    bt.appendChild(Object.assign(document.createElement('h3'), { textContent: 'Transcripción' }));
+    const transcribir = async ev => {
+      ev.currentTarget.disabled = true;
+      try { abrirEntrevista(await api('/entrevistas/' + encodeURIComponent(e.id) + '/transcribir', { method: 'POST' })); }
+      catch (err) {
+        ev.currentTarget.disabled = false;
+        bt.appendChild(parrafo(/HTTP 503/.test(err.message) ? 'Transcribir necesita la IA y ffmpeg en el servidor, y ahora no están disponibles.' : 'No se pudo empezar (' + err.message + ').', 'aviso libre error'));
+      }
+    };
+    if (e.estado === 'grabada') {
+      bt.appendChild(parrafo(`Sin transcribir. Tarda más o menos medio minuto por cada 5 minutos de audio${e.duracion_s ? ` (unos ${Math.max(1, Math.round(e.duracion_s / 600))} min para esta)` : ''}, y sigue aunque cierres la app.`));
+      bt.appendChild(boton('✨ Transcribir', 'pri', transcribir));
+    } else if (e.estado === 'transcribiendo') {
+      const pct = e.trozos_total ? Math.round(100 * e.trozos_hechos / e.trozos_total) : 3;
+      bt.appendChild(parrafo(e.trozos_total ? `Transcribiendo… ${e.trozos_hechos} de ${e.trozos_total} trozos de 5 minutos.` : 'Preparando el audio…', 'aviso libre'));
+      const av = document.createElement('div'); av.className = 'avance'; av.innerHTML = `<i style="width:${pct}%"></i>`; bt.appendChild(av);
+      bt.appendChild(parrafo('Puedes salir: sigue en el servidor.'));
+    } else if (e.estado === 'fallida') {
+      bt.appendChild(parrafo('No se pudo terminar: ' + (e.error || 'error desconocido') + '.', 'aviso libre error'));
+      if (e.trozos_hechos) bt.appendChild(parrafo(`Hay ${e.trozos_hechos} de ${e.trozos_total} trozos hechos; Reintentar sigue desde ahí.`));
+      if (e.audio) bt.appendChild(boton('Reintentar', 'pri', transcribir));
+    } else {
+      const det = document.createElement('details');
+      det.open = e.estado_resumen !== 'listo';
+      det.innerHTML = '<summary></summary><div class="texto"></div>';
+      det.querySelector('summary').textContent = det.open ? 'Texto completo' : 'Ver el texto completo';
+      det.ontoggle = () => { det.querySelector('summary').textContent = det.open ? 'Texto completo' : 'Ver el texto completo'; };
+      det.querySelector('.texto').textContent = e.transcripcion || '';
+      bt.appendChild(det);
+    }
+    // Resúmenes (D33): solo con la transcripción hecha.
+    const zr = $('entResumen'); zr.innerHTML = '';
+    if (e.estado === 'transcrita') {
+      const br = document.createElement('div'); br.className = 'bloque'; zr.appendChild(br);
+      const resumir = async ev => {
+        ev.currentTarget.disabled = true;
+        try { abrirEntrevista(await api('/entrevistas/' + encodeURIComponent(e.id) + '/resumir', { method: 'POST' })); }
+        catch (err) { ev.currentTarget.disabled = false; br.appendChild(parrafo('No se pudo empezar (' + err.message + ').', 'aviso libre error')); }
+      };
+      if (e.estado_resumen === 'listo') {
+        br.appendChild(Object.assign(document.createElement('h3'), { textContent: 'Resumen ejecutivo' }));
+        br.appendChild(Object.assign(document.createElement('div'), { className: 'texto', textContent: e.resumen_ejecutivo }));
+        const b2 = document.createElement('div'); b2.className = 'bloque'; zr.appendChild(b2);
+        const det = document.createElement('details');
+        det.innerHTML = '<summary>Resumen amplio</summary><div class="texto"></div>';
+        det.querySelector('.texto').textContent = e.resumen;
+        b2.appendChild(det);
+        const acc = document.createElement('div'); acc.className = 'acciones'; zr.appendChild(acc);
+        acc.appendChild(boton('📝 Guardar como nota', 'pri', () => { $('hnAviso').textContent = ''; $('hojaNotaEnt').querySelectorAll('button[data-cual]').forEach(b => { b.disabled = false; }); $('hojaNotaEnt').classList.remove('hidden'); }));
+        acc.appendChild(boton('Rehacer resúmenes', '', resumir));
+      } else if (e.estado_resumen === 'pendiente') {
+        br.appendChild(Object.assign(document.createElement('h3'), { textContent: 'Resúmenes' }));
+        br.appendChild(parrafo('Redactando el resumen ejecutivo y el amplio… suele tardar menos de un minuto.'));
+      } else {
+        br.appendChild(Object.assign(document.createElement('h3'), { textContent: 'Resúmenes' }));
+        if (e.estado_resumen === 'fallido') br.appendChild(parrafo('No se pudo resumir: ' + (e.error_resumen || 'error desconocido') + '.', 'aviso libre error'));
+        else br.appendChild(parrafo('Un resumen ejecutivo de diez líneas y otro amplio con participantes, temas, puntos clave, acuerdos, tareas y frases literales.'));
+        br.appendChild(boton(e.estado_resumen === 'fallido' ? 'Reintentar' : '✨ Resumir', 'pri', resumir));
+      }
+    }
+    $('entBorrarAudio').disabled = !(e.audio && e.estado === 'transcrita');
+    $('entBorrarAudio').title = e.audio ? (e.estado === 'transcrita' ? 'Libera espacio; se quedan el texto y los resúmenes' : 'Primero hay que transcribirla') : 'El audio ya se borró';
+    $('entEditar').disabled = e.estado === 'transcribiendo';
+    // Mientras el servidor trabaja, se pregunta cada 3 s (como los documentos).
+    clearTimeout(sondeoEnt);
+    if (e.estado === 'transcribiendo' || e.estado_resumen === 'pendiente') sondeoEnt = setTimeout(async () => {
+      try {
+        const f = await api('/entrevistas/' + encodeURIComponent(e.id));
+        if (entActual && entActual.id === f.id && !$('entrevista').classList.contains('hidden')) { entActual = f; pintarEntrevista(f, false); }
+      } catch { if (entActual && entActual.id === e.id) pintarEntrevista(entActual, false); }
+    }, 3000);
+  }
+  $('volverEnt').onclick = () => { clearTimeout(sondeoEnt); soltarAudio(); cargarEntrevistas(); };
+  $('entMover').onclick = () => entActual && abrirMover([entActual.id], 'entrevista');
+  $('entBorrar').onclick = () => entActual && pedirBorrado(entActual, 'entrevista');
+  $('entBorrarAudio').onclick = () => entActual && pedirBorrado(entActual, 'audio');
+  const entrevistaComoTexto = e => {
+    const l = ['# ' + e.titulo, '', ['📁 ' + (e.proyecto ? e.proyecto.nombre : 'Sin proyecto'), fmt(e.creada_en), reloj(e.duracion_s), e.con_quien ? 'con ' + e.con_quien : ''].filter(Boolean).join(' · ')];
+    if (e.resumen_ejecutivo) l.push('', '## Resumen ejecutivo', '', e.resumen_ejecutivo.trim());
+    if (e.resumen) l.push('', '## Resumen amplio', '', e.resumen.trim().replace(/^## /gm, '### '));
+    if (e.transcripcion) l.push('', '## Transcripción', '', e.transcripcion.trim());
+    return l.join('\n') + '\n';
+  };
+  $('copiarEnt').onclick = async () => {
+    if (!entActual) return;
+    const ok = await copiarTexto(entrevistaComoTexto(entActual));
+    $('entAviso').classList.toggle('error', !ok);
+    $('entAviso').textContent = ok ? 'Entrevista copiada al portapapeles.' : 'Este navegador no deja copiar.';
+    setTimeout(() => { $('entAviso').textContent = ''; }, 3000);
+  };
+  $('entEditar').onclick = () => {
+    const e = entActual; if (!e) return;
+    $('heNombre').value = e.titulo; $('heConQuien').value = e.con_quien || '';
+    $('heTrans').value = e.transcripcion || ''; $('heTransZona').classList.toggle('hidden', e.estado !== 'transcrita');
+    $('heEjec').value = e.resumen_ejecutivo || ''; $('heEjecZona').classList.toggle('hidden', e.estado_resumen !== 'listo');
+    $('heAviso').textContent = ''; $('heSi').disabled = false;
+    $('hojaEditEnt').classList.remove('hidden');
+  };
+  const cerrarEditEnt = () => $('hojaEditEnt').classList.add('hidden');
+  $('heNo').onclick = cerrarEditEnt;
+  $('heSi').onclick = async () => {
+    const e = entActual; if (!e) return;
+    const cambio = {};
+    if ($('heNombre').value.trim() && $('heNombre').value.trim() !== e.titulo) cambio.titulo = $('heNombre').value.trim();
+    if ($('heConQuien').value.trim() !== (e.con_quien || '')) cambio.con_quien = $('heConQuien').value.trim();
+    if (e.estado === 'transcrita' && $('heTrans').value.trim() !== (e.transcripcion || '').trim()) cambio.transcripcion = $('heTrans').value;
+    if (e.estado_resumen === 'listo' && $('heEjec').value.trim() !== (e.resumen_ejecutivo || '').trim()) cambio.resumen_ejecutivo = $('heEjec').value;
+    if (!Object.keys(cambio).length) { cerrarEditEnt(); return; }
+    $('heSi').disabled = true;
+    try {
+      const f = await api('/entrevistas/' + encodeURIComponent(e.id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cambio) });
+      cerrarEditEnt(); abrirEntrevista(f);
+    } catch (err) { $('heSi').disabled = false; avisoHoja('heAviso', 'No se pudo guardar (' + err.message + ').'); }
+  };
+  $('hnNo').onclick = () => $('hojaNotaEnt').classList.add('hidden');
+  $('hojaNotaEnt').querySelectorAll('button[data-cual]').forEach(b => {
+    b.onclick = async () => {
+      const e = entActual; if (!e) return;
+      $('hojaNotaEnt').querySelectorAll('button[data-cual]').forEach(x => { x.disabled = true; });
+      $('hnAviso').classList.remove('error'); $('hnAviso').textContent = 'Guardando y titulando…';
+      try {
+        const n = await api('/entrevistas/' + encodeURIComponent(e.id) + '/nota', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cual: b.dataset.cual }) });
+        $('hojaNotaEnt').classList.add('hidden');
+        abrir(n);
+      } catch (err) {
+        $('hojaNotaEnt').querySelectorAll('button[data-cual]').forEach(x => { x.disabled = false; });
+        avisoHoja('hnAviso', 'No se pudo guardar (' + err.message + ').');
+      }
+    };
+  });
+  // Las hojas se cierran tocando fuera, como las demás.
+  [['hojaEditEnt', cerrarEditEnt], ['hojaNotaEnt', () => $('hojaNotaEnt').classList.add('hidden')], ['hojaConsent', () => $('hojaConsent').classList.add('hidden')]]
+    .forEach(([id, f]) => { $(id).onclick = ev => { if (ev.target === $(id)) f(); }; });
+
+  // Acceso directo del icono (D41): ?grabar=1 abre la captura. Se quita de la
+  // dirección para que recargar no vuelva a arrancar la cuenta atrás.
+  const grabarAlAbrir = parametros.get('grabar') === '1';
+  if (grabarAlAbrir) { parametros.delete('grabar'); history.replaceState(null, '', location.pathname + (parametros.toString() ? '?' + parametros : '') + location.hash); }
+  pintarPestanaEnt();
+
   // Arranque: al último proyecto usado; sin él, a la lista de proyectos (D15).
   function arrancar() { if (proyectoActivo) entrarProyecto(proyectoActivo); else cargarProyectos(); }
   arrancar();
+  if (grabarAlAbrir) { entrevistas = []; cargarEntrevistas(); abrirCaptura({ directo: true }); }
 })();
 </script>
 </body>

@@ -1,6 +1,6 @@
 # Plan — sección Entrevista
 
-Fecha: 2026-09-23 · Estado: **v2.2, solo planificación, preguntas contestadas, mock 18 hecho**; F18 a F21 sin hacer, F22 opcional · Continúa `plan-proyectos.md` (D14 a D26, F13 a F17) · Fuente de verdad: este fichero (la copia en Drive es solo copia).
+Fecha: 2026-09-23 · Estado: **v3, F18a a F21 hechas** (build `PR-B1-20260923-021`, sección 13); F22 opcional sin hacer · Continúa `plan-proyectos.md` (D14 a D26, F13 a F17) · Fuente de verdad: este fichero (la copia en Drive es solo copia).
 
 Cambios de v1 a v2: entra la **pantalla de captura rápida** (botones grandes, una mano), el **control sin mirar la pantalla** (auriculares, notificación, vibración) y el **arranque directo** desde el icono (D38 a D42); F18 se parte en dos (F18a captura, F18b guardar); se añade la guía de pruebas (sección 9) y qué se tomó de la propuesta externa (sección 11). D27 a D37 siguen como estaban salvo D27, que ahora remite a D38.
 
@@ -285,3 +285,27 @@ Resumen en `entrevistas/recogida.md`, bloque 2.
 | Transcripción fallida | Estado «Fallida · Reintentar» con el motivo en el detalle |
 | 503 sin clave de IA | «Transcribir necesita la clave de IA configurada» y el botón deshabilitado |
 | Audio borrado | Reproductor sustituido por «Audio borrado el <fecha>»; Transcribir deshabilitado si no había transcripción |
+
+## 13. Cómo quedó (2026-09-23, tarde)
+
+El usuario aprobó el mock 18 y pidió desarrollarlo entero. F18a, F18b, F19, F20 y F21 salieron en una sola entrega; F22 (app nativa) sigue sin hacer.
+
+**Cambios respecto al plan:**
+
+- **Resúmenes en una sola llamada** (12.6 decía dos): el esquema JSON trae `titulo`, `ejecutivo` y `amplio`; sale más barato y los dos resúmenes no se contradicen.
+- **Reintentos por trozo**: tres intentos con esperas de 5 y 15 s (el plan decía 5/15/45). Un cuarto intento idéntico dentro del minuto se acercaría al corte por bucle del proxy (5 repeticiones en 60 s).
+- **Mover una entrevista** va por `POST /entrevistas/{id}/mover`: el `PUT` no distingue entre «sin proyecto» y «no tocar».
+- **Título provisional** lo manda la app en hora local («Entrevista · 23 sept, 14:05»); el servidor solo sabe UTC.
+- **La tarjeta «Sin proyecto»** sale también si solo hay entrevistas sueltas: sin ella, una entrevista movida a «Sin proyecto» era inalcanzable.
+- **El aviso de grabaciones sin subir** cambia el icono de la pestaña (🎙 → ⚠️) en vez de alargar el texto, que a 390 px se recortaba.
+- **Vibración de la cuenta atrás**: Chrome no deja vibrar antes del primer toque en la página, y al abrir por el acceso directo no lo hay. La cuenta atrás se ve y el arranque sí vibra si ya se ha tocado. Es una limitación del navegador, no del código.
+- **Duración**: la mide `ffprobe` al transcribir si el fichero la trae; la grabación del navegador (webm) no la trae, y entonces vale la que manda la app.
+
+**Probado en local** (backend real, `ffmpeg` real, modelo simulado que comprueba lo que recibe):
+
+- API: 11 min de audio → 3 trozos de 1,2 MB por petición (por debajo de 2 MB), marcas de tiempo desplazadas por trozo (`[05:04]`, `[10:04]`…), `Range` 206/416, 409 al borrar el audio sin transcribir o al resumir sin transcripción, 415 a un PDF, 400 a un audio vacío o a un proyecto que no existe (sin ficheros huérfanos), título editado que el resumen no pisa, borrado en cascada de los trozos.
+- Reanudación: con el trozo 2 fallando siempre, la entrevista queda «fallida» con 1 de 3 hechos; «Reintentar» pide solo el 2 y el 3.
+- App en Chromium con micrófono simulado, a 390 y 360 px, 38 comprobaciones sin errores de consola: consentimiento, grabar, pausa desde la notificación (el cronómetro se para), seguir, cerrar grabando, parar, guardar, transcribir, resumir, título propuesto, guardar como nota, recarga a mitad de grabación → ⚠️ y banda «sin subir» → subir, acceso directo con cuenta atrás que arranca sola y que un toque cancela, descartar, subir un fichero, escuchar, editar, mover, borrar audio, exportación con entrevistas y borrar. El editor de notas se comprobó aparte, porque los ids del detalle chocaban con los suyos (corregido: el detalle usa `ent*`).
+- `deploy.yml` gana «Verificar /entrevistas», probado contra el backend local: con clave de IA transcribe una voz de `espeak-ng` de verdad, resume y guarda la nota; sin clave exige el 503.
+
+**Queda para el móvil del usuario** (sección 9): pantalla apagada y app en segundo plano (D27), botón de los auriculares y tarjeta de la pantalla de bloqueo (D39), botones de la notificación de verdad (D40) y el acceso directo del icono (D41; si no aparece, desinstalar e instalar la app para que Chrome relea el manifest).

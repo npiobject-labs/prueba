@@ -2,3 +2,6 @@ app/target/
 docs/bitacora/index.json
 docs/mocks/index.html
 tools/creados/
+# Base y audio de las pruebas en el PC (tools/arrancar.ps1)
+app/notas.db*
+app/audio/
