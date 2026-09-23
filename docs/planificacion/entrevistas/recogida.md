@@ -17,3 +17,19 @@ Puntos que salen del texto (solo para ordenar, sin decidir nada):
 4. Paso 3: lo decido yo (qué hacer con la transcripción). Mirar herramientas o librerías que ya existan.
 5. En el móvil, una pantalla solo con Grabar, Pausar y Cerrar, con botones grandes y fáciles de distinguir.
 6. Mejor todavía: manejarlo con las teclas físicas del móvil, sin abrir la app.
+
+## Bloque 2 · Propuesta de otro LLM (solo informativa)
+
+Aviso del usuario: «lo siguiente es informativo; tú puedes variar la estructura, hacerlo mejor o cambiar algún plan. Solo te doy lo que propone otro LLM para que tengas una visión más amplia».
+
+Resumen fiel de la propuesta:
+
+- **Objetivo**: una sección «Entrevista» para diálogos con terceros, en tres pasos: grabar, transcribir y procesar con IA.
+- **Fase 1, captura rápida**: pantalla mínima para usar con una mano, con Grabar, Pausar/Reanudar y Finalizar y guardar. Opcional avanzado: botones físicos (por ejemplo, doble pulsación de volumen) para grabar o pausar en segundo plano sin desbloquear.
+- **Fase 2, transcripción**: botón «Transcribir» explícito y asíncrono. Propone el reconocedor nativo (SpeechRecognizer / SFSpeechRecognizer) o una solución local o en la nube ligera. El texto queda ligado al audio.
+- **Fase 3, IA**: resumen ejecutivo, puntos clave o acuerdos, y turnos de palabra si hay diarización.
+- **Esquema** de entrevista: `id`, `titulo`, `fecha`, `etiquetas`, `audio_path`, `duracion_segundos`, `transcripcion`, `resumen_ia`.
+- **Permisos** de micrófono y almacenamiento.
+- **Estados**: IDLE, RECORDING, PAUSED, PROCESSING_TRANSCRIPT, COMPLETED.
+- **Entregables**: plan de arquitectura, UI de grabación, módulo de transcripción y procesamiento, y guía de pruebas.
+- La propuesta supone una app móvil nativa (React Native, Flutter, Kotlin o Swift). Esta app es una PWA con backend en Rust, así que eso no aplica tal cual.
