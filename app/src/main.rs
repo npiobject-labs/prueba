@@ -1,9 +1,10 @@
+mod entrevistas;
 mod llm;
 
 use std::sync::{Arc, Mutex, OnceLock};
 
 use axum::{
-    extract::{Path, Query, Request, State},
+    extract::{DefaultBodyLimit, Path, Query, Request, State},
     http::{header, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
@@ -125,6 +126,7 @@ fn abrir_db() -> Connection {
         Ok(n) => println!("{n} documento(s) a medias marcados para regenerar"),
         Err(e) => eprintln!("no se pudieron revisar los documentos pendientes: {e}"),
     }
+    entrevistas::recuperar(&con);
     println!("base de datos en {ruta}");
     con
 }
@@ -158,6 +160,45 @@ fn migrar(con: &Connection) {
         )
         .expect("no se pudo migrar el esquema a la version 1 (proyectos)");
         println!("esquema migrado a la version 1: proyectos");
+    }
+    if version < 2 {
+        // Entrevistas (D27-D42): el audio va en el volumen, aqui solo su
+        // nombre; los trozos transcritos por separado, para reanudar (D32).
+        con.execute_batch(
+            "BEGIN;
+             CREATE TABLE IF NOT EXISTS entrevistas (
+               id                TEXT PRIMARY KEY,
+               proyecto_id       TEXT REFERENCES proyectos(id) ON DELETE SET NULL,
+               titulo            TEXT NOT NULL,
+               titulo_editado    INTEGER NOT NULL DEFAULT 0,
+               con_quien         TEXT NOT NULL DEFAULT '',
+               creada_en         TEXT NOT NULL,
+               duracion_s        INTEGER NOT NULL DEFAULT 0,
+               audio             TEXT,
+               audio_tipo        TEXT NOT NULL DEFAULT '',
+               audio_bytes       INTEGER NOT NULL DEFAULT 0,
+               estado            TEXT NOT NULL DEFAULT 'grabada',
+               trozos_total      INTEGER NOT NULL DEFAULT 0,
+               trozos_hechos     INTEGER NOT NULL DEFAULT 0,
+               transcripcion     TEXT NOT NULL DEFAULT '',
+               error             TEXT NOT NULL DEFAULT '',
+               resumen_ejecutivo TEXT NOT NULL DEFAULT '',
+               resumen           TEXT NOT NULL DEFAULT '',
+               estado_resumen    TEXT NOT NULL DEFAULT 'ninguno',
+               error_resumen     TEXT NOT NULL DEFAULT ''
+             );
+             CREATE INDEX IF NOT EXISTS entrevistas_proyecto ON entrevistas(proyecto_id, creada_en DESC);
+             CREATE TABLE IF NOT EXISTS entrevista_trozos (
+               entrevista_id TEXT NOT NULL REFERENCES entrevistas(id) ON DELETE CASCADE,
+               n             INTEGER NOT NULL,
+               texto         TEXT NOT NULL,
+               PRIMARY KEY (entrevista_id, n)
+             );
+             PRAGMA user_version = 2;
+             COMMIT;",
+        )
+        .expect("no se pudo migrar el esquema a la version 2 (entrevistas)");
+        println!("esquema migrado a la version 2: entrevistas");
     }
 }
 
@@ -816,14 +857,24 @@ async fn listar_proyectos(
         _ => v.sort_by_key(|p| std::cmp::Reverse(actividad(p))),
     }
     // «Sin proyecto» encabeza la lista si tiene algo y no se esta buscando (D16).
+    // Cuenta tambien una entrevista suelta: sin la tarjeta no habria forma de
+    // llegar a ella.
     if terminos.is_empty() {
         let huerfanas = con.query_row(
-            "SELECT COUNT(*), MAX(creada_en) FROM notas WHERE proyecto_id IS NULL",
+            "SELECT COUNT(*), MAX(creada_en),
+                    (SELECT COUNT(*) FROM entrevistas WHERE proyecto_id IS NULL)
+             FROM notas WHERE proyecto_id IS NULL",
             [],
-            |f| Ok((f.get::<_, i64>(0)?, f.get::<_, Option<String>>(1)?)),
+            |f| {
+                Ok((
+                    f.get::<_, i64>(0)?,
+                    f.get::<_, Option<String>>(1)?,
+                    f.get::<_, i64>(2)?,
+                ))
+            },
         );
         match huerfanas {
-            Ok((n, ultima)) if n > 0 => v.insert(
+            Ok((n, ultima, entrevistas)) if n > 0 || entrevistas > 0 => v.insert(
                 0,
                 Proyecto {
                     id: None,
@@ -1567,7 +1618,7 @@ async fn salud() -> impl IntoResponse {
     (
         [(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")],
         Json(
-            json!({ "ok": true, "build": build, "token": token_api().is_some(), "ia": ia().is_some() }),
+            json!({ "ok": true, "build": build, "token": token_api().is_some(), "ia": ia().is_some(), "ffmpeg": entrevistas::hay_ffmpeg() }),
         ),
     )
 }
@@ -1605,6 +1656,32 @@ async fn main() {
                 .delete(borrar_documento),
         )
         .route("/documentos/{id}/regenerar", post(regenerar_documento))
+        .route(
+            "/entrevistas",
+            get(entrevistas::listar)
+                .post(entrevistas::crear)
+                .layer(DefaultBodyLimit::max(entrevistas::MAXIMO_SUBIDA)),
+        )
+        .route(
+            "/entrevistas/{id}",
+            get(entrevistas::ver)
+                .put(entrevistas::editar)
+                .delete(entrevistas::borrar),
+        )
+        .route(
+            "/entrevistas/{id}/audio",
+            get(entrevistas::audio).delete(entrevistas::borrar_audio),
+        )
+        .route(
+            "/entrevistas/{id}/transcribir",
+            post(entrevistas::transcribir),
+        )
+        .route("/entrevistas/{id}/resumir", post(entrevistas::resumir))
+        .route(
+            "/entrevistas/{id}/nota",
+            post(entrevistas::guardar_como_nota),
+        )
+        .route("/entrevistas/{id}/mover", post(entrevistas::mover))
         .route_layer(middleware::from_fn(exigir_token));
     let app = Router::new()
         .route("/", get(raiz))
@@ -1616,6 +1693,9 @@ async fn main() {
     match token_api() {
         Some(_) => println!("token de acceso activo"),
         None => println!("AVISO: sin TOKEN_API, la API de notas queda abierta"),
+    }
+    if !entrevistas::hay_ffmpeg() {
+        println!("AVISO: sin ffmpeg, las entrevistas se graban pero no se pueden transcribir");
     }
     if ia().is_none() {
         println!(

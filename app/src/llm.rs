@@ -1,11 +1,11 @@
 //! Lo que la aplicación le pide al servicio de modelos (D5): título y
-//! etiquetas de una nota, y el documento que resume un conjunto de notas
-//! (D11).
+//! etiquetas de una nota, el documento que resume un conjunto de notas
+//! (D11), y la transcripción y los resúmenes de una entrevista (D30, D33).
 //!
 //! Todo lo que sabe la aplicación del proveedor vive aquí: si mañana cambia el
 //! protocolo se reescribe este fichero y nada más, que es lo que el plan dejó
-//! decidido como plan B de D5. Hacia fuera solo se ofrecen `titular` y
-//! `documentar`.
+//! decidido como plan B de D5. Hacia fuera solo se ofrecen `titular`,
+//! `documentar`, `transcribir` y `resumir_entrevista`.
 //!
 //! El servicio al que se llama es `openrouter`, el proxy propio: habla el
 //! formato de la API de OpenAI, cobra contra la clave de esta aplicación y
@@ -36,6 +36,18 @@ const ESPERA_DOCUMENTO: Duration = Duration::from_secs(120);
 /// Tope de material que entra en un documento. Veinte notas dictadas caben de
 /// sobra; pasado esto se recorta y el documento lo dice.
 const MAXIMO_DOCUMENTO: usize = 30_000;
+
+/// D31: un trozo son cinco minutos de audio. El proxy espera 120 s al
+/// proveedor; aquí algo menos, para que el error sea nuestro y legible.
+const ESPERA_TRANSCRIPCION: Duration = Duration::from_secs(110);
+
+/// Modelo con entrada de audio si no se fija `LLM_MODELO_AUDIO`. El de
+/// titular por defecto es un «lite», que con audio separa peor las voces.
+const MODELO_AUDIO: &str = "google/gemini-2.5-flash";
+
+/// Una hora de conversación son unos 60 000 caracteres; el doble da margen sin
+/// que una transcripción desmesurada dispare el coste.
+const MAXIMO_TRANSCRIPCION: usize = 120_000;
 
 /// Lo que el modelo devuelve para una nota.
 #[derive(Debug, Deserialize)]
@@ -70,6 +82,44 @@ pub struct Documento {
     pub markdown: String,
 }
 
+/// Lo que acompaña a un trozo de audio para que el modelo sepa dónde está
+/// (D31): qué trozo es, con quién se habla y cómo acabó el anterior, para que
+/// no cambie el nombre de los hablantes a mitad.
+pub struct ContextoTrozo<'a> {
+    pub n: usize,
+    pub total: usize,
+    pub con_quien: &'a str,
+    pub proyecto: Option<&'a Proyecto>,
+    pub cola_anterior: &'a str,
+}
+
+/// Una tarea pendiente que sale de la entrevista.
+#[derive(Debug, Deserialize)]
+pub struct Tarea {
+    pub quien: String,
+    pub que: String,
+}
+
+/// El resumen amplio por partes (D33): el markdown lo compone el backend, así
+/// que el formato nunca depende de lo que el modelo decida.
+#[derive(Debug, Deserialize)]
+pub struct Amplio {
+    pub participantes: Vec<String>,
+    pub temas: Vec<String>,
+    pub puntos_clave: Vec<String>,
+    pub acuerdos: Vec<String>,
+    pub tareas: Vec<Tarea>,
+    pub frases: Vec<String>,
+}
+
+/// Los dos resúmenes de una entrevista y el título que propone el modelo.
+#[derive(Debug, Deserialize)]
+pub struct Resumen {
+    pub titulo: String,
+    pub ejecutivo: String,
+    pub amplio: Amplio,
+}
+
 /// Configuración del servicio, leída del entorno una sola vez al arrancar.
 /// Sin clave no hay IA, y la aplicación funciona igual (D6).
 pub struct Llm {
@@ -78,6 +128,7 @@ pub struct Llm {
     clave: String,
     modelo: Option<String>,
     modelo_documento: Option<String>,
+    modelo_audio: String,
 }
 
 impl Llm {
@@ -105,6 +156,11 @@ impl Llm {
             .map(|m| m.trim().to_string())
             .filter(|m| !m.is_empty())
             .or_else(|| modelo.clone());
+        let modelo_audio = std::env::var("LLM_MODELO_AUDIO")
+            .ok()
+            .map(|m| m.trim().to_string())
+            .filter(|m| !m.is_empty())
+            .unwrap_or_else(|| MODELO_AUDIO.to_string());
         let http = Client::builder()
             .user_agent("prueba-backend")
             .build()
@@ -116,7 +172,226 @@ impl Llm {
             clave,
             modelo,
             modelo_documento,
+            modelo_audio,
         })
+    }
+
+    /// Transcribe un trozo de audio mp3 (D30/D31) con los hablantes separados.
+    /// Devuelve líneas `[mm:ss] Hablante: texto` con el tiempo relativo al
+    /// principio del trozo; el backend las desplaza al tiempo de la entrevista.
+    pub async fn transcribir(&self, mp3: &[u8], ctx: &ContextoTrozo<'_>) -> Result<String, String> {
+        use base64::Engine;
+        if mp3.is_empty() {
+            return Err("trozo de audio vacío".into());
+        }
+        let datos = base64::engine::general_purpose::STANDARD.encode(mp3);
+        let texto = self
+            .completar(
+                self.peticion_transcripcion(&datos, ctx),
+                "entrevista-transcribir",
+                ESPERA_TRANSCRIPCION,
+            )
+            .await?;
+        let texto = sin_cerco(&texto);
+        if texto.is_empty() {
+            return Err("el modelo devolvió una transcripción vacía".into());
+        }
+        Ok(texto)
+    }
+
+    /// Los dos resúmenes de una entrevista ya transcrita (D33), en una sola
+    /// llamada con salida estructurada.
+    pub async fn resumir_entrevista(
+        &self,
+        transcripcion: &str,
+        con_quien: &str,
+        duracion: &str,
+        proyecto: Option<&Proyecto>,
+    ) -> Result<Resumen, String> {
+        if transcripcion.trim().is_empty() {
+            return Err("no hay transcripción que resumir".into());
+        }
+        let texto = self
+            .completar(
+                self.peticion_resumen(transcripcion, con_quien, duracion, proyecto),
+                "entrevista-resumir",
+                ESPERA_DOCUMENTO,
+            )
+            .await?;
+        let mut r: Resumen = serde_json::from_str(&texto)
+            .map_err(|e| format!("el modelo no devolvió el JSON esperado: {e}"))?;
+        r.titulo = recortar_adornos(&r.titulo).chars().take(80).collect();
+        r.ejecutivo = sin_cerco(&r.ejecutivo);
+        if r.ejecutivo.is_empty() {
+            return Err("el modelo devolvió un resumen vacío".into());
+        }
+        Ok(r)
+    }
+
+    fn peticion_transcripcion(&self, datos_b64: &str, ctx: &ContextoTrozo<'_>) -> Value {
+        let hablantes = match ctx.con_quien.trim() {
+            "" => "Son dos personas: llámalas «Entrevistador» (quien hace las preguntas) y \
+                   «Entrevistado». Si en la conversación se dice el nombre de alguna, usa el \
+                   nombre a partir de ahí."
+                .to_string(),
+            q => format!(
+                "Son dos personas: «Entrevistador» (quien hace las preguntas) y la persona \
+                 entrevistada, que es: {q}. Llama a esta por su nombre de pila."
+            ),
+        };
+        let proyecto = match ctx.proyecto {
+            Some(p) => format!("La conversación es del proyecto «{}». ", p.nombre),
+            None => String::new(),
+        };
+        let anterior = match ctx.cola_anterior.trim() {
+            "" => String::new(),
+            c => format!(
+                "\n\nAsí terminaba el fragmento anterior; mantén exactamente los mismos nombres \
+                 de hablante:\n{c}"
+            ),
+        };
+        json!({
+            "model": self.modelo_audio,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Transcribes conversaciones grabadas. Escribes literalmente lo que \
+                                se dice, en el idioma en que se dice, sin resumir, sin corregir \
+                                el estilo y sin añadir nada tuyo. Cada intervención va en su \
+                                propia línea con el formato exacto `[mm:ss] Hablante: texto`, \
+                                donde mm:ss es el momento en que empieza, contado desde el \
+                                principio de este audio. Si una intervención es larga, pártela \
+                                en varias líneas con su tiempo cada una, cada 30 segundos más o \
+                                menos. Lo que no se entienda va como [inaudible]. Si el audio \
+                                no tiene voz, responde solo `[00:00] [sin voz]`. No escribas \
+                                nada más: ni encabezados, ni comentarios, ni cercos de código."
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": format!(
+                                "{proyecto}Fragmento {} de {} de la conversación. {hablantes}{anterior}",
+                                ctx.n + 1, ctx.total
+                            )
+                        },
+                        {
+                            "type": "input_audio",
+                            "input_audio": { "data": datos_b64, "format": "mp3" }
+                        }
+                    ]
+                }
+            ],
+            // Cinco minutos de conversación rara vez pasan de 1500 tokens; el
+            // margen es para que un trozo muy hablado no salga cortado.
+            "max_tokens": 8000,
+            "temperature": 0
+        })
+    }
+
+    fn peticion_resumen(
+        &self,
+        transcripcion: &str,
+        con_quien: &str,
+        duracion: &str,
+        proyecto: Option<&Proyecto>,
+    ) -> Value {
+        let recorte: String = transcripcion.chars().take(MAXIMO_TRANSCRIPCION).collect();
+        let aviso = if recorte.chars().count() < transcripcion.chars().count() {
+            "\n\n(La transcripción se ha recortado por longitud: dilo en el resumen amplio.)"
+        } else {
+            ""
+        };
+        let contexto = match proyecto {
+            None => String::new(),
+            Some(p) if p.descripcion.trim().is_empty() => {
+                format!("Es una entrevista del proyecto «{}».\n", p.nombre)
+            }
+            Some(p) => format!(
+                "Es una entrevista del proyecto «{}»: {}\n",
+                p.nombre,
+                p.descripcion.trim()
+            ),
+        };
+        let con = match con_quien.trim() {
+            "" => String::new(),
+            q => format!("La persona entrevistada es: {q}.\n"),
+        };
+        let lista = json!({ "type": "array", "items": { "type": "string" } });
+        let mut cuerpo = json!({
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Resumes entrevistas de trabajo entre dos personas a partir de su \
+                                transcripción. Devuelves solo JSON. «titulo»: una frase corta y \
+                                concreta que diga de qué fue la conversación, sin comillas ni \
+                                punto final. «ejecutivo»: diez líneas como mucho, en prosa y sin \
+                                encabezados, para alguien que no estuvo: de qué iba, qué se \
+                                acordó y qué queda por hacer y de quién. «amplio»: el detalle \
+                                por partes; cada elemento de cada lista es una idea completa en \
+                                una frase. «participantes»: quién habla y en calidad de qué. \
+                                «temas»: los asuntos tratados, en el orden en que salieron. \
+                                «puntos_clave»: lo importante que se dijo, con cifras y fechas \
+                                si las hay. «acuerdos»: solo lo que las dos partes dieron por \
+                                decidido. «tareas»: lo que alguien tiene que hacer después, con \
+                                quién lo hace. «frases»: hasta cinco citas literales que valga \
+                                la pena conservar, sin comillas. No inventes nada que no esté en \
+                                la transcripción: una lista sin material va vacía. Español, tono \
+                                directo, sin preámbulos."
+                },
+                {
+                    "role": "user",
+                    "content": format!("{contexto}{con}Duración: {duracion}.\n\nTranscripción:\n\n{recorte}{aviso}")
+                }
+            ],
+            "max_tokens": 4000,
+            "temperature": 0.2,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "resumen_de_entrevista",
+                    "strict": true,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "titulo": { "type": "string", "maxLength": 80 },
+                            "ejecutivo": { "type": "string" },
+                            "amplio": {
+                                "type": "object",
+                                "properties": {
+                                    "participantes": lista,
+                                    "temas": lista,
+                                    "puntos_clave": lista,
+                                    "acuerdos": lista,
+                                    "tareas": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "quien": { "type": "string" },
+                                                "que": { "type": "string" }
+                                            },
+                                            "required": ["quien", "que"],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "frases": lista
+                                },
+                                "required": ["participantes", "temas", "puntos_clave", "acuerdos", "tareas", "frases"],
+                                "additionalProperties": false
+                            }
+                        },
+                        "required": ["titulo", "ejecutivo", "amplio"],
+                        "additionalProperties": false
+                    }
+                }
+            }
+        });
+        if let Some(modelo) = &self.modelo_documento {
+            cuerpo["model"] = json!(modelo);
+        }
+        cuerpo
     }
 
     /// Pide título y etiquetas para una nota. `Err` describe el fallo para el
@@ -484,19 +759,27 @@ fn limpiar(mut s: Sugerencia) -> Sugerencia {
     s
 }
 
+/// Quita el cerco de código con que el modelo envuelve a veces un texto.
+fn sin_cerco(texto: &str) -> String {
+    let t = texto.trim();
+    if t.starts_with("```") {
+        let sin_apertura = t.split_once('\n').map(|(_, resto)| resto).unwrap_or("");
+        sin_apertura
+            .trim_end()
+            .trim_end_matches("```")
+            .trim()
+            .to_string()
+    } else {
+        t.to_string()
+    }
+}
+
 /// El modelo a veces envuelve el markdown en un cerco de código, y el título
 /// se le va en comillas igual que en las notas. Se quita aquí.
 fn limpiar_documento(mut d: Documento) -> Documento {
     d.titulo = recortar_adornos(&d.titulo).chars().take(80).collect();
 
-    let texto = d.markdown.trim();
-    let texto = if texto.starts_with("```") {
-        let sin_apertura = texto.split_once('\n').map(|(_, resto)| resto).unwrap_or("");
-        sin_apertura.trim_end().trim_end_matches("```").trim_end()
-    } else {
-        texto
-    };
-    d.markdown = texto.to_string();
+    d.markdown = sin_cerco(&d.markdown);
     d
 }
 
