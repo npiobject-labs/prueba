@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260923-021">
+  <meta name="build" content="PR-B1-20260923-022">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -332,7 +332,7 @@
     <div class="acciones"><button class="btn peligro" id="entBorrarAudio" type="button">Borrar audio</button><button class="btn peligro" id="entBorrar" type="button">Borrar</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260923-021</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260923-022</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -1546,7 +1546,9 @@
     const aqui = origen === 'detalle' ? (actual && actual.proyecto ? actual.proyecto.id : null)
       : origen === 'entrevista' ? (entActual && entActual.proyecto ? entActual.proyecto.id : null)
       : (!enTodos && proyectoActivo ? proyectoActivo.id : undefined);
-    $('hmResumen').textContent = origen === 'entrevista' ? 'Una entrevista.' : ids.length === 1 ? 'Una nota.' : `${ids.length} notas.`;
+    // Decir dónde está ya: el proyecto actual sale desactivado y, sin esto, parecía un fallo.
+    const donde = aqui === undefined ? '' : ` Ahora está en «${aqui === null ? 'Sin proyecto' : (origen === 'entrevista' ? entActual.proyecto.nombre : origen === 'detalle' ? actual.proyecto.nombre : proyectoActivo.nombre)}»: elige otro destino.`;
+    $('hmResumen').textContent = (origen === 'entrevista' ? 'Una entrevista.' : ids.length === 1 ? 'Una nota.' : `${ids.length} notas.`) + donde;
     $('hmAviso').textContent = ''; $('hmAviso').classList.remove('error');
     $('hmNuevo').value = '';
     const l = $('hmLista'); l.innerHTML = '<p class="vacio">cargando…</p>';
@@ -1556,7 +1558,7 @@
       l.innerHTML = '';
       [{ id: null, nombre: 'Sin proyecto' }, ...ps].forEach(p => {
         const b = document.createElement('button'); b.type = 'button'; b.className = 'btn';
-        b.textContent = (p.id === null ? '— ' : '📁 ') + p.nombre + (p.id === aqui ? ' · aquí' : '');
+        b.textContent = p.id === aqui ? `✓ ${p.nombre} · ya está aquí` : (p.id === null ? '— ' : '📁 ') + p.nombre;
         b.disabled = p.id === aqui;
         b.onclick = () => moverA(p);
         l.appendChild(b);
