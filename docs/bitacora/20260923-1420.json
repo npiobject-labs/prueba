@@ -1,0 +1,41 @@
+{
+  "fecha": "2026-09-23T14:20:00+02:00",
+  "titulo": "Sección Entrevista: grabar, transcribir y resumir",
+  "objetivo": "Recoger los requisitos de la sección Entrevista, planificarla con mock y desarrollarla entera hasta desplegarla.",
+  "prompts": [
+    { "texto": "Vamos a arrancar la sección de entrevistas de momento solamente almacena lo que te voy a decir en los próximos proms y cuando termine ya te diré que arranques con la planificación o con el desarrollo con ambos pero de momento solamente eh recoge información" },
+    { "texto": "Nueva sección de entrevista en la aplicación: grabar el diálogo con otra persona como fichero de voz, transcribirlo con un botón, un tercer paso a elegir; una pantalla en el móvil con solo grabar, pausar y cerrar, grandes; y si puede ser con alguna tecla del móvil, sin abrir la aplicación.", "nota": "Resumen de una nota dictada larga; el texto completo está en docs/planificacion/entrevistas/recogida.md." },
+    { "texto": "OJO, lo siguiente es informativo tú puedes variar la estructura o hacerlo mejor o cambiar algún plan y solamente te estoy dando el propuesto por otro ellm para que tengas una visión más amplia", "nota": "Seguía una propuesta de otro LLM, resumida en recogida.md." },
+    { "texto": "Ya está este es el texto que tengo como información de entrada arranca generando una planificación." },
+    { "texto": "1 Máximo una hora 2 si, dos personas 3 dos resúmenes, primero uno ejecutiva y después otro más amplia 4 guardar con opción de borrar 5 tengo auriculares con bluetooth se usarán de forma opcional 6 no se cuál será más práctico" },
+    { "texto": "No arranques aún la ejecución quédate con la en modo planificación" },
+    { "texto": "Refina un poco más a todo lo que puedas en la planificación y generame un mock para ver cómo quedaría" },
+    { "texto": "De acuerdo me gusta el mock pasa a la fase de desarrollo e integralo en la aplicación de prueba y adelante todo ok" }
+  ],
+  "cambios": [
+    "docs/planificacion/entrevistas/recogida.md y plan-entrevista.md v3 (D38 a D42, detalle técnico, guía de pruebas, cómo quedó)",
+    "docs/mocks/018-entrevista.html: mock de diseño navegable",
+    "app/src/entrevistas.rs: API de entrevistas, audio con Range, transcripción por trozos con reanudación, resúmenes y nota",
+    "app/src/llm.rs: transcribir (input_audio) y resumir_entrevista con salida estructurada",
+    "app/Dockerfile: ffmpeg; /salud dice si está",
+    "docs/index.html: pestaña Entrevistas, captura a pantalla completa, IndexedDB, Media Session, notificación, acceso directo",
+    "docs/sw.js y manifest: botones de la notificación y acceso directo «Grabar entrevista»",
+    ".github/workflows/deploy.yml: paso «Verificar /entrevistas» y variable LLM_MODELO_AUDIO"
+  ],
+  "sha": "5c8a0d8",
+  "sha_completo": "5c8a0d8b2eed375fbd9925115c1505831c96b961",
+  "run": 35859052561,
+  "mock": "mocks/018-entrevista.html",
+  "build": "PR-B1-20260923-021",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Pasar en el móvil la guía de pruebas de la sección 9 del plan (pantalla apagada, auriculares, notificación, acceso directo).",
+    "F22 (app nativa mínima) solo si hace falta grabar con la pantalla bloqueada."
+  ],
+  "enlaces": [
+    { "texto": "PR #37", "url": "https://github.com/npiobject-labs/prueba/pull/37" },
+    { "texto": "Plan de la sección Entrevista", "url": "https://github.com/npiobject-labs/prueba/blob/main/docs/planificacion/plan-entrevista.md" }
+  ],
+  "notas": "Transcripción de los prompts aproximada en los dos más largos, que están resumidos. Hallazgos al implementar: los ids del detalle chocaban con los del editor de notas (corregido con ent*), y Chrome no deja vibrar antes del primer toque, así que la cuenta atrás del acceso directo no vibra. La transcripción real por el proxy (D30) quedó confirmada en el despliegue."
+}
