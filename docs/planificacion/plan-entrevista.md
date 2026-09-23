@@ -1,6 +1,6 @@
 # Plan — sección Entrevista
 
-Fecha: 2026-09-23 · Estado: **v2, solo planificación**; F18 a F21 sin hacer, F22 opcional · Continúa `plan-proyectos.md` (D14 a D26, F13 a F17) · Fuente de verdad: este fichero (la copia en Drive es solo copia).
+Fecha: 2026-09-23 · Estado: **v2.1, solo planificación, preguntas contestadas**; F18 a F21 sin hacer, F22 opcional · Continúa `plan-proyectos.md` (D14 a D26, F13 a F17) · Fuente de verdad: este fichero (la copia en Drive es solo copia).
 
 Cambios de v1 a v2: entra la **pantalla de captura rápida** (botones grandes, una mano), el **control sin mirar la pantalla** (auriculares, notificación, vibración) y el **arranque directo** desde el icono (D38 a D42); F18 se parte en dos (F18a captura, F18b guardar); se añade la guía de pruebas (sección 9) y qué se tomó de la propuesta externa (sección 11). D27 a D37 siguen como estaban salvo D27, que ahora remite a D38.
 
@@ -35,17 +35,17 @@ Numeración continua (última: D26). D38 a D42 son nuevas en v2.
 |---|---|---|
 | D27 | **Grabar en el navegador con `MediaRecorder`** (`audio/webm;codecs=opus`, mono, unos 32 kbps: ~14 MB por hora). Cronómetro y medidor de nivel. **Wake Lock** mientras graba, para que la pantalla no se apague. La interfaz es la de D38. | [SUPUESTO] Chrome en Android sigue grabando con la pantalla encendida y la pestaña delante. Plan B si corta en segundo plano: aviso fijo «No salgas de la app mientras grabas» y, si no basta, la grabadora del sistema más «Subir audio» (D28). |
 | D28 | **No perder nunca una grabación.** El audio se va guardando en IndexedDB a trozos de 10 s mientras se graba. Si la subida falla o se cierra la pestaña, al volver aparece «Hay una grabación sin subir · Subir / Descartar». Además, **«Subir audio»** acepta un fichero ya grabado (m4a, mp3, ogg, webm, wav). | Decidido. Es la misma filosofía que D6/D12: lo del usuario no se pierde. |
-| D29 | **El audio se guarda en el volumen de Fly** (`/data/audio/<id>.<ext>`). La base guarda metadatos y texto, no binarios. `GET /entrevistas/{id}/audio` lo sirve con `Range` para el reproductor; la app lo pide con `fetch` y el token (un `<audio src>` no manda cabeceras) y lo reproduce desde un blob. | [SUPUESTO] El volumen de 1 GB llega (~70 h de audio). Plan B: `flyctl volumes extend` o borrar el audio tras transcribir, dejando el texto (opción por entrevista). |
+| D29 | **El audio se guarda en el volumen de Fly** (`/data/audio/<id>.<ext>`). La base guarda metadatos y texto, no binarios. `GET /entrevistas/{id}/audio` lo sirve con `Range` para el reproductor; la app lo pide con `fetch` y el token (un `<audio src>` no manda cabeceras) y lo reproduce desde un blob. **Se guarda siempre**, y en el detalle hay «Borrar audio» (pide confirmación, deja `audio NULL` y conserva transcripción y resúmenes): `DELETE /entrevistas/{id}/audio`. | Decidido por el usuario (pregunta 4). Con entrevistas de hasta 1 h (pregunta 1), 1 GB son ~70 entrevistas; si se acerca, `flyctl volumes extend`. |
 | D30 | **Transcribir con el mismo proveedor de siempre** (D5): un modelo con entrada de audio por el proxy `openrouter`, mensajes `input_audio` y un modelo con audio (por defecto un Gemini Flash). **Solo `llm.rs` lo sabe**, con una función nueva `transcribir(trozo, contexto)`. Se pide la transcripción **con hablantes** («Entrevistador:», «Entrevistado:» o nombres si se dicen), en el idioma original y sin resumir. | [SUPUESTO, lo primero que se prueba en F19] El proxy deja pasar `input_audio` y el modelo separa bien dos voces. Plan B: un servicio de transcripción con separación de hablantes de verdad (Deepgram o AssemblyAI) con su propia clave, `STT_API_KEY`, detrás de la misma función de `llm.rs`. |
 | D31 | **Trocear antes de transcribir.** El backend convierte el audio con `ffmpeg` a mp3 mono de 24 kbps en **trozos de 5 min** (~0,9 MB, ~1,2 MB en base64). Así cada petición cabe en el límite de 2 MB del proxy (axum por defecto), un fallo solo repite un trozo, y la salida del modelo nunca pasa de su tope. Cada trozo lleva el final del anterior como contexto, para no cambiar de nombre a los hablantes a mitad. | Decidido. `ffmpeg` entra en la imagen de Docker (unos 80 MB más). |
 | D32 | **Transcribir es asíncrono**, como los documentos (D11): `POST /entrevistas/{id}/transcribir` contesta al momento, la entrevista pasa por `pendiente → transcribiendo (3/12) → lista | fallida`, y la app pregunta cada 3 s y enseña el avance. Si falla, «Reintentar» sigue desde el trozo que falló. La transcripción se puede **editar** (como las notas, `PUT`). | Decidido. |
-| D33 | **Tercer paso: resumen** (sección 2). `POST /entrevistas/{id}/resumir`, asíncrono, con `LLM_MODELO_DOCUMENTO`, estructura fija en markdown y el proyecto como contexto (D21). «Guardar como nota» crea una nota en el proyecto con el resumen y un enlace a la entrevista; la IA la titula y etiqueta como a cualquier otra. «📋 Copiar» copia resumen y transcripción. | Decidido. |
+| D33 | **Tercer paso: dos resúmenes** (sección 2). `POST /entrevistas/{id}/resumir` genera los dos en una sola tarea asíncrona con `LLM_MODELO_DOCUMENTO` y el proyecto como contexto (D21): primero el **ejecutivo** (10 líneas como mucho: de qué iba, qué se acordó, qué queda por hacer), y después el **amplio** con la estructura fija (Participantes, Temas tratados, Puntos clave, Acuerdos y decisiones, Tareas pendientes con quién y qué, Frases literales relevantes). En el detalle, el ejecutivo va arriba a la vista y el amplio plegado debajo. «Guardar como nota» ofrece **Ejecutivo / Amplio / Los dos**; la IA titula y etiqueta la nota como a cualquier otra. «📋 Copiar» copia los dos resúmenes y la transcripción. Columnas `resumen_ejecutivo` y `resumen` (sección 4). | Decidido por el usuario (pregunta 3). |
 | D34 | **Título** propuesto por la IA con el resumen, editable siempre. Hasta entonces, «Entrevista · 23 sept 12:40». Campo opcional «Con quién» al grabar, que también se pasa al modelo para nombrar a los hablantes. Con la captura rápida (D38) el campo no estorba: se pide **después** de parar, no antes de grabar. | Decidido. |
 | D35 | **Navegación**: tercera pestaña **🎙 Entrevistas** junto a Proyectos y Notas (dentro del proyecto activo). En la lista, cada entrevista enseña duración, estado y fecha. | [SUPUESTO] Tres pestañas caben a 360 px. Plan B: la entrevista entra como un tipo de elemento más en la lista de notas, con un icono. |
 | D36 | **Consentimiento**: antes de la primera grabación, aviso de que grabar a otra persona requiere su permiso. Se enseña una vez y se recuerda en `localStorage`. | Decidido. Solo un aviso; la app no guarda ninguna prueba del consentimiento. |
 | D37 | **Fuera de esta versión**: transcripción en directo mientras se habla, más de un idioma en la misma entrevista, preguntar a la entrevista («¿qué dijo de los plazos?») y documentos (F5) a partir de entrevistas. La pregunta a la entrevista es la siguiente candidata (F22). | Decidido. |
 | D38 | **Pantalla de captura rápida** (sección 6.2): una vista a pantalla completa que tapa cabecera, pestañas y buscador, con **solo tres botones**: **Grabar** (rojo, el más grande, en la zona del pulgar), **Pausa / Seguir** (ámbar) y **Cerrar** (gris, arriba y aparte, para no pulsarlo sin querer). Cronómetro grande y nivel de audio. Nada más: ni título, ni «con quién», ni ajustes. Cada cambio de estado **vibra** con un patrón distinto (`navigator.vibrate`: 1 pulso al grabar, 2 al pausar, 1 largo al parar), para saber qué ha pasado sin mirar. Cerrar mientras graba pregunta «Guardar / Seguir grabando / Descartar». | Decidido. Es la lectura literal del punto 5 de la sección 1. |
-| D39 | **Control sin tocar la pantalla, vía 1: auriculares y pantalla de bloqueo con Media Session.** Las teclas de volumen **no llegan a una página web** en Android: no hay forma de capturarlas desde una PWA. Lo que sí llega es el botón de **auriculares o manos libres Bluetooth** (play/pause) a través de `navigator.mediaSession`, siempre que la página sea la sesión de medios activa. Para serlo, mientras se graba se reproduce en bucle un **audio silencioso**; con eso aparece además la **tarjeta de medios del sistema** (barra de notificaciones y pantalla de bloqueo) con Play/Pausa, que mapeamos a **Seguir/Pausa** de la grabación. El título de la tarjeta enseña «Grabando entrevista · 12:34». | [SUPUESTO, **lo primero que se prueba en F18a**, en el móvil del usuario] Chrome en Android mantiene la sesión de medios con el audio silencioso y entrega `play`/`pause` desde el manos libres y la pantalla de bloqueo. Plan B (D40). |
+| D39 | **Control sin tocar la pantalla, vía 1 (opcional, solo si hay auriculares): auriculares y pantalla de bloqueo con Media Session.** Las teclas de volumen **no llegan a una página web** en Android: no hay forma de capturarlas desde una PWA. Lo que sí llega es el botón de **auriculares o manos libres Bluetooth** (play/pause) a través de `navigator.mediaSession`, siempre que la página sea la sesión de medios activa. Para serlo, mientras se graba se reproduce en bucle un **audio silencioso**; con eso aparece además la **tarjeta de medios del sistema** (barra de notificaciones y pantalla de bloqueo) con Play/Pausa, que mapeamos a **Seguir/Pausa** de la grabación. El título de la tarjeta enseña «Grabando entrevista · 12:34». | [SUPUESTO, **lo primero que se prueba en F18a**, en el móvil del usuario] Chrome en Android mantiene la sesión de medios con el audio silencioso y entrega `play`/`pause` desde el manos libres y la pantalla de bloqueo. Plan B (D40). |
 | D40 | **Control sin tocar la pantalla, vía 2: notificación con botones.** El service worker enseña una notificación persistente «Grabando · Pausa · Parar»; al pulsar, `notificationclick` avisa a la página por `postMessage` y esta actúa. Vale en la barra de notificaciones y en la pantalla de bloqueo. Exige permiso de notificaciones (se pide con la primera grabación, junto al del micrófono). | Plan B de D39, y se hace **también** si D39 funciona, porque cubre lo que D39 no cubre (parar) y no depende de tener auriculares. Si la página muere, la notificación ya no puede hacer nada: la grabación es de la página (D27). |
 | D41 | **Arranque directo desde el icono**: un **acceso directo del manifest** (`shortcuts`, pulsación larga sobre el icono de la app instalada → «🎙 Grabar entrevista») abre `index.html?grabar=1`, que entra **directamente** en la pantalla de captura del proyecto activo con el micrófono ya pedido: **un solo toque más** para empezar. Con la PWA instalada, Chrome recuerda el permiso del micrófono, así que no vuelve a preguntar. | Decidido. Es lo más cerca de «sin abrir la aplicación» que llega una web: se abre, pero sin pasar por ninguna pantalla. **No es posible** desde una PWA: grabar con la pantalla bloqueada sin abrirla, un widget, un mosaico de ajustes rápidos o el botón de volumen. Eso solo lo da una app nativa (F22, opcional). |
 | D42 | **Máquina de estados de la grabadora**, explícita en el código: `inactiva → pidiendo_permiso → grabando ⇄ pausada → parando → subiendo → guardada`, con `sin_permiso` (con instrucciones para dar el permiso en Ajustes del sitio) y `sin_subir` (D28) como estados de error. Todo lo que cambia de estado pasa por una sola función, y los tres botones, Media Session, la notificación y `?grabar=1` solo mandan **eventos** (`grabar`, `pausar`, `seguir`, `parar`, `cerrar`). | Decidido. Con cuatro fuentes de eventos, sin esto se descoordinan en una semana. |
@@ -66,7 +66,8 @@ CREATE TABLE entrevistas (
   trozos_total  INTEGER NOT NULL DEFAULT 0,
   trozos_hechos INTEGER NOT NULL DEFAULT 0,
   transcripcion TEXT NOT NULL DEFAULT '',
-  resumen       TEXT NOT NULL DEFAULT '',
+  resumen_ejecutivo TEXT NOT NULL DEFAULT '',
+  resumen       TEXT NOT NULL DEFAULT '',            -- el amplio
   estado_resumen TEXT NOT NULL DEFAULT 'ninguno', -- ninguno|pendiente|listo|fallido
   error         TEXT NOT NULL DEFAULT ''
 );
@@ -84,12 +85,13 @@ En el navegador, IndexedDB `notas-grabaciones` con un registro por grabación en
 | `GET /entrevistas?proyecto=` | Lista, sin el texto largo |
 | `POST /entrevistas` | Sube el audio (`multipart`: `audio`, `proyecto`, `con_quien`, `duracion_s`). Límite de cuerpo de 200 MB solo en esta ruta |
 | `GET /entrevistas/{id}` | Todo, con la transcripción y el resumen |
-| `PUT /entrevistas/{id}` | Editar título, con quién, transcripción y resumen |
+| `PUT /entrevistas/{id}` | Editar título, con quién, transcripción y los dos resúmenes |
 | `DELETE /entrevistas/{id}` | Borra la entrevista y su audio |
+| `DELETE /entrevistas/{id}/audio` | Borra solo el audio (D29); 409 si la transcripción no está hecha |
 | `GET /entrevistas/{id}/audio` | El audio, con `Range` |
 | `POST /entrevistas/{id}/transcribir` | Arranca o reanuda la transcripción (503 sin `LLM_API_KEY`) |
-| `POST /entrevistas/{id}/resumir` | Arranca el resumen (409 sin transcripción) |
-| `POST /entrevistas/{id}/nota` | Crea la nota con el resumen en el mismo proyecto |
+| `POST /entrevistas/{id}/resumir` | Arranca los dos resúmenes (409 sin transcripción) |
+| `POST /entrevistas/{id}/nota` `{cual: ejecutivo|amplio|ambos}` | Crea la nota con el resumen elegido en el mismo proyecto |
 
 ## 6. Pantallas (mock 18 en adelante)
 
@@ -121,11 +123,11 @@ La lista del proyecto activo y el botón «🎙 Nueva entrevista», que abre la 
 - Vibración en cada cambio (D38). Wake Lock activo (D27). La tarjeta de medios (D39) y la notificación (D40) salen al empezar a grabar y se retiran al parar.
 - Al parar: hoja con «Con quién» (opcional, D34), duración y **Guardar** (sube, con barra de avance) o **Descartar** (con confirmación). Si se cierra la hoja sin guardar, la grabación queda en IndexedDB y sale la banda de 6.1.
 - Permiso denegado: pantalla con el motivo y cómo activarlo (Chrome → ⓘ → Permisos → Micrófono), y «Subir audio» como salida.
-- Con `?grabar=1` (D41) la app abre aquí directamente, pide el micrófono y, si ya lo tenía, **espera el toque en Grabar**; no arranca sola, para no grabar por un toque accidental en el acceso directo. [SUPUESTO] Es lo que quiere el usuario. Plan B: `?grabar=ya` que arranca solo, como segundo acceso directo.
+- Con `?grabar=1` (D41) la app abre aquí directamente y, con el permiso ya dado, **arranca sola tras una cuenta atrás de 3 s** (3 · 2 · 1 en grande, una vibración corta por segundo) que **un toque en cualquier sitio cancela** y deja la pantalla en reposo. Así el camino normal es «pulsación larga, toque en el acceso, guardar el móvil» y un toque accidental en el acceso directo no deja una grabación fantasma. El usuario no tenía preferencia (pregunta 6); esto cubre las dos. Si el permiso no está dado, se pide y se espera el toque en Grabar.
 
 ### 6.3 Entrevista (detalle)
 
-Reproductor, estado, **Transcribir** (con avance «3 de 12»), transcripción con hablantes, **Resumir**, resumen, «Guardar como nota», «📋 Copiar», Editar, Mover y Borrar.
+Reproductor (o «Audio borrado» si no está), estado, **Transcribir** (con avance «3 de 12»), transcripción con hablantes (plegada cuando hay resumen), **Resumir**, resumen ejecutivo a la vista y amplio plegado, «Guardar como nota» (Ejecutivo / Amplio / Los dos), «📋 Copiar», Editar, Mover, «Borrar audio» y Borrar.
 
 ## 7. Fases
 
@@ -134,22 +136,22 @@ Reproductor, estado, **Transcribir** (con avance «3 de 12»), transcripción co
 | F18a | **Captura**: pantalla 6.2 con la máquina de estados (D42), `MediaRecorder` + IndexedDB (D28), Wake Lock, vibración, Media Session con audio silencioso (D39), notificación con botones (D40), `shortcuts` en el manifest y `?grabar=1` (D41), consentimiento (D36). **Sin backend**: al parar, de momento «Descargar .webm». | **Primero D39 en el móvil del usuario**: si el manos libres y la pantalla de bloqueo no pausan, se documenta y se sigue solo con D40. Después la guía de la sección 9. |
 | F18b | **Guardar**: migración 1 → 2, tabla, `POST`/`GET`/`DELETE`/`audio`, fichero en el volumen, subida con avance y reintento, pestaña y lista (6.1), «Subir audio», reproductor. | Grabar 2 min en el móvil, cerrar la pestaña a mitad y recuperar lo grabado; `deploy.yml` sube un audio pequeño y lo baja igual. |
 | F19 | **Transcribir**: `ffmpeg` en la imagen, trocear (D31), `llm.rs::transcribir`, estado y avance, reintento por trozo, editar el texto. **Primero la prueba de D30** (un trozo real por el proxy). | Una conversación de dos personas de ~10 min; `deploy.yml` transcribe 5 s de audio sintético si hay clave. |
-| F20 | **Resumen** y «Guardar como nota», copiar. | El resumen de F19 trae acuerdos y tareas reconocibles. |
-| F21 | Exportar (F11) con entrevistas, detalles de la lista, borrar audio tras transcribir si se decide (D29). | — |
+| F20 | **Los dos resúmenes** y «Guardar como nota», copiar. | El ejecutivo cabe en una pantalla y el amplio trae acuerdos y tareas reconocibles. |
+| F21 | Exportar (F11) con entrevistas, «Borrar audio» (D29), detalles de la lista. | — |
 | F22 (opcional) | **App nativa mínima de Android** (Kotlin): solo graba y sube a `POST /entrevistas` con el token; da lo que la PWA no puede (D41): mosaico de ajustes rápidos, widget, grabar con la pantalla bloqueada, teclas de volumen con la app delante, servicio en primer plano que no muere. Todo lo demás sigue en la PWA. | Solo si tras usar F18 el usuario echa en falta justo eso. Necesita instalación por APK (sin Play). |
 
 F18a se puede publicar sola en Pages (no toca `app/`) y es donde se resuelven los supuestos del móvil; F18b es el primer PR de backend. Cada fase termina con push, verificación por workflow, entrada en bitácora y resumen de sesión, como marca `CLAUDE.md`.
 
-## 8. Preguntas al usuario (antes de F18a)
+## 8. Preguntas al usuario (contestadas el 2026-09-23)
 
-Todas con respuesta supuesta; con silencio se sigue con ella.
-
-1. ¿Cuánto dura una entrevista típica? (¿15 min, 1 h, más?) Supuesto: **hasta 1 h**. Cambia el tamaño del volumen y el coste.
-2. ¿Casi siempre **dos personas**, o también reuniones de varias? Supuesto: dos.
-3. ¿Te vale el **resumen** como tercer paso, o preferías otro (solo tareas, acta formal)? Supuesto: resumen (D33).
-4. ¿Borrar el audio al transcribir para ahorrar espacio, o guardarlo siempre? Supuesto: guardarlo, y se revisa en F21.
-5. ¿Tienes **auriculares o manos libres Bluetooth** con botón? Si no, D39 aporta solo la tarjeta de la pantalla de bloqueo y D40 pasa a ser lo principal.
-6. ¿El acceso directo debe **empezar a grabar solo** o esperar el toque en Grabar? Supuesto: esperar (6.2).
+| # | Pregunta | Respuesta | Efecto |
+|---|---|---|---|
+| 1 | Duración típica | **Máximo una hora** | ~14 MB y 12 trozos por entrevista; el volumen de 1 GB va sobrado (D29) |
+| 2 | ¿Dos personas? | **Sí, dos** | La transcripción pide dos hablantes por defecto (D30); si aparece un tercero, el modelo lo nombra igual |
+| 3 | ¿Resumen como tercer paso? | **Dos resúmenes: primero uno ejecutivo, después otro más amplio** | D33 reescrita: dos textos, una tarea; «Guardar como nota» elige cuál |
+| 4 | ¿Borrar el audio al transcribir? | **Guardar, con opción de borrar** | D29: se guarda siempre y hay «Borrar audio» por entrevista (F21) |
+| 5 | ¿Auriculares Bluetooth? | **Sí, de uso opcional** | D39 se hace, pero como extra; D40 (notificación) es el control principal sin pantalla |
+| 6 | ¿El acceso directo arranca solo o espera? | **No sabe cuál es más práctico** | Lo decido yo: arranca solo tras 3 s con vibración y un toque cancela (6.2). Se revisa tras la prueba 1 de la sección 9 |
 
 ## 9. Guía de pruebas en el móvil (F18a y F18b)
 
