@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260923-017">
+  <meta name="build" content="PR-B1-20260923-016">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 15</title>
+  <title>Notas · mock 14</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -119,10 +119,6 @@
     .listaMover { max-height:40vh; overflow:auto; display:flex; flex-direction:column; gap:.4rem; }
     .listaMover .btn { text-align:left; }
     .ambito { margin:.75rem 0; }
-    /* Dos pantallas, dos pestañas: siempre se ve dónde se está y cómo ir a la otra. */
-    .pestanas { display:flex; gap:.25rem; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:.2rem; margin:0 0 .5rem; }
-    .pestanas button { flex:1 1 0; min-width:0; border:0; background:transparent; color:var(--mut); font:inherit; font-size:.9rem; padding:.45rem .5rem; border-radius:8px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .pestanas button.on { background:var(--acc); color:#fff; font-weight:600; }
     .nuevoProy { display:block; width:100%; margin:.75rem 0; border-style:dashed; border-color:var(--acc); color:var(--acc); font-weight:600; }
     .hoja p.libre { white-space:normal; overflow:visible; }
     .hidden { display:none !important; }
@@ -132,11 +128,7 @@
 </head>
 <body>
 <header>
-  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 15 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
-  <nav class="pestanas" id="pestanas" aria-label="Secciones">
-    <button type="button" id="tabProy">📁 Proyectos</button>
-    <button type="button" id="tabNotas">📝 <span id="tabNotasTxt">Notas</span></button>
-  </nav>
+  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 14 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <div id="buscador">
     <div class="fila">
       <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
@@ -156,7 +148,7 @@
 <div id="nuevaVersion" class="banda aviso-version hidden">Hay una versión nueva de la app. <button class="btn" id="recargarVersion" type="button">Actualizar</button></div>
 
 <main>
-  <div id="cabProyecto" class="cabProy hidden"><span id="cpDesc"></span><span class="marca hidden" id="cpArch" style="flex:0 0 auto">archivado</span><button class="btn" id="cpEditar" type="button">Editar proyecto</button></div>
+  <div id="cabProyecto" class="cabProy hidden"><span id="cpDesc"></span><span class="marca hidden" id="cpArch" style="flex:0 0 auto">archivado</span><button class="btn" id="cpEditar" type="button">Proyecto ⋯</button></div>
   <section id="lista"></section>
 
   <!-- Proyectos (D14-D19): contenedores de notas que nombra el usuario -->
@@ -257,7 +249,7 @@
     <div class="acciones"><button class="btn" id="moverNota" type="button">Mover a…</button><button class="btn peligro" id="borrar" type="button">Borrar nota</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260923-017</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260923-016</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -361,7 +353,7 @@
       throw e;
     } finally { clearTimeout(avisador); }
   }
-  // «mock 15 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
+  // «mock 14 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
   // Los avisos («arrancando el backend…») y los errores se siguen viendo.
   const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); $('estado').dataset.rutina = !err && txt.startsWith('mock ') ? '1' : ''; };
 
@@ -391,25 +383,18 @@
     // En Proyectos el + se confundía con «nueva nota»: allí crea el botón «Nuevo proyecto».
     $('nueva').classList.toggle('hidden', !(v === 'lista' && !modoSel));
     $('nueva').setAttribute('aria-label', $('nueva').title);
-    // Las pestañas sustituyen al 📁 de la cabecera, que no se entendía.
-    $('proyectosBtn').classList.add('hidden');
-    $('pestanas').classList.toggle('hidden', !((v === 'lista' && !modoSel) || v === 'proyectos'));
-    $('tabProy').classList.toggle('on', v === 'proyectos');
-    $('tabNotas').classList.toggle('on', v === 'lista');
-    $('tabNotasTxt').textContent = proyectoActivo ? 'Notas · ' + proyectoActivo.nombre : 'Todas las notas';
-    $('enTodos').parentElement.classList.toggle('hidden', !proyectoActivo);
+    $('proyectosBtn').classList.toggle('hidden', v !== 'lista' || modoSel);
     $('seleccionarBtn').classList.toggle('hidden', v !== 'lista');
     $('documentosBtn').classList.toggle('hidden', v !== 'lista');
     $('barraSel').classList.toggle('hidden', !(modoSel && v === 'lista'));
-    const nombre = proyectoActivo ? proyectoActivo.nombre : 'Todas las notas';
+    const nombre = proyectoActivo ? proyectoActivo.nombre : 'Notas';
     $('cab').textContent = { lista: modoSel ? 'Elegir' : nombre, editor: 'Nueva nota', detalle: 'Nota', ajustes: 'Ajustes', documentos: 'Documentos', documento: 'Documento', proyectos: 'Proyectos' }[v];
     if (v === 'lista') pintarCabProyecto(); else $('cabProyecto').classList.add('hidden');
     window.scrollTo(0, 0);
   }
-  // Volver «a las notas» es volver al proyecto activo; sin él, a todas si se
-  // estaba viendo todo, y si no a la lista de proyectos.
+  // Volver «a las notas» es volver al proyecto activo; sin él, a la lista de proyectos.
   function irALista() {
-    if (!proyectoActivo && !enTodos) { cargarProyectos(); return; }
+    if (!proyectoActivo) { cargarProyectos(); return; }
     ver('lista'); cargar();
   }
   function pintarCabProyecto() {
@@ -598,7 +583,7 @@
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
       // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
       if (modoSel) pintarSeleccion();
-      estado(`mock 15 · ${API.replace('https://', '')}`);
+      estado(`mock 14 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -1166,7 +1151,7 @@
       const ps = await api('/proyectos?' + p);
       if (mia !== cargaProy) return;
       pintarProyectos(ps, !!q);
-      estado(`mock 15 · ${API.replace('https://', '')}`);
+      estado(`mock 14 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaProy) return;
       $('listaProyectos').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentarProy" type="button">Reintentar</button></p>`;
@@ -1206,14 +1191,7 @@
   $('archBtn').onclick = () => { archAbiertos = !archAbiertos; cargarProyectos(); };
   let tp; $('pq').oninput = () => { clearTimeout(tp); tp = setTimeout(cargarProyectos, 250); };
   $('porden').onchange = () => { try { localStorage.setItem(CLAVE_ORDEN, $('porden').value); } catch {} cargarProyectos(); };
-  $('proyectosBtn').onclick = $('tabProy').onclick = () => { $('pq').value = ''; cargarProyectos(); };
-  // Pestaña Notas: vuelve al proyecto activo; sin proyecto elegido, todas las notas.
-  $('tabNotas').onclick = () => {
-    if (proyectoActivo) { entrarProyecto(proyectoActivo); return; }
-    modoSel = false; seleccion.clear(); etiquetaActiva = null;
-    enTodos = true; $('enTodos').checked = true;
-    ver('lista'); cargar();
-  };
+  $('proyectosBtn').onclick = () => { $('pq').value = ''; cargarProyectos(); };
 
   // Entrar en un proyecto: filtros limpios y la lista acotada a él. Luego se
   // refresca nombre y descripción, por si cambiaron desde otro sitio.
@@ -1259,7 +1237,7 @@
   function proyectoCambiado(r) {
     if (proyectoActivo && proyectoActivo.id === r.id) fijarProyecto(r);
     if (!$('proyectos').classList.contains('hidden')) cargarProyectos();
-    else if (!$('lista').classList.contains('hidden')) ver('lista');
+    else if (!$('lista').classList.contains('hidden')) { $('cab').textContent = modoSel ? 'Elegir' : proyectoActivo.nombre; pintarCabProyecto(); }
   }
   async function guardarProyecto(cambio) {
     const p = editandoProy;
