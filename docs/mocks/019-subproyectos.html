@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="build" content="PR-B1-20260924-025">
+  <meta name="theme-color" content="#0b6e7a">
+  <title>Notas · mock 19 · Subcarpetas</title>
+  <style>
+    :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; --mock:#fff4d6; --mockTxt:#6b4e00; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; --mock:#3a3010; --mockTxt:#f2d27a; } }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--txt); }
+    .hidden { display:none !important; }
+    .bandaMock { background:var(--mock); color:var(--mockTxt); font-size:.8rem; padding:.35rem 1rem; display:flex; gap:.5rem; align-items:center; justify-content:space-between; }
+    .bandaMock button { border:1px solid currentColor; background:transparent; color:inherit; border-radius:999px; font:inherit; padding:.1rem .6rem; cursor:pointer; white-space:nowrap; }
+    header { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--line); padding:.75rem 1rem; z-index:2; }
+    header h1 { font-size:1.1rem; margin:0 0 .5rem; display:flex; justify-content:space-between; align-items:center; gap:.4rem; }
+    header h1 .titulo { display:flex; align-items:baseline; gap:.3rem; min-width:0; flex:1 1 auto; }
+    header h1 #cab { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    /* Nuevo: la subcarpeta dice de qué proyecto cuelga; lo que se recorta es el padre. */
+    header h1 .migas { font-weight:400; color:var(--mut); cursor:pointer; flex:0 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:2.5rem; max-width:60%; }
+    header h1 .fila { flex:0 0 auto; gap:.15rem; }
+    main { max-width:40rem; margin:0 auto; padding:1rem 1rem 6rem; }
+    input, textarea, select { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; width:100%; }
+    textarea { min-height:35vh; resize:vertical; line-height:1.5; }
+    .fila { display:flex; gap:.5rem; align-items:center; }
+    .chips { display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.5rem; }
+    .chip { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:999px; padding:.25rem .7rem; font:inherit; font-size:.85rem; cursor:pointer; white-space:nowrap; }
+    .chip.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+    .chip.et { background:var(--acc2); border-color:transparent; color:var(--acc); cursor:default; font-size:.75rem; padding:.15rem .55rem; }
+    .chip.proy { background:transparent; border:1px dashed var(--acc); color:var(--acc); font-size:.75rem; padding:.15rem .55rem; }
+    .chipsBtn { display:flex; align-items:center; gap:.35rem; margin-top:.5rem; padding:.3rem 0; border:0; background:transparent; color:var(--mut); font:inherit; font-size:.85rem; cursor:pointer; }
+    .filtros { display:flex; align-items:center; gap:.5rem; margin-top:.5rem; }
+    .filtros .chipsBtn { margin-top:0; flex:1 1 auto; }
+    .todos { display:flex; align-items:center; gap:.3rem; font-size:.85rem; color:var(--mut); white-space:nowrap; margin-left:auto; }
+    .todos input { width:auto; margin:0; }
+    .icono { border:0; background:transparent; color:var(--mut); font-size:1.3rem; cursor:pointer; padding:.2rem .4rem; border-radius:8px; }
+    .pestanas { display:flex; gap:.25rem; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:.2rem; margin:0 0 .5rem; }
+    .pestanas button { flex:1 1 0; min-width:0; border:0; background:transparent; color:var(--mut); font:inherit; font-size:.9rem; padding:.45rem .5rem; border-radius:8px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pestanas button.on { background:var(--acc); color:#fff; font-weight:600; }
+    @media (max-width:420px) { .pestanas button { font-size:.8rem; padding:.45rem .15rem; } }
+    .nota, .doc { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; position:relative; }
+    .nota { padding-right:3rem; }
+    .nota h2, .doc h2 { font-size:1rem; margin:0 0 .25rem; }
+    .nota time, .doc time { color:var(--mut); font-size:.8rem; }
+    .nota p { margin:.4rem 0 0; color:var(--mut); font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .papelera { position:absolute; top:.5rem; right:.5rem; width:2.4rem; height:2.4rem; border:0; border-radius:50%; background:transparent; color:var(--mut); font-size:1.1rem; cursor:pointer; }
+    .vacio { text-align:center; color:var(--mut); padding:2rem 1rem; }
+    .btn { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:8px; padding:.6rem 1rem; font:inherit; cursor:pointer; }
+    .btn.pri { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
+    .btn.peligro { color:var(--danger); border-color:var(--danger); }
+    .btn.peligro.solido { background:var(--danger); color:#fff; font-weight:600; }
+    button:disabled { opacity:.5; cursor:default; }
+    .acciones { display:flex; gap:.5rem; margin-top:.75rem; }
+    .acciones .btn { flex:1; }
+    .aviso { font-size:.8rem; color:var(--mut); margin-top:.5rem; }
+    .etq { display:block; font-size:.85rem; color:var(--mut); margin:.6rem 0 .3rem; }
+    .fab { position:fixed; right:1.25rem; bottom:calc(1.25rem + env(safe-area-inset-bottom)); width:3.5rem; height:3.5rem; border-radius:50%; border:0; background:var(--acc); color:#fff; font-size:2rem; line-height:1; box-shadow:0 4px 14px rgba(0,0,0,.25); cursor:pointer; }
+    .velo { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
+    .hoja { background:var(--panel); color:var(--txt); width:100%; max-width:40rem; max-height:92vh; overflow:auto; border-radius:16px 16px 0 0; padding:1.25rem 1rem calc(1.25rem + env(safe-area-inset-bottom)); }
+    .hoja h3 { margin:0 0 .5rem; font-size:1.05rem; }
+    .hoja > p { margin:0 0 .75rem; color:var(--mut); font-size:.9rem; }
+    .hoja textarea { min-height:4.5rem; }
+    .detalle h2 { margin:.25rem 0; }
+    .detalle article { white-space:pre-wrap; line-height:1.6; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1rem; margin-top:.75rem; }
+    .barraDet { display:flex; justify-content:space-between; gap:.5rem; }
+    .cabProy { display:flex; align-items:center; gap:.5rem; margin-bottom:.6rem; color:var(--mut); font-size:.85rem; }
+    .cabProy span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .proy { padding-right:3rem; }
+    .proy p { margin:.35rem 0 0; color:var(--mut); font-size:.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .proy.sinProy h2 { font-style:italic; font-weight:500; }
+    .proy.actual { border-color:var(--acc); }
+    .nuevoProy { width:100%; margin:.75rem 0; }
+    .marca { display:inline-block; border-radius:999px; padding:.1rem .55rem; font-size:.75rem; border:1px solid var(--line); color:var(--mut); }
+
+    /* ---- Nuevo en este mock: subcarpetas ---- */
+    /* Tira de carpetas bajo la cabecera del proyecto: una sola fila que se desliza. */
+    .carpetas { display:flex; gap:.4rem; overflow-x:auto; margin:0 -1rem .75rem; padding:0 1rem .2rem; scrollbar-width:none; }
+    .carpetas::-webkit-scrollbar { display:none; }
+    .carpetas .chip { flex:0 0 auto; }
+    .chip .n { opacity:.65; margin-left:.3rem; font-size:.75rem; }
+    .chip.nueva { border-style:dashed; color:var(--acc); background:transparent; }
+    /* En la tarjeta del proyecto, sus subcarpetas como chips que entran directamente. */
+    .subs { display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.55rem; }
+    .chip.sub { background:var(--acc2); border-color:transparent; color:var(--acc); font-size:.8rem; padding:.2rem .6rem; }
+    .doc .ruta { color:var(--mut); font-size:.8rem; margin-bottom:.1rem; }
+    /* Árbol en «Mover a…» y en la hoja del proyecto. */
+    .listaMover { max-height:44vh; overflow:auto; display:flex; flex-direction:column; gap:.35rem; }
+    .listaMover .btn { text-align:left; }
+    .listaMover .btn.hijo { margin-left:1.4rem; padding:.45rem .9rem; font-size:.95rem; }
+    .subLista { border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+    .subLista .filaSub { display:flex; align-items:center; gap:.5rem; padding:.5rem .75rem; border-top:1px solid var(--line); }
+    .subLista .filaSub:first-child { border-top:0; }
+    .subLista .filaSub span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .subLista .filaSub small { color:var(--mut); }
+    .subLista .filaSub button { border:0; background:transparent; color:var(--mut); font-size:1.1rem; cursor:pointer; padding:0 .3rem; }
+    .subLista .masSub { width:100%; border:0; border-top:1px solid var(--line); background:transparent; color:var(--acc); font:inherit; padding:.55rem .75rem; text-align:left; cursor:pointer; }
+    .subLista .masSub:first-child { border-top:0; }
+    .info ul { padding-left:1.1rem; margin:.25rem 0 .5rem; }
+    .info li { margin:.35rem 0; line-height:1.45; font-size:.9rem; }
+    .info b { color:var(--acc); }
+    .sup { font-size:.72rem; color:var(--mockTxt); background:var(--mock); border-radius:4px; padding:0 .3rem; }
+    .toast { position:fixed; left:50%; bottom:5.5rem; transform:translateX(-50%); background:var(--txt); color:var(--bg); padding:.5rem .9rem; border-radius:999px; font-size:.85rem; z-index:9; opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; }
+    .toast.ver { opacity:.92; }
+  </style>
+</head>
+<body>
+<div class="bandaMock"><span>Mock 19 · subcarpetas · datos de ejemplo, nada se guarda</span><button type="button" id="infoBtn">Qué cambia</button></div>
+<header>
+  <h1><span class="titulo"><span class="migas hidden" id="migas" title="Ir al proyecto"></span><span id="cab">Proyectos</span></span><span class="fila"><button class="icono" type="button" title="Seleccionar">☑</button><button class="icono" type="button" title="Documentos">📄</button><button class="icono" type="button" title="Ajustes">⚙</button></span></h1>
+  <nav class="pestanas" id="pestanas">
+    <button type="button" id="tabProy">📁 Proyectos</button>
+    <button type="button" id="tabNotas">📝 <span id="tabNotasTxt">Notas</span></button>
+    <button type="button" id="tabEnt">🎙 Entrevistas</button>
+  </nav>
+  <div id="buscador" class="hidden">
+    <div class="fila">
+      <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
+      <input type="date" style="width:auto" title="Filtrar por día">
+    </div>
+    <div class="filtros">
+      <button class="chipsBtn" type="button">Etiquetas · <span id="nEt">0</span> ▾</button>
+      <label class="todos"><input type="checkbox" id="enTodos"> En todos los proyectos</label>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Proyectos: cada tarjeta enseña sus subcarpetas -->
+  <section id="proyectos">
+    <div class="fila">
+      <input id="pq" type="search" placeholder="Buscar proyecto o subcarpeta…" autocomplete="off">
+      <select style="width:auto" title="Orden"><option>Actividad</option><option>Nombre</option><option>Creación</option><option>Nº de notas</option></select>
+    </div>
+    <button class="btn nuevoProy" id="nuevoProyBtn" type="button">＋ Nuevo proyecto</button>
+    <div id="listaProyectos"></div>
+    <button class="chipsBtn" id="archBtn" type="button">Archivados · 1 ▾</button>
+    <div id="listaArch" class="hidden"></div>
+  </section>
+
+  <!-- Notas de un proyecto: la tira de carpetas acota a una subcarpeta -->
+  <section id="lista" class="hidden">
+    <div id="cabProyecto" class="cabProy"><span id="cpDesc"></span><button class="btn" id="cpEditar" type="button">Editar proyecto</button></div>
+    <div id="carpetas" class="carpetas"></div>
+    <div id="notas"></div>
+  </section>
+
+  <section id="detalle" class="hidden detalle">
+    <div class="barraDet"><button class="btn" id="volver" type="button">← Volver</button><button class="btn" type="button">📋 Copiar</button></div>
+    <h2 id="dTitulo"></h2>
+    <time id="dFecha" style="color:var(--mut);font-size:.85rem"></time>
+    <div class="chips" id="dProyecto"></div>
+    <div class="chips" id="dEtiquetas"></div>
+    <article id="dContenido"></article>
+    <div class="acciones"><button class="btn" id="editarNota" type="button">✏️ Editar</button><button class="btn" id="moverNota" type="button">Mover a…</button><button class="btn peligro" type="button">Borrar nota</button></div>
+  </section>
+
+  <section id="editor" class="hidden">
+    <textarea id="texto" placeholder="Dicta o escribe la nota…"></textarea>
+    <div class="acciones">
+      <button class="btn" type="button" disabled>🎤 Dictar</button>
+      <button class="btn" id="cancelar" type="button">Cancelar</button>
+      <button class="btn pri" id="guardar" type="button">Guardar</button>
+    </div>
+    <label class="etq" for="eProyecto">Proyecto</label>
+    <select id="eProyecto"></select>
+    <p class="aviso">Las subcarpetas salen con la ruta completa: «Proyecto › Subcarpeta». Al guardar en otro sitio, la app entra allí.</p>
+  </section>
+
+  <section id="entrevistas" class="hidden">
+    <p class="vacio">Entrevistas no cambia de aspecto: una entrevista también puede ir en una subcarpeta, y dentro de un proyecto se ven las suyas y las de sus subcarpetas, como las notas.</p>
+  </section>
+</main>
+
+<button class="fab" id="nueva" title="Nueva nota" aria-label="Nueva nota">+</button>
+
+<!-- Crear y editar proyecto o subcarpeta -->
+<div id="hojaProyecto" class="velo hidden" role="dialog" aria-modal="true">
+  <div class="hoja">
+    <h3 id="hpTitulo">Nuevo proyecto</h3>
+    <label class="etq" for="hpNombre">Nombre</label>
+    <input id="hpNombre" maxlength="60" autocomplete="off" placeholder="Por ejemplo: App de notas">
+    <label class="etq" for="hpPadre">Dentro de</label>
+    <select id="hpPadre"></select>
+    <p class="aviso" id="hpPadreAviso"></p>
+    <label class="etq" for="hpDesc">Descripción (opcional: la IA la usa como contexto al generar documentos)</label>
+    <textarea id="hpDesc" maxlength="300"></textarea>
+    <div id="hpSubsZona"><label class="etq">Subcarpetas</label><div class="subLista" id="hpSubs"></div></div>
+    <div class="acciones">
+      <button class="btn" id="hpNo" type="button">Cancelar</button>
+      <button class="btn pri" id="hpSi" type="button">Crear</button>
+    </div>
+    <div class="acciones" id="hpMas">
+      <button class="btn" id="hpArchivar" type="button">Archivar</button>
+      <button class="btn" type="button">Exportar</button>
+      <button class="btn peligro" id="hpBorrar" type="button">Borrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mover: la lista es un árbol -->
+<div id="hojaMover" class="velo hidden" role="dialog" aria-modal="true">
+  <div class="hoja">
+    <h3>Mover a…</h3>
+    <p id="hmResumen"></p>
+    <div id="hmLista" class="listaMover"></div>
+    <input id="hmNuevo" maxlength="60" autocomplete="off" placeholder="Nuevo proyecto o subcarpeta…" style="margin-top:.75rem">
+    <div class="fila" style="margin-top:.5rem">
+      <select id="hmPadre"></select>
+      <button class="btn" id="hmCrear" type="button" style="white-space:nowrap">Crear y mover</button>
+    </div>
+    <div class="acciones"><button class="btn" id="hmNo" type="button">Cancelar</button></div>
+  </div>
+</div>
+
+<div id="confirmar" class="velo hidden" role="dialog" aria-modal="true">
+  <div class="hoja">
+    <h3 id="cTitulo"></h3>
+    <p id="cTexto"></p>
+    <div class="acciones">
+      <button class="btn" id="cNo" type="button">Cancelar</button>
+      <button class="btn peligro solido" id="cSi" type="button">Borrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="hojaInfo" class="velo hidden" role="dialog" aria-modal="true">
+  <div class="hoja info">
+    <h3>Qué propone el mock 19</h3>
+    <ul>
+      <li><b>Un nivel:</b> proyecto → subcarpetas. Una subcarpeta no tiene subcarpetas. <span class="sup">SUPUESTO</span></li>
+      <li><b>Una nota, un sitio:</b> el proyecto padre o una de sus subcarpetas, nunca las dos.</li>
+      <li><b>Entrar en un proyecto</b> enseña todas sus notas, las de sus subcarpetas incluidas, cada una con su chip 📂. La tira <i>Todo · Sin subcarpeta · Diseño · …</i> acota; tocar una subcarpeta es entrar en ella.</li>
+      <li><b>Dentro de una subcarpeta</b> la cabecera dice de dónde cuelga («App de notas › Diseño»; tocar el padre vuelve a él) y la tira sigue a mano para saltar a las hermanas.</li>
+      <li><b>Buscar, etiquetas y día</b> filtran dentro de lo que se esté viendo; «En todos los proyectos» sigue igual.</li>
+      <li><b>Crear subcarpeta:</b> chip «＋ Subcarpeta» de la tira, «Editar proyecto» o «Dentro de» al crear. «Dentro de» también sirve para mover una subcarpeta a otro proyecto o sacarla a proyecto principal.</li>
+      <li><b>Mover a…</b> y el desplegable del editor enseñan el árbol; en el editor, con ruta completa.</li>
+      <li><b>Borrar una subcarpeta:</b> sus notas suben al proyecto padre. <b>Borrar un proyecto con subcarpetas:</b> sus notas van a «Sin proyecto» y las subcarpetas pasan a proyectos principales. Nunca se borra una nota. <span class="sup">SUPUESTO</span></li>
+      <li><b>Archivar</b> un proyecto archiva sus subcarpetas con él. <span class="sup">SUPUESTO</span></li>
+      <li><b>Nombre único dentro de cada proyecto:</b> «Diseño» puede existir en dos proyectos distintos.</li>
+      <li><b>Documentos y entrevistas</b> siguen el mismo ámbito: en un proyecto, lo suyo y lo de sus subcarpetas.</li>
+    </ul>
+    <p class="aviso">Decisiones, supuestos y planes B en <code>docs/planificacion/plan-subproyectos.md</code>.</p>
+    <div class="acciones"><button class="btn pri" id="infoNo" type="button">Entendido</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const H = 3600e3, ahora = Date.now();
+  // --- Datos de ejemplo: `padre` es lo único nuevo en el modelo ---
+  let P = [
+    { id: 'app', nombre: 'App de notas', descripcion: 'La PWA de notas: dictado, proyectos y entrevistas.', padre: null },
+    { id: 'app-dis', nombre: 'Diseño', descripcion: 'Pantallas, mocks y estilo.', padre: 'app' },
+    { id: 'app-back', nombre: 'Backend', descripcion: 'Rust, API y despliegue en Fly.', padre: 'app' },
+    { id: 'app-ideas', nombre: 'Ideas sueltas', descripcion: '', padre: 'app' },
+    { id: 'norte', nombre: 'Cliente Norte', descripcion: 'Pedido de octubre y logística.', padre: null },
+    { id: 'norte-ped', nombre: 'Pedidos', descripcion: '', padre: 'norte' },
+    { id: 'norte-tr', nombre: 'Transporte', descripcion: 'Quién pone el camión y cuándo.', padre: 'norte' },
+    { id: 'casa', nombre: 'Casa', descripcion: 'Reformas y papeleo.', padre: null },
+    { id: 'mud', nombre: 'Mudanza 2025', descripcion: 'Terminada.', padre: null, archivado: true },
+  ];
+  let N = [
+    ['app', 1, 'Prioridades de la próxima versión', 'Subcarpetas en proyectos, luego exportar por subcarpeta.', ['plan']],
+    ['app', 30, 'Revisar el coste de la IA', 'Mirar cuánto gasta titular frente a redactar documentos.', ['ia', 'coste']],
+    ['app', 75, 'Nombre de la app', 'Notas a secas, o algo con dictado.', ['marca']],
+    ['app-dis', 2, 'Tira de carpetas bajo la cabecera', 'Una fila que se desliza; la activa en color.', ['ui', 'proyectos']],
+    ['app-dis', 20, 'Icono de subcarpeta', '📂 para la subcarpeta y 📁 para el proyecto, como en el escritorio.', ['ui']],
+    ['app-dis', 50, 'Tema oscuro en la hoja de mover', 'El borde de los botones hijos se pierde.', ['ui', 'bug']],
+    ['app-dis', 96, 'Pestañas a 390 px', 'Con tres pestañas «Entrevistas» se recortaba.', ['ui']],
+    ['app-back', 5, 'Migración 3: padre_id', 'ALTER TABLE proyectos ADD COLUMN padre_id. nombre_clave con prefijo del padre.', ['sqlite', 'proyectos']],
+    ['app-back', 44, 'Filtro proyecto con hijos', 'proyecto=<id> trae las notas del proyecto y de sus subcarpetas.', ['api']],
+    ['app-back', 120, 'Copia del volumen de Fly', 'Exportar antes de migrar.', ['fly']],
+    ['app-ideas', 10, 'IA que proponga carpeta', 'Al guardar, sugerir subcarpeta por el contenido.', ['ia', 'idea']],
+    ['app-ideas', 200, 'Widget de dictado', 'Un toque desde la pantalla de inicio.', ['idea']],
+    ['norte', 3, 'Llamar a Marta el viernes', 'Confirmar la entrega del día 10.', ['llamada']],
+    ['norte-ped', 26, 'Pedido de octubre: 1.200 unidades', 'Si llega el 10, el pedido es suyo.', ['pedido']],
+    ['norte-ped', 150, 'Precio del embalaje reforzado', 'Pedir dos presupuestos.', ['pedido', 'coste']],
+    ['norte-tr', 48, 'Transporte: ¿lo ponen ellos?', 'Marta lo pregunta a compras.', ['transporte']],
+    ['casa', 12, 'Presupuesto de la cocina', 'Tres presupuestos antes de noviembre.', ['obra']],
+    [null, 8, 'Comprar pilas', 'AA y AAA.', ['compra']],
+    [null, 60, 'Libro que me recomendaron', 'El de los hábitos pequeños.', ['lectura']],
+    ['mud', 900, 'Dar de baja la luz del piso viejo', 'Hecho.', ['casa']],
+  ].map(([proyecto, h, titulo, contenido, etiquetas], i) => ({ id: 'n' + i, proyecto, fecha: ahora - h * H, titulo, contenido, etiquetas }));
+
+  // --- Árbol ---
+  const proy = id => P.find(p => p.id === id);
+  const hijos = id => P.filter(p => p.padre === id && !p.archivado).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const raices = () => P.filter(p => !p.padre);
+  const ruta = p => p.padre ? proy(p.padre).nombre + ' › ' + p.nombre : p.nombre;
+  const familia = id => [id, ...P.filter(p => p.padre === id).map(p => p.id)];
+  const notasDe = (id, conHijos) => N.filter(n => conHijos ? familia(id).includes(n.proyecto) : n.proyecto === id);
+  const ultima = ns => ns.length ? Math.max(...ns.map(n => n.fecha)) : 0;
+  const hace = t => { const h = Math.round((ahora - t) / H); return h < 1 ? 'ahora' : h < 24 ? `hace ${h} h` : `hace ${Math.round(h / 24)} d`; };
+  const fmt = t => new Date(t).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const plural = (n, s, pl) => `${n} ${n === 1 ? s : (pl || s + 's')}`;
+  function aviso(t) { const e = $('toast'); e.textContent = t; e.classList.add('ver'); clearTimeout(aviso.t); aviso.t = setTimeout(() => e.classList.remove('ver'), 2200); }
+
+  // --- Estado: proyecto activo (null = Sin proyecto) y, en un padre, «solo sueltas» ---
+  let activo = 'app', soloSueltas = false, vista = 'proyectos', actual = null, editandoProy = null;
+
+  function ver(v) {
+    vista = v;
+    ['proyectos', 'lista', 'detalle', 'editor', 'entrevistas'].forEach(s => $(s).classList.toggle('hidden', s !== v));
+    $('pestanas').classList.toggle('hidden', !['proyectos', 'lista', 'entrevistas'].includes(v));
+    $('buscador').classList.toggle('hidden', v !== 'lista');
+    $('tabProy').classList.toggle('on', v === 'proyectos');
+    $('tabNotas').classList.toggle('on', v === 'lista');
+    $('tabEnt').classList.toggle('on', v === 'entrevistas');
+    $('nueva').classList.toggle('hidden', !['lista'].includes(v));
+    const p = activo ? proy(activo) : null;
+    const enLista = v === 'lista' || v === 'entrevistas';
+    $('migas').classList.toggle('hidden', !(enLista && p && p.padre));
+    if (p && p.padre) $('migas').textContent = proy(p.padre).nombre + ' ›';
+    $('cab').textContent = { proyectos: 'Proyectos', lista: p ? p.nombre : 'Sin proyecto', detalle: 'Nota', editor: actual ? 'Editar nota' : 'Nueva nota', entrevistas: p ? p.nombre : 'Sin proyecto' }[v];
+    window.scrollTo(0, 0);
+  }
+
+  // --- Pantalla Proyectos ---
+  function tarjeta(p, conRuta) {
+    const d = document.createElement('div'); d.className = 'doc proy';
+    const esSin = p === null, id = esSin ? null : p.id;
+    const ns = esSin ? N.filter(n => n.proyecto === null) : notasDe(id, !p.padre);
+    const hs = esSin || p.padre ? [] : hijos(id);
+    d.innerHTML = (conRuta && p.padre ? `<div class="ruta">📁 ${proy(p.padre).nombre} ›</div>` : '')
+      + `<h2>${p && p.padre ? '📂 ' : ''}${esSin ? 'Sin proyecto' : p.nombre}</h2><time>${plural(ns.length, 'nota')}${hs.length ? ' · ' + plural(hs.length, 'subcarpeta') : ''}${ns.length ? ' · última ' + hace(ultima(ns)) : ''}</time>`
+      + (p && p.descripcion ? `<p>${p.descripcion}</p>` : '');
+    if (hs.length) {
+      const s = document.createElement('div'); s.className = 'subs';
+      hs.forEach(h => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'chip sub';
+        b.innerHTML = `📂 ${h.nombre}<span class="n">${notasDe(h.id).length}</span>`;
+        b.onclick = ev => { ev.stopPropagation(); entrar(h.id); };
+        s.appendChild(b);
+      });
+      d.appendChild(s);
+    }
+    if (esSin) d.classList.add('sinProy');
+    else {
+      const m = document.createElement('button'); m.className = 'papelera'; m.type = 'button'; m.textContent = '⋯'; m.title = 'Editar proyecto';
+      m.onclick = ev => { ev.stopPropagation(); abrirHojaProyecto(p); };
+      d.appendChild(m);
+    }
+    if (activo === id) d.classList.add('actual');
+    d.onclick = () => entrar(id);
+    return d;
+  }
+  function pintarProyectos() {
+    ver('proyectos');
+    const q = $('pq').value.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const l = $('listaProyectos'); l.innerHTML = '';
+    const clave = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const porActividad = (a, b) => ultima(notasDe(b.id, !b.padre)) - ultima(notasDe(a.id, !a.padre));
+    if (q) {
+      // Buscando, la subcarpeta que coincide sale sola, con su ruta encima.
+      const r = P.filter(p => !p.archivado && !(p.padre && proy(p.padre).archivado) && clave(p.nombre + ' ' + p.descripcion).includes(q)).sort(porActividad);
+      if (!r.length) l.innerHTML = '<p class="vacio">Ningún proyecto ni subcarpeta coincide.</p>';
+      r.forEach(p => l.appendChild(tarjeta(p, true)));
+    } else {
+      if (N.some(n => n.proyecto === null)) l.appendChild(tarjeta(null));
+      raices().filter(p => !p.archivado).sort(porActividad).forEach(p => l.appendChild(tarjeta(p)));
+    }
+    const arch = raices().filter(p => p.archivado);
+    $('archBtn').classList.toggle('hidden', !arch.length || !!q);
+    $('archBtn').textContent = `Archivados · ${arch.length} ${$('listaArch').classList.contains('hidden') ? '▾' : '▴'}`;
+    $('listaArch').innerHTML = ''; arch.forEach(p => $('listaArch').appendChild(tarjeta(p)));
+  }
+  $('pq').oninput = pintarProyectos;
+  $('archBtn').onclick = () => { $('listaArch').classList.toggle('hidden'); pintarProyectos(); };
+  $('tabProy').onclick = () => { $('pq').value = ''; pintarProyectos(); };
+  $('tabNotas').onclick = () => entrar(activo, soloSueltas);
+  $('tabEnt').onclick = () => ver('entrevistas');
+  $('nuevoProyBtn').onclick = () => abrirHojaProyecto(null);
+  $('migas').onclick = () => entrar(proy(activo).padre);
+
+  // --- Notas del proyecto activo, con la tira de carpetas ---
+  function entrar(id, sueltas = false) { activo = id; soloSueltas = sueltas; $('q').value = ''; $('enTodos').checked = false; pintarLista(); }
+  function pintarLista() {
+    ver('lista');
+    const p = activo ? proy(activo) : null, enTodos = $('enTodos').checked;
+    const raiz = p ? (p.padre ? proy(p.padre) : p) : null;
+    $('cpDesc').textContent = enTodos ? 'Buscando en todos los proyectos.' : !p ? 'Notas que no están en ningún proyecto.' : p.descripcion;
+    $('cpEditar').classList.toggle('hidden', !p || enTodos);
+    // Tira: Todo · Sin subcarpeta · cada subcarpeta · ＋. Solo en proyectos de verdad.
+    const t = $('carpetas'); t.innerHTML = '';
+    t.classList.toggle('hidden', !raiz || enTodos || !!raiz.archivado);
+    if (raiz && !enTodos) {
+      const hs = hijos(raiz.id);
+      const chip = (txt, n, on, fn, cls = '') => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip ' + cls + (on ? ' on' : ''); b.innerHTML = txt + (n === null ? '' : `<span class="n">${n}</span>`); b.onclick = fn; t.appendChild(b); return b; };
+      if (hs.length) {
+        chip('Todo', notasDe(raiz.id, true).length, activo === raiz.id && !soloSueltas, () => entrar(raiz.id));
+        chip('Sin subcarpeta', notasDe(raiz.id).length, activo === raiz.id && soloSueltas, () => entrar(raiz.id, true));
+        hs.forEach(h => chip('📂 ' + h.nombre, notasDe(h.id).length, activo === h.id, () => entrar(h.id)));
+      }
+      chip('＋ Subcarpeta', null, false, () => abrirHojaProyecto(null, raiz.id), 'nueva');
+      const on = t.querySelector('.on'); if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }
+    const q = $('q').value.trim().toLowerCase();
+    let ns = enTodos ? N.filter(n => !n.proyecto || !proy(n.proyecto).archivado) : !p ? N.filter(n => n.proyecto === null) : notasDe(activo, !p.padre && !soloSueltas);
+    if (q) ns = ns.filter(n => (n.titulo + ' ' + n.contenido).toLowerCase().includes(q));
+    ns.sort((a, b) => b.fecha - a.fecha);
+    $('nEt').textContent = new Set(ns.flatMap(n => n.etiquetas)).size;
+    $('tabNotasTxt').textContent = 'Notas';
+    const l = $('notas'); l.innerHTML = '';
+    if (!ns.length) { l.innerHTML = `<p class="vacio">${q ? 'Nada coincide con el filtro.' : soloSueltas ? 'Todas las notas de este proyecto están en alguna subcarpeta.' : 'Sin notas aquí. Pulsa + para dictar la primera.'}</p>`; return; }
+    ns.forEach(n => {
+      const d = document.createElement('div'); d.className = 'nota';
+      d.innerHTML = `<h2></h2><time>${fmt(n.fecha)}</time><p></p><div class="chips"></div><button class="papelera" type="button" title="Borrar">🗑</button>`;
+      d.querySelector('h2').textContent = n.titulo; d.querySelector('p').textContent = n.contenido;
+      const c = d.querySelector('.chips');
+      n.etiquetas.forEach(e => c.insertAdjacentHTML('beforeend', `<span class="chip et">${e}</span>`));
+      // En «Todo», cada nota de una subcarpeta dice de cuál; en «En todos», la ruta entera.
+      const np = n.proyecto && proy(n.proyecto);
+      const marca = enTodos ? (np ? '📁 ' + ruta(np) : '') : (np && np.id !== activo ? '📂 ' + np.nombre : '');
+      if (marca) c.insertAdjacentHTML('beforeend', `<span class="chip proy">${marca}</span>`);
+      d.onclick = () => abrirNota(n);
+      l.appendChild(d);
+    });
+  }
+  $('q').oninput = pintarLista;
+  $('enTodos').onchange = pintarLista;
+  $('cpEditar').onclick = () => abrirHojaProyecto(proy(activo));
+
+  // --- Detalle: el proyecto se ve como ruta, y cada tramo lleva a su sitio ---
+  function abrirNota(n) {
+    actual = n; ver('detalle');
+    $('dTitulo').textContent = n.titulo; $('dFecha').textContent = fmt(n.fecha); $('dContenido').textContent = n.contenido;
+    const z = $('dProyecto'); z.innerHTML = '';
+    const p = n.proyecto && proy(n.proyecto);
+    const boton = (txt, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip proy'; b.textContent = txt; b.onclick = fn; z.appendChild(b); };
+    if (!p) boton('📁 Sin proyecto', () => entrar(null));
+    else { if (p.padre) boton('📁 ' + proy(p.padre).nombre, () => entrar(p.padre)); boton((p.padre ? '📂 ' : '📁 ') + p.nombre, () => entrar(p.id)); }
+    $('dEtiquetas').innerHTML = n.etiquetas.map(e => `<span class="chip et">${e}</span>`).join('');
+  }
+  $('volver').onclick = () => { actual = null; pintarLista(); };
+  $('editarNota').onclick = () => abrirEditor(actual);
+
+  // --- Editor: desplegable con el árbol, ruta completa en cada subcarpeta ---
+  function opcionesArbol(sel, conSin, soloRaices, excluir) {
+    sel.innerHTML = '';
+    const add = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); };
+    if (conSin) add('', conSin);
+    raices().filter(p => !p.archivado && p.id !== excluir).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).forEach(r => {
+      add(r.id, r.nombre);
+      if (!soloRaices) hijos(r.id).forEach(h => add(h.id, ruta(h)));
+    });
+  }
+  function abrirEditor(n) {
+    actual = n || null; ver('editor');
+    $('texto').value = n ? n.contenido : '';
+    opcionesArbol($('eProyecto'), 'Sin proyecto');
+    $('eProyecto').value = (n ? n.proyecto : activo) || '';
+    $('texto').focus();
+  }
+  $('nueva').onclick = () => abrirEditor(null);
+  $('cancelar').onclick = () => { if (actual) abrirNota(actual); else pintarLista(); };
+  $('guardar').onclick = () => {
+    const contenido = $('texto').value.trim(); if (!contenido) { aviso('Escribe algo primero'); return; }
+    const destino = $('eProyecto').value || null;
+    if (actual) { actual.contenido = contenido; actual.proyecto = destino; }
+    else N.push({ id: 'n' + Date.now(), proyecto: destino, fecha: Date.now(), titulo: contenido.split(/\s+/).slice(0, 6).join(' '), contenido, etiquetas: ['nueva'] });
+    const d = destino && proy(destino);
+    if (destino !== activo) { aviso('Guardada en ' + (d ? ruta(d) : 'Sin proyecto')); entrar(destino); } else { aviso('Nota guardada'); pintarLista(); }
+    actual = null;
+  };
+
+  // --- Mover a…: árbol con la ubicación actual desactivada ---
+  function abrirMover() {
+    const n = actual, aqui = n.proyecto;
+    $('hmResumen').textContent = `Una nota. Ahora está en «${aqui ? ruta(proy(aqui)) : 'Sin proyecto'}»: elige otro destino.`;
+    const l = $('hmLista'); l.innerHTML = '';
+    const b = (p, txt, cls = '') => { const x = document.createElement('button'); x.type = 'button'; x.className = 'btn ' + cls; x.disabled = (p ? p.id : null) === aqui; x.textContent = x.disabled ? '✓ ' + txt.replace(/^\S+ /, '') + ' · ya está aquí' : txt; x.onclick = () => moverA(p ? p.id : null); l.appendChild(x); };
+    b(null, '— Sin proyecto');
+    raices().filter(p => !p.archivado).sort((a, c) => a.nombre.localeCompare(c.nombre, 'es')).forEach(r => { b(r, '📁 ' + r.nombre); hijos(r.id).forEach(h => b(h, '📂 ' + h.nombre, 'hijo')); });
+    opcionesArbol($('hmPadre'), 'Como proyecto nuevo', true);
+    const raiz = aqui && (proy(aqui).padre || aqui); $('hmPadre').value = ''; if (raiz) $('hmPadre').value = raiz;
+    [...$('hmPadre').options].forEach(o => { if (o.value) o.textContent = 'Dentro de ' + o.textContent; });
+    $('hmNuevo').value = '';
+    $('hojaMover').classList.remove('hidden');
+  }
+  function moverA(id) { actual.proyecto = id; $('hojaMover').classList.add('hidden'); aviso('Nota movida a ' + (id ? ruta(proy(id)) : 'Sin proyecto')); abrirNota(actual); }
+  $('moverNota').onclick = abrirMover;
+  $('hmNo').onclick = () => $('hojaMover').classList.add('hidden');
+  $('hmCrear').onclick = () => {
+    const nombre = $('hmNuevo').value.trim(); if (!nombre) { $('hmNuevo').focus(); return; }
+    const p = { id: 'p' + Date.now(), nombre, descripcion: '', padre: $('hmPadre').value || null }; P.push(p); moverA(p.id);
+  };
+
+  // --- Hoja de proyecto: «Dentro de» y la lista de subcarpetas ---
+  function abrirHojaProyecto(p, padre = null) {
+    editandoProy = p;
+    const esSub = p ? !!p.padre : !!padre, hs = p && !p.padre ? P.filter(h => h.padre === p.id).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')) : [];
+    $('hpTitulo').textContent = p ? (esSub ? 'Subcarpeta' : 'Proyecto') : (padre ? 'Nueva subcarpeta en ' + proy(padre).nombre : 'Nuevo proyecto');
+    $('hpNombre').value = p ? p.nombre : ''; $('hpDesc').value = p ? p.descripcion : '';
+    $('hpNombre').placeholder = esSub ? 'Por ejemplo: Diseño' : 'Por ejemplo: App de notas';
+    opcionesArbol($('hpPadre'), '— Ninguno (proyecto principal)', true, p && p.id);
+    $('hpPadre').value = (p ? p.padre : padre) || '';
+    // Un solo nivel: con subcarpetas no puede meterse dentro de otro.
+    $('hpPadre').disabled = hs.length > 0;
+    $('hpPadreAviso').textContent = hs.length ? 'Tiene subcarpetas, así que no puede ir dentro de otro proyecto.' : esSub && p ? 'Cámbialo para llevar la subcarpeta a otro proyecto, o elige «Ninguno» para sacarla a proyecto principal.' : '';
+    $('hpSubsZona').classList.toggle('hidden', !p || esSub);
+    const z = $('hpSubs'); z.innerHTML = '';
+    hs.forEach(h => {
+      const f = document.createElement('div'); f.className = 'filaSub';
+      f.innerHTML = `<span>📂 ${h.nombre}</span><small>${plural(notasDe(h.id).length, 'nota')}</small><button type="button" title="Editar subcarpeta">⋯</button>`;
+      f.querySelector('button').onclick = () => abrirHojaProyecto(h);
+      z.appendChild(f);
+    });
+    const mas = document.createElement('button'); mas.type = 'button'; mas.className = 'masSub'; mas.textContent = '＋ Añadir subcarpeta';
+    mas.onclick = () => abrirHojaProyecto(null, p.id); z.appendChild(mas);
+    $('hpSi').textContent = p ? 'Guardar' : 'Crear';
+    $('hpMas').classList.toggle('hidden', !p);
+    $('hpArchivar').classList.toggle('hidden', !!(p && p.padre));
+    $('hpArchivar').textContent = p && p.archivado ? 'Desarchivar' : 'Archivar';
+    $('hojaProyecto').classList.remove('hidden');
+    if (!p) $('hpNombre').focus();
+  }
+  const cerrarHoja = () => { $('hojaProyecto').classList.add('hidden'); editandoProy = null; };
+  $('hpNo').onclick = cerrarHoja;
+  $('hpSi').onclick = () => {
+    const nombre = $('hpNombre').value.trim(); if (!nombre) { $('hpNombre').focus(); return; }
+    const padre = $('hpPadre').value || null, p = editandoProy;
+    const choca = P.find(x => x !== p && x.padre === padre && x.nombre.toLowerCase() === nombre.toLowerCase());
+    if (choca) { $('hpPadreAviso').textContent = padre ? `Ya hay una subcarpeta «${choca.nombre}» en ${proy(padre).nombre}.` : 'Ya hay un proyecto con ese nombre.'; return; }
+    if (p) { Object.assign(p, { nombre, descripcion: $('hpDesc').value.trim(), padre }); cerrarHoja(); aviso('Guardado'); vista === 'proyectos' ? pintarProyectos() : pintarLista(); return; }
+    const nuevo = { id: 'p' + Date.now(), nombre, descripcion: $('hpDesc').value.trim(), padre }; P.push(nuevo);
+    cerrarHoja(); aviso(padre ? 'Subcarpeta creada en ' + proy(padre).nombre : 'Proyecto creado'); entrar(nuevo.id);
+  };
+  $('hpArchivar').onclick = () => { const p = editandoProy; p.archivado = !p.archivado; cerrarHoja(); aviso(p.archivado ? `Archivado con ${plural(P.filter(h => h.padre === p.id).length, 'subcarpeta')}` : 'Desarchivado'); if (p.archivado && familia(p.id).includes(activo)) activo = null; pintarProyectos(); };
+  $('hpBorrar').onclick = () => {
+    const p = editandoProy; cerrarHoja();
+    const propias = notasDe(p.id).length, hs = P.filter(h => h.padre === p.id);
+    const suyas = (verbo1, verboN) => propias === 1 ? `su única nota ${verbo1}` : `sus ${propias} notas ${verboN}`;
+    $('cTitulo').textContent = p.padre ? '¿Borrar esta subcarpeta?' : '¿Borrar este proyecto?';
+    $('cTexto').textContent = p.padre
+      ? `${p.nombre} · ${propias ? suyas('sube', 'suben') + ` a «${proy(p.padre).nombre}»` : 'no tiene notas'}; no se borra ninguna.`
+      : `${p.nombre} · ${propias ? suyas('pasa', 'pasan') + ' a «Sin proyecto»' : 'no tiene notas sueltas'}${hs.length ? ` y sus ${plural(hs.length, 'subcarpeta')} (${hs.map(h => h.nombre).join(', ')}) pasan a ser proyectos principales, con sus notas` : ''}; no se borra ninguna.`;
+    $('confirmar').classList.remove('hidden');
+    $('cSi').onclick = () => {
+      N.forEach(n => { if (n.proyecto === p.id) n.proyecto = p.padre; });
+      hs.forEach(h => { h.padre = null; });
+      P = P.filter(x => x !== p);
+      if (activo === p.id) activo = p.padre;
+      $('confirmar').classList.add('hidden'); aviso('Borrado'); pintarProyectos();
+    };
+  };
+  $('cNo').onclick = () => $('confirmar').classList.add('hidden');
+
+  document.querySelectorAll('.velo').forEach(v => v.onclick = ev => { if (ev.target === v) v.classList.add('hidden'); });
+  $('infoBtn').onclick = () => $('hojaInfo').classList.remove('hidden');
+  $('infoNo').onclick = () => $('hojaInfo').classList.add('hidden');
+
+  // ?v=lista|sub|detalle|mover|hoja|editor abre directamente esa pantalla (para las capturas).
+  const inicio = new URLSearchParams(location.search).get('v');
+  pintarProyectos();
+  if (inicio === 'lista') entrar('app');
+  if (inicio === 'sub') entrar('app-dis');
+  if (inicio === 'detalle') { entrar('app-dis'); abrirNota(N[3]); }
+  if (inicio === 'mover') { entrar('app-dis'); abrirNota(N[3]); abrirMover(); }
+  if (inicio === 'hoja') { entrar('app'); abrirHojaProyecto(proy('app')); }
+  if (inicio === 'editor') { entrar('app-dis'); abrirEditor(null); }
+  if (inicio === 'buscar') { $('pq').value = 'dis'; pintarProyectos(); }
+</script>
+</body>
+</html>
