@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260924-030">
+  <meta name="build" content="PR-B1-20260924-031">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 20</title>
+  <title>Notas · mock 21</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -26,16 +26,46 @@
     :root[data-tema="oscuro"] { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; --aviso:#3a3010; --avisoTxt:#f2d27a; }
     * { box-sizing:border-box; }
     body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--txt); }
-    header { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--line); padding:.75rem 1rem; z-index:2; }
-    header h1 { font-size:1.1rem; margin:0 0 .5rem; display:flex; justify-content:space-between; align-items:center; }
-    /* Con cuatro iconos al lado, el estado tiene que ceder: se recorta el, no el titulo. */
-    header h1 small { font-weight:400; color:var(--mut); font-size:.75rem; max-width:7.5rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    header h1 { gap:.4rem; }
-    header h1 .titulo { display:flex; align-items:center; gap:.1rem; min-width:0; flex:1 1 auto; }
-    header h1 #cab { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-    header h1 .fila { flex:0 0 auto; }
-    @media (max-width:430px) { header h1 small { max-width:6rem; } header h1 small[data-rutina="1"] { display:none; } }
-    header h1 .fila { gap:.15rem; }
+    header { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--line); z-index:6; }
+    /* Una sola barra (D68): menú, título en dos pisos, estado, lupa y tema. */
+    .barra { height:56px; display:flex; align-items:center; gap:.15rem; padding:0 .4rem; max-width:40rem; margin:0 auto; }
+    .barra .icono { flex:0 0 auto; width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:var(--txt); border-radius:10px; position:relative; }
+    .barra .icono[aria-expanded="true"] { background:var(--acc2); color:var(--acc); }
+    .barra .icono.puesto { color:var(--acc); background:var(--acc2); }
+    .hamburguesa { display:flex; flex-direction:column; gap:4px; }
+    .hamburguesa i { display:block; width:20px; height:2px; background:currentColor; border-radius:1px; transition:transform .2s, opacity .2s; }
+    #menuBtn[aria-expanded="true"] .hamburguesa i:nth-child(1) { transform:translateY(6px) rotate(45deg); }
+    #menuBtn[aria-expanded="true"] .hamburguesa i:nth-child(2) { opacity:0; }
+    #menuBtn[aria-expanded="true"] .hamburguesa i:nth-child(3) { transform:translateY(-6px) rotate(-45deg); }
+    /* Una grabación sin subir se avisa en el botón del menú, que es donde vive Entrevistas. */
+    #menuBtn.conAviso::after { content:''; position:absolute; top:9px; right:9px; width:9px; height:9px; border-radius:50%; background:var(--danger); }
+    .titulo { flex:1 1 auto; min-width:0; padding:0 .25rem; line-height:1.15; }
+    .titulo .seccion { display:block; font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--acc); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .titulo .nombre { display:flex; align-items:baseline; min-width:0; font-size:1.05rem; font-weight:700; white-space:nowrap; }
+    .titulo #cab { overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    /* Con tres iconos al lado, el estado tiene que ceder: se recorta él, no el título. */
+    .barra small { font-weight:400; color:var(--mut); font-size:.75rem; max-width:7.5rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; }
+    @media (max-width:430px) { .barra small { max-width:6rem; } .barra small[data-rutina="1"] { display:none; } }
+    #buscador { border-top:1px solid var(--line); padding:.6rem 1rem .7rem; max-width:40rem; margin:0 auto; }
+    .menuVelo { position:fixed; left:0; right:0; bottom:0; top:56px; background:rgba(0,0,0,.35); z-index:7; }
+    .menu { position:fixed; top:56px; left:0; right:0; max-width:40rem; margin:0 auto; background:var(--panel); border-bottom:1px solid var(--line); border-radius:0 0 16px 16px; box-shadow:0 10px 24px rgba(0,0,0,.25); z-index:8; padding:.35rem 0 .6rem; overflow:auto; }
+    .menu .grupo { font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--mut); padding:.7rem 1.1rem .3rem; }
+    .menu button { display:flex; align-items:center; gap:.8rem; width:100%; border:0; background:transparent; color:var(--txt); font:inherit; font-size:1rem; padding:.7rem 1.1rem; text-align:left; cursor:pointer; min-height:48px; }
+    .menu button .i { width:1.6rem; text-align:center; font-size:1.2rem; flex:0 0 auto; }
+    .menu button .t { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .menu button .n { color:var(--mut); font-size:.85rem; }
+    .menu button.actual { background:var(--acc2); color:var(--acc); font-weight:600; }
+    .menu button.actual .n { color:var(--acc); }
+    .menu .sep { border-top:1px solid var(--line); margin:.35rem 0; }
+    /* Filtro puesto con el buscador cerrado (D72): la lista nunca sale recortada sin explicación. */
+    .resumenFiltro { display:flex; align-items:center; gap:.4rem; background:var(--acc2); color:var(--acc); border-radius:10px; padding:.2rem .3rem .2rem .2rem; margin-bottom:.6rem; font-size:.88rem; }
+    .resumenFiltro button { border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; padding:.35rem .5rem; }
+    .resumenFiltro .rfTexto { flex:1 1 auto; min-width:0; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .resumenFiltro #rfQuitar { font-size:1.05rem; flex:0 0 auto; }
+    /* Primera fila del contenido (D73): qué es esto, en cifras. */
+    .cifras { color:var(--mut); font-size:.85rem; margin:0 0 .6rem; line-height:1.4; }
+    .cifras b { color:var(--txt); font-weight:600; }
+    .cifras .desc { display:block; margin-top:.15rem; font-style:italic; }
     main { max-width:40rem; margin:0 auto; padding:1rem 1rem 6rem; }
     input, textarea, select { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; width:100%; }
     textarea { min-height:45vh; resize:vertical; line-height:1.5; }
@@ -183,15 +213,13 @@
     .filtros .chipsBtn { margin-top:0; flex:1 1 auto; width:auto; }
     .todos { display:flex; align-items:center; gap:.3rem; font-size:.85rem; color:var(--mut); white-space:nowrap; margin-left:auto; }
     .todos input { width:auto; margin:0; }
-    .cabProy { display:flex; align-items:center; gap:.5rem; margin-bottom:.75rem; color:var(--mut); font-size:.85rem; }
-    .cabProy span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .etq { display:block; font-size:.85rem; color:var(--mut); margin:.6rem 0 .3rem; }
     .listaMover { max-height:40vh; overflow:auto; display:flex; flex-direction:column; gap:.4rem; }
     .listaMover .btn { text-align:left; }
     .ambito { margin:.75rem 0; }
     /* Subcarpetas (D43-D53) */
     /* En una subcarpeta la cabecera dice de qué proyecto cuelga; lo que se recorta es el padre. */
-    header h1 .migas { border:0; background:transparent; color:var(--mut); font:inherit; font-weight:400; padding:0; margin-right:.3rem; cursor:pointer; flex:0 1 auto; min-width:2.5rem; max-width:60%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .titulo .migas { border:0; background:transparent; color:var(--mut); font:inherit; font-weight:400; padding:0; margin-right:.3rem; cursor:pointer; flex:0 1 auto; min-width:2.5rem; max-width:55%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     /* Tira de carpetas bajo la cabecera del proyecto: una sola fila que se desliza. */
     .carpetas { position:relative; display:flex; gap:.4rem; overflow-x:auto; margin:0 -1rem .75rem; padding:0 1rem .2rem; scrollbar-width:none; }
     .carpetas::-webkit-scrollbar { display:none; }
@@ -215,11 +243,6 @@
     .barraDet { display:flex; justify-content:space-between; gap:.5rem; }
     #dAvisoCopia:empty { display:none; }
     /* Dos pantallas, dos pestañas: siempre se ve dónde se está y cómo ir a la otra. */
-    .pestanas { display:flex; gap:.25rem; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:.2rem; margin:0 0 .5rem; }
-    .pestanas button { flex:1 1 0; min-width:0; border:0; background:transparent; color:var(--mut); font:inherit; font-size:.9rem; padding:.45rem .5rem; border-radius:8px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .pestanas button.on { background:var(--acc); color:#fff; font-weight:600; }
-    /* Tres pestañas a 390 px: sin esto «Entrevistas» se recorta (D35). */
-    @media (max-width:420px) { .pestanas button { font-size:.8rem; padding:.45rem .15rem; } }
     /* --- Entrevistas (D27-D42) --- */
     .ent { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; }
     .ent h2 { font-size:1rem; margin:0 0 .3rem; }
@@ -282,40 +305,30 @@
 </head>
 <body>
 <header>
-  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><button class="migas hidden" id="migas" type="button" title="Ir al proyecto"></button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 20 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
-  <nav class="pestanas" id="pestanas" aria-label="Secciones">
-    <button type="button" id="tabProy">📁 Proyectos</button>
-    <button type="button" id="tabNotas">📝 <span id="tabNotasTxt">Notas</span></button>
-    <button type="button" id="tabEnt"><span id="tabEntIco">🎙</span> Entrevistas</button>
-  </nav>
-  <div id="buscador">
-    <div class="fila">
-      <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
-      <input id="fecha" type="date" style="width:auto" title="Filtrar por día">
-    </div>
-    <div class="filtros">
-      <button class="chipsBtn hidden" id="chipsBtn" type="button" aria-expanded="false" aria-controls="chips">
-        <span id="chipsTxt">Etiquetas</span><span class="flecha" id="chipsFlecha" aria-hidden="true">▾</span>
-      </button>
-      <label class="todos"><input type="checkbox" id="enTodos"> En todos los proyectos</label>
-    </div>
-    <div class="chips hidden" id="chips"></div>
+  <div class="barra">
+    <button class="icono" id="menuBtn" type="button" aria-label="Menú" aria-expanded="false" aria-controls="menu"><span class="hamburguesa" aria-hidden="true"><i></i><i></i><i></i></span></button>
+    <div class="titulo"><span class="seccion" id="seccion">Notas</span><span class="nombre"><button class="migas hidden" id="migas" type="button" title="Ir al proyecto"></button><span id="cab">Notas</span></span></div>
+    <small id="estado">mock 21 · conectando…</small>
+    <button class="icono hidden" id="buscarBtn" type="button" title="Buscar" aria-label="Buscar" aria-expanded="false" aria-controls="buscador">🔍</button>
+    <button class="icono" id="temaBtn" type="button">🌗</button>
   </div>
-</header>
-
-<div id="offline" class="banda hidden">Sin conexión: no se pueden cargar ni guardar notas hasta que vuelva la red.</div>
-<div id="nuevaVersion" class="banda aviso-version hidden">Hay una versión nueva de la app. <button class="btn" id="recargarVersion" type="button">Actualizar</button></div>
-
-<main>
-  <div id="cabProyecto" class="cabProy hidden"><span id="cpDesc"></span><span class="marca hidden" id="cpArch" style="flex:0 0 auto">archivado</span><button class="btn" id="cpEditar" type="button">Editar proyecto</button></div>
-  <!-- Subcarpetas (D45): Todo · Sin subcarpeta · cada subcarpeta · ＋ -->
-  <div id="carpetas" class="carpetas hidden" aria-label="Subcarpetas"></div>
-  <section id="lista"></section>
-
-  <!-- Proyectos (D14-D19): contenedores de notas que nombra el usuario -->
-  <section id="proyectos" class="hidden">
-    <div class="fila">
-      <input id="pq" type="search" placeholder="Buscar proyecto…" autocomplete="off">
+  <!-- La lupa (D71): en Notas, texto, día, etiquetas y «en todos»; en Proyectos, texto y orden -->
+  <div id="buscador" class="hidden">
+    <div id="buscaNotas">
+      <div class="fila">
+        <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
+        <input id="fecha" type="date" style="flex:0 0 auto;width:9.4rem" title="Filtrar por día">
+      </div>
+      <div class="filtros">
+        <button class="chipsBtn hidden" id="chipsBtn" type="button" aria-expanded="false" aria-controls="chips">
+          <span id="chipsTxt">Etiquetas</span><span class="flecha" id="chipsFlecha" aria-hidden="true">▾</span>
+        </button>
+        <label class="todos"><input type="checkbox" id="enTodos"> En todos los proyectos</label>
+      </div>
+      <div class="chips hidden" id="chips"></div>
+    </div>
+    <div class="fila hidden" id="buscaProy">
+      <input id="pq" type="search" placeholder="Buscar proyecto o subcarpeta…" autocomplete="off">
       <select id="porden" style="width:auto" title="Orden" aria-label="Orden de los proyectos">
         <option value="actividad">Actividad</option>
         <option value="nombre">Nombre</option>
@@ -323,6 +336,40 @@
         <option value="notas">Nº de notas</option>
       </select>
     </div>
+  </div>
+</header>
+
+<!-- Menú (D70): baja bajo la barra; se cierra al elegir, al tocar fuera, con Escape y con Atrás -->
+<div class="menuVelo hidden" id="menuVelo"></div>
+<nav class="menu hidden" id="menu" aria-label="Menú">
+  <div class="grupo">Ir a</div>
+  <button type="button" id="tabProy"><span class="i">📁</span><span class="t">Proyectos</span><span class="n" id="nProy"></span></button>
+  <button type="button" id="tabNotas"><span class="i">📝</span><span class="t" id="tabNotasTxt">Notas</span><span class="n" id="nNotas"></span></button>
+  <button type="button" id="tabEnt"><span class="i" id="tabEntIco">🎙</span><span class="t">Entrevistas</span><span class="n" id="nEnt"></span></button>
+  <div class="sep"></div>
+  <div class="grupo" id="grupoProy">Este proyecto</div>
+  <button type="button" id="seleccionarBtn"><span class="i">☑</span><span class="t">Seleccionar notas</span></button>
+  <button type="button" id="documentosBtn"><span class="i">📄</span><span class="t">Documentos</span></button>
+  <button type="button" id="cpEditar"><span class="i">✏️</span><span class="t">Editar proyecto</span></button>
+  <button type="button" id="nuevaSubBtn"><span class="i">📂</span><span class="t" id="nuevaSubTxt">Nueva subcarpeta</span></button>
+  <div class="sep"></div>
+  <div class="grupo">General</div>
+  <button type="button" id="ajustesBtn"><span class="i">⚙</span><span class="t">Ajustes</span></button>
+</nav>
+
+<div id="offline" class="banda hidden">Sin conexión: no se pueden cargar ni guardar notas hasta que vuelva la red.</div>
+<div id="nuevaVersion" class="banda aviso-version hidden">Hay una versión nueva de la app. <button class="btn" id="recargarVersion" type="button">Actualizar</button></div>
+
+<main>
+  <div class="resumenFiltro hidden" id="resumenFiltro"><button type="button" class="rfTexto" id="rfTexto" title="Abrir el buscador"></button><button type="button" id="rfQuitar" title="Quitar el filtro" aria-label="Quitar el filtro">✕</button></div>
+  <p id="cabProyecto" class="cifras hidden"><span id="cpCifras"></span> <span class="marca hidden" id="cpArch">archivado</span><span class="desc" id="cpDesc"></span></p>
+  <!-- Subcarpetas (D45): Todo · Sin subcarpeta · cada subcarpeta · ＋ -->
+  <div id="carpetas" class="carpetas hidden" aria-label="Subcarpetas"></div>
+  <section id="lista"></section>
+
+  <!-- Proyectos (D14-D19): contenedores de notas que nombra el usuario -->
+  <section id="proyectos" class="hidden">
+    <p class="cifras" id="cifrasProy"></p>
     <div id="listaProyectos"></div>
     <button class="chipsBtn hidden" id="archBtn" type="button" aria-expanded="false" aria-controls="listaArchivados">
       <span id="archTxt">Archivados</span><span class="flecha" id="archFlecha" aria-hidden="true">▾</span>
@@ -332,6 +379,7 @@
 
   <!-- Documentos (D11): un encargo redactado a partir de varias notas -->
   <section id="documentos" class="hidden">
+    <p class="cifras" id="cifrasDocs"></p>
     <button class="btn" id="volverDocumentos" type="button">← Volver a las notas</button>
     <div class="chips ambito"><button class="chip on" id="docsEste" type="button">Este proyecto</button><button class="chip" id="docsTodos" type="button">Todos</button></div>
     <div id="listaDocs"></div>
@@ -426,6 +474,7 @@
 
   <!-- Entrevistas (D27-D42): grabar, transcribir y resumir una conversación -->
   <section id="entrevistas" class="hidden">
+    <p class="cifras" id="cifrasEnt"></p>
     <div id="pendientesEnt"></div>
     <div id="listaEnt"></div>
     <button class="enlace" id="subirAudioBtn" type="button">Subir un audio ya grabado…</button>
@@ -445,7 +494,7 @@
     <div class="acciones"><button class="btn peligro" id="entBorrarAudio" type="button">Borrar audio</button><button class="btn peligro" id="entBorrar" type="button">Borrar</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260924-030</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260924-031</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -699,7 +748,7 @@
       throw e;
     } finally { clearTimeout(avisador); }
   }
-  // «mock 20 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
+  // «mock 21 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
   // Los avisos («arrancando el backend…») y los errores se siguen viendo.
   const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); $('estado').dataset.rutina = !err && txt.startsWith('mock ') ? '1' : ''; };
 
@@ -737,54 +786,182 @@
   const ambitoNotas = () => (!enTodos && proyectoActivo) ? (proyectoActivo.id ?? 'ninguno') : null;
 
   const vistas = ['lista', 'editor', 'detalle', 'ajustes', 'documentos', 'documento', 'proyectos', 'entrevistas', 'entrevista'];
+  let vistaActual = 'lista', buscadorAbierto = false, ambitoCargado = null, numProyectos = null, numProyectosVistos = null;
+  const escHtml = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const plural = (k, uno, varios) => `${k} ${k === 1 ? uno : varios || uno + 's'}`;
   function ver(v) {
+    vistaActual = v;
     vistas.forEach(x => $(x).classList.toggle('hidden', x !== v));
-    $('buscador').classList.toggle('hidden', v !== 'lista');
-    // Un solo + abajo a la derecha en las tres pestañas; crea lo de la pestaña en la que se está.
+    cerrarMenu();
+    if (!hayBusquedaAqui()) buscadorAbierto = false;
+    // Un solo + abajo a la derecha en las tres secciones; crea lo de la sección en la que se está.
     const fab = { lista: modoSel ? '' : 'Nueva nota', proyectos: 'Nuevo proyecto', entrevistas: 'Nueva entrevista' }[v];
     $('nueva').classList.toggle('hidden', !fab);
     if (fab) { $('nueva').title = fab; $('nueva').setAttribute('aria-label', fab); }
-    // Las pestañas sustituyen al 📁 de la cabecera, que no se entendía.
-    $('proyectosBtn').classList.add('hidden');
-    $('pestanas').classList.toggle('hidden', !((v === 'lista' && !modoSel) || v === 'proyectos' || v === 'entrevistas'));
-    $('tabProy').classList.toggle('on', v === 'proyectos');
-    $('tabNotas').classList.toggle('on', v === 'lista');
-    $('tabEnt').classList.toggle('on', v === 'entrevistas');
     if (v !== 'entrevista' && typeof soltarAudio === 'function') soltarAudio();
-    // Con tres pestañas no cabe el nombre del proyecto: ya lo dice la cabecera.
     $('tabNotasTxt').textContent = proyectoActivo ? 'Notas' : 'Todas las notas';
     $('enTodos').parentElement.classList.toggle('hidden', !proyectoActivo);
-    $('seleccionarBtn').classList.toggle('hidden', v !== 'lista');
-    $('documentosBtn').classList.toggle('hidden', v !== 'lista');
     $('barraSel').classList.toggle('hidden', !(modoSel && v === 'lista'));
-    const nombre = proyectoActivo ? proyectoActivo.nombre : 'Todas las notas';
-    $('cab').textContent = { lista: modoSel ? 'Elegir' : nombre, editor: editando ? 'Editar nota' : 'Nueva nota', detalle: 'Nota', ajustes: 'Ajustes', documentos: 'Documentos', documento: 'Documento', proyectos: 'Proyectos', entrevistas: nombre, entrevista: 'Entrevista' }[v];
-    if (v === 'lista') pintarCabProyecto(); else $('cabProyecto').classList.add('hidden');
+    // En la selección, ✕ en lugar del menú (D75).
+    const sel = modoSel && v === 'lista';
+    $('menuBtn').innerHTML = sel ? '✕' : '<span class="hamburguesa" aria-hidden="true"><i></i><i></i><i></i></span>';
+    $('menuBtn').setAttribute('aria-label', sel ? 'Salir de la selección' : 'Menú');
+    pintarTitulo();
+    pintarCabProyecto();
     pintarMigas();
     pintarCarpetas(v === 'lista');
+    pintarBuscador();
     window.scrollTo(0, 0);
   }
+  // El título dice siempre dónde se está (D69): la sección arriba y, debajo,
+  // el proyecto o lo que se esté mirando.
+  function pintarTitulo() {
+    const v = vistaActual, p = proyectoActivo;
+    const seccion = { lista: modoSel ? 'Elegir notas' : 'Notas', editor: editando ? 'Editar nota' : 'Nueva nota', detalle: 'Nota', ajustes: 'Ajustes',
+      documentos: 'Documentos', documento: docActual && docActual.tipo === 'informe' ? 'Informe' : 'Documento', proyectos: 'Proyectos', entrevistas: 'Entrevistas', entrevista: 'Entrevista' }[v];
+    const nombre = { lista: modoSel ? `${seleccion.size} de ${notas.length}` : enTodos || !p ? 'Todas las notas' : p.nombre,
+      proyectos: 'Todos tus proyectos', ajustes: 'Modelo, roles y versión', detalle: actual ? ruta(actual.proyecto) : '',
+      editor: p && p.id ? p.nombre : 'Sin proyecto', documentos: docsTodos || !p ? 'Todos los proyectos' : p.nombre,
+      documento: docActual ? ruta(docActual.proyecto) : '', entrevistas: p ? p.nombre : 'Todas las entrevistas',
+      entrevista: entActual ? ruta(entActual.proyecto) : '' }[v];
+    $('seccion').textContent = seccion || '';
+    $('cab').textContent = nombre || '';
+  }
+  // La lupa (D71) es de Notas y de Proyectos; con un filtro puesto se queda en color.
+  const hayBusquedaAqui = () => (vistaActual === 'lista' && !modoSel) || vistaActual === 'proyectos';
+  const filtroNotas = () => !!($('q').value.trim() || $('fecha').value || etiquetaActiva || (enTodos && proyectoActivo));
+  const filtroPuesto = () => vistaActual === 'proyectos' ? !!$('pq').value.trim() : vistaActual === 'lista' && filtroNotas();
+  function pintarBuscador() {
+    const aqui = hayBusquedaAqui(), abierto = aqui && buscadorAbierto;
+    $('buscarBtn').classList.toggle('hidden', !aqui);
+    $('buscarBtn').classList.toggle('puesto', aqui && filtroPuesto() && !abierto);
+    $('buscarBtn').setAttribute('aria-expanded', String(abierto));
+    $('buscador').classList.toggle('hidden', !abierto);
+    $('buscaNotas').classList.toggle('hidden', vistaActual !== 'lista');
+    $('buscaProy').classList.toggle('hidden', vistaActual !== 'proyectos');
+    pintarFiltro();
+  }
+  function abrirBuscador() {
+    cerrarMenu(); buscadorAbierto = true; pintarBuscador();
+    (vistaActual === 'proyectos' ? $('pq') : $('q')).focus();
+  }
+  $('buscarBtn').onclick = () => { if (buscadorAbierto) { buscadorAbierto = false; pintarBuscador(); } else abrirBuscador(); };
+  // Filtro puesto con el buscador cerrado (D72): una tira lo resume y ✕ lo quita.
+  function pintarFiltro() {
+    const rf = $('resumenFiltro'), ver_ = hayBusquedaAqui() && filtroPuesto() && !buscadorAbierto;
+    rf.classList.toggle('hidden', !ver_);
+    if (!ver_) return;
+    let partes;
+    if (vistaActual === 'proyectos') partes = [`«${$('pq').value.trim()}»`, numProyectosVistos != null ? plural(numProyectosVistos, 'resultado') : ''];
+    else {
+      const q = $('q').value.trim(), f = $('fecha').value, total = totalAmbito();
+      partes = [q && `«${q}»`, etiquetaActiva && '#' + etiquetaActiva,
+        f && new Date(f + 'T00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
+        enTodos && proyectoActivo && 'en todos los proyectos',
+        total != null && !enTodos ? `${notas.length} de ${total}` : plural(notas.length, 'nota')];
+    }
+    $('rfTexto').textContent = '🔍 ' + partes.filter(Boolean).join(' · ');
+  }
+  $('rfTexto').onclick = abrirBuscador;
+  $('rfQuitar').onclick = () => {
+    if (vistaActual === 'proyectos') { $('pq').value = ''; cargarProyectos(); return; }
+    $('q').value = ''; $('fecha').value = ''; etiquetaActiva = null;
+    if (enTodos && proyectoActivo) { enTodos = false; $('enTodos').checked = false; }
+    cargar();
+  };
+  // Notas del ámbito sin filtros: la tira de subcarpetas trae las cifras.
+  function totalAmbito() {
+    const p = proyectoActivo;
+    if (!p || !p.id || !familia) return null;
+    if (p.id === familia.raiz.id) return soloSueltas ? (familia.raiz.notas_propias ?? null) : familia.raiz.notas;
+    const h = familia.hijas.find(x => x.id === p.id);
+    return h ? h.notas : null;
+  }
+  const claveAmbito = () => `${ambitoNotas()}|${soloSueltas}|${enTodos}`;
+  // --- Menú (D70): Ir a · Este proyecto · General ---
+  const menuAbierto = () => !$('menu').classList.contains('hidden');
+  function pintarMenu() {
+    const v = vistaActual, p = proyectoActivo, conProy = !!(p && p.id);
+    $('tabProy').classList.toggle('actual', v === 'proyectos');
+    $('tabNotas').classList.toggle('actual', v === 'lista' || v === 'detalle' || v === 'editor');
+    $('tabEnt').classList.toggle('actual', v === 'entrevistas' || v === 'entrevista');
+    $('documentosBtn').classList.toggle('actual', v === 'documentos' || v === 'documento');
+    $('ajustesBtn').classList.toggle('actual', v === 'ajustes');
+    $('grupoProy').textContent = conProy ? (p.padre ? 'Esta subcarpeta' : 'Este proyecto') : 'Notas';
+    $('cpEditar').classList.toggle('hidden', !conProy);
+    $('nuevaSubBtn').classList.toggle('hidden', !conProy || !!p.archivado);
+    if (conProy) $('nuevaSubTxt').textContent = p.padre ? 'Nueva subcarpeta en ' + p.padre.nombre : 'Nueva subcarpeta';
+    $('seleccionarBtn').querySelector('.t').textContent = modoSel ? 'Salir de la selección' : 'Seleccionar notas';
+    const alDia = ambitoCargado === claveAmbito();
+    $('nNotas').textContent = totalAmbito() ?? (alDia && !filtroNotas() ? notas.length : '');
+    $('nEnt').textContent = conProy && alDia ? entsDelProyecto.length : '';
+    $('nProy').textContent = numProyectos ?? '';
+  }
+  function abrirMenu() {
+    buscadorAbierto = false; pintarBuscador();
+    pintarMenu();
+    // El menú cuelga del borde de la cabecera, esté como esté.
+    const abajo = Math.round(document.querySelector('header').getBoundingClientRect().bottom);
+    $('menu').style.top = abajo + 'px'; $('menu').style.maxHeight = `calc(100vh - ${abajo}px)`; $('menuVelo').style.top = abajo + 'px';
+    $('menu').classList.remove('hidden'); $('menuVelo').classList.remove('hidden');
+    $('menuBtn').setAttribute('aria-expanded', 'true');
+    // Atrás cierra el menú en vez de salir de la app.
+    history.pushState({ menu: 1 }, '');
+  }
+  function cerrarMenu(desdeAtras) {
+    if (!menuAbierto()) return;
+    $('menu').classList.add('hidden'); $('menuVelo').classList.add('hidden');
+    $('menuBtn').setAttribute('aria-expanded', 'false');
+    if (!desdeAtras && history.state && history.state.menu) history.back();
+  }
+  $('menuBtn').onclick = () => {
+    if (modoSel && vistaActual === 'lista') { salirSeleccion(); return; }
+    menuAbierto() ? cerrarMenu() : abrirMenu();
+  };
+  $('menuVelo').onclick = () => cerrarMenu();
+  // Elegir cualquier opción cierra el menú (cada botón hace lo suyo antes).
+  $('menu').addEventListener('click', ev => { if (ev.target.closest('button')) cerrarMenu(); });
+  window.addEventListener('popstate', () => cerrarMenu(true));
+  $('nuevaSubBtn').onclick = () => {
+    const p = proyectoActivo; if (!p || !p.id) return;
+    abrirHojaProyecto(null, p.padre || (familia && familia.raiz.id === p.id ? familia.raiz : { id: p.id, nombre: p.nombre }));
+  };
+
   // Volver «a las notas» es volver al proyecto activo; sin él, a todas si se
   // estaba viendo todo, y si no a la lista de proyectos.
   function irALista() {
     if (!proyectoActivo && !enTodos) { cargarProyectos(); return; }
     ver('lista'); cargar();
   }
+  // Primera fila de la lista (D73): cifras del proyecto y su descripción.
+  // Solo con la lista ya cargada para este ámbito, para no enseñar cifras de otro.
   function pintarCabProyecto() {
-    const p = proyectoActivo;
-    const texto = enTodos ? 'Buscando en todos los proyectos.'
-      : !p ? '' : p.id === null ? 'Notas que no están en ningún proyecto.' : p.descripcion;
-    $('cpDesc').textContent = texto;
+    const p = proyectoActivo, c = $('cabProyecto');
+    const ver_ = vistaActual === 'lista' && !modoSel && ambitoCargado === claveAmbito();
+    c.classList.toggle('hidden', !ver_);
+    if (!ver_) return;
+    const n = notas.length, filtrando = filtroNotas() && !(enTodos && !$('q').value.trim() && !$('fecha').value && !etiquetaActiva);
+    let primera, resto = [];
+    if (enTodos || !p) primera = plural(n, 'nota') + (filtrando ? '' : ' en todos los proyectos');
+    else if (p.id === null) primera = plural(n, 'nota') + ' sin proyecto';
+    else {
+      primera = plural(totalAmbito() ?? n, 'nota');
+      if (entsDelProyecto.length) resto.push(plural(entsDelProyecto.length, 'entrevista'));
+      if (familia && p.id === familia.raiz.id && familia.hijas.length && !soloSueltas) resto.push(plural(familia.hijas.length, 'subcarpeta'));
+      if (soloSueltas) resto.push('sin subcarpeta');
+      if (p.padre) resto.push('subcarpeta de ' + p.padre.nombre);
+    }
+    if (n && !filtrando) resto.push('última nota ' + hace(notas[0].creada_en));
+    $('cpCifras').innerHTML = `<b>${escHtml(primera)}</b>` + resto.map(x => ' · ' + escHtml(x)).join('');
+    $('cpDesc').textContent = p && p.id && !enTodos ? p.descripcion || '' : '';
     $('cpArch').classList.toggle('hidden', !(p && p.archivado) || enTodos);
-    $('cpEditar').classList.toggle('hidden', !(p && p.id) || modoSel);
-    $('cabProyecto').classList.toggle('hidden', !texto && !(p && p.id));
   }
   // Tira de carpetas (D45/D46): se ve en la lista de un proyecto que tiene o
   // puede tener subcarpetas. Tocar una subcarpeta es entrar en ella.
   function pintarCarpetas(enLista = !$('lista').classList.contains('hidden')) {
     const t = $('carpetas'); t.innerHTML = '';
     const p = proyectoActivo, f = familia;
-    const visible = enLista && !modoSel && !enTodos && p && p.id && f && f.raiz.id === raizDe(p);
+    const visible = enLista && !modoSel && !enTodos && p && p.id && f && f.raiz.id === raizDe(p) && f.hijas.length > 0;
     t.classList.toggle('hidden', !visible);
     if (!visible) return;
     const chip = (texto, n, on, fn, clase = '') => {
@@ -794,12 +971,9 @@
       b.onclick = fn; t.appendChild(b); return b;
     };
     const r = f.raiz;
-    if (f.hijas.length) {
-      chip('Todo', r.notas, p.id === r.id && !soloSueltas, () => entrarProyecto(r));
-      chip('Sin subcarpeta', r.notas_propias ?? 0, p.id === r.id && soloSueltas, () => entrarProyecto(r, true));
-      f.hijas.forEach(h => chip('📂 ' + h.nombre, h.notas, p.id === h.id, () => entrarProyecto(h)));
-    }
-    if (!r.archivado) chip('＋ Subcarpeta', null, false, () => abrirHojaProyecto(null, r), 'nueva');
+    chip('Todo', r.notas, p.id === r.id && !soloSueltas, () => entrarProyecto(r));
+    chip('Sin subcarpeta', r.notas_propias ?? 0, p.id === r.id && soloSueltas, () => entrarProyecto(r, true));
+    f.hijas.forEach(h => chip('📂 ' + h.nombre, h.notas, p.id === h.id, () => entrarProyecto(h)));
     // La activa, a la vista; sin mover la página, solo la tira.
     const on = t.querySelector('.on');
     if (on) t.scrollLeft = on.offsetLeft - (t.clientWidth - on.offsetWidth) / 2;
@@ -939,6 +1113,7 @@
     // El boton refleja lo que hara: marcar las visibles o vaciar la seleccion.
     $('todasSel').textContent = todasVisibles() ? 'Ninguna' : 'Todas';
     $('todasSel').disabled = !notas.length;
+    if (modoSel && vistaActual === 'lista') pintarTitulo();
   }
   // "Todas" opera sobre las notas que hay en pantalla, no sobre la base entera:
   // con filtro de etiqueta o busqueda activos marca justo lo que se esta viendo.
@@ -961,7 +1136,13 @@
     modoSel = false; seleccion.clear();
     pintarSeleccion(); ver('lista'); pintarLista(false);
   }
-  $('seleccionarBtn').onclick = () => modoSel ? salirSeleccion() : entrarSeleccion(null);
+  // Desde el menú se puede seleccionar estando en otra pantalla: primero la lista.
+  let seleccionarAlCargar = false;
+  $('seleccionarBtn').onclick = () => {
+    if (modoSel) { salirSeleccion(); return; }
+    if (!$('lista').classList.contains('hidden')) { entrarSeleccion(null); return; }
+    seleccionarAlCargar = true; $('tabNotas').click();
+  };
   $('todasSel').onclick = alternarTodas;
   $('salirSel').onclick = salirSeleccion;
   $('moverSel').onclick = () => abrirMover([...seleccion.keys()], 'seleccion');
@@ -1031,15 +1212,19 @@
         const r = ps.find(x => x.id === raiz);
         familia = r ? { raiz: r, hijas: ps.filter(x => x.padre && x.padre.id === raiz).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')) } : null;
       }
+      ambitoCargado = claveAmbito();
       pintarCarpetas();
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
+      pintarTitulo(); pintarCabProyecto(); pintarBuscador();
       // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
       if (modoSel) pintarSeleccion();
-      estado(`mock 20 · ${API.replace('https://', '')}`);
+      if (seleccionarAlCargar) { seleccionarAlCargar = false; entrarSeleccion(null); }
+      estado(`mock 21 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
       $('reintentar').onclick = cargar;
+      seleccionarAlCargar = false;
       estado('sin conexión con ' + API, true);
     }
   }
@@ -1125,6 +1310,9 @@
     try {
       const docs = await api('/documentos' + (filtrados ? '?proyecto=' + encodeURIComponent(ambito) : ''));
       l.innerHTML = '';
+      const informes = docs.filter(d => d.tipo === 'informe').length;
+      $('cifrasDocs').innerHTML = docs.length ? `<b>${plural(docs.length, 'documento')}</b> · ${plural(informes, 'informe')} · ${plural(docs.length - informes, 'encargo')}` : '';
+      pintarTitulo();
       if (!docs.length) {
         l.innerHTML = `<p class="vacio">${filtrados ? 'Sin documentos en este proyecto.' : 'Sin documentos.'} Elige varias notas con ☑ y pulsa Generar.</p>`;
         return;
@@ -1201,7 +1389,7 @@
       c.appendChild(b);
     });
     ver('documento');
-    $('cab').textContent = inf ? 'Informe' : 'Documento';
+    pintarTitulo();
     vigilar(d);
     if (d.modelo && !modelosCache) cargarModelos().then(() => { if (docActual === d) $('gFicha').textContent = $('gFicha').textContent.replace(d.modelo, nombreModelo(d.modelo)); });
   }
@@ -1779,13 +1967,15 @@
   $('confirmar').onclick = ev => { if (ev.target === $('confirmar')) cerrarConfirmacion(); };
   document.addEventListener('keydown', ev => {
     if (ev.key !== 'Escape') return;
-    if (aBorrar) cerrarConfirmacion();
+    if (menuAbierto()) cerrarMenu();
+    else if (aBorrar) cerrarConfirmacion();
     else if (!$('hojaGen').classList.contains('hidden')) cerrarHojaGen();
     else if (!$('hojaMover').classList.contains('hidden')) cerrarMover();
     else if (!$('hojaProyecto').classList.contains('hidden')) cerrarHojaProyecto();
     else if (!$('hojaEditEnt').classList.contains('hidden')) $('hojaEditEnt').classList.add('hidden');
     else if (!$('hojaNotaEnt').classList.contains('hidden')) $('hojaNotaEnt').classList.add('hidden');
     else if (modoSel) salirSeleccion();
+    else if (buscadorAbierto) { buscadorAbierto = false; pintarBuscador(); }
   });
   $('cSi').onclick = async () => {
     if (!aBorrar) return;
@@ -2008,7 +2198,8 @@
       const ps = await api('/proyectos?' + p);
       if (mia !== cargaProy) return;
       pintarProyectos(ps, !!q);
-      estado(`mock 20 · ${API.replace('https://', '')}`);
+      pintarBuscador();
+      estado(`mock 21 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaProy) return;
       $('listaProyectos').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentarProy" type="button">Reintentar</button></p>`;
@@ -2054,6 +2245,15 @@
     const ps = buscando ? todos : todos.filter(p => !p.padre);
     const tarjeta = p => tarjetaProyecto(p, buscando || !p.id ? [] : hijasDe(p.id), buscando);
     const activos = ps.filter(p => !p.archivado), arch = ps.filter(p => p.archivado);
+    // Primera fila (D73): cifras de todos los proyectos, o cuántos coinciden.
+    const reales = todos.filter(p => p.id), principales = reales.filter(p => !p.padre);
+    numProyectosVistos = activos.filter(p => p.id).length;
+    if (!buscando) {
+      numProyectos = principales.filter(p => !p.archivado).length;
+      const subs = reales.filter(p => p.padre).length, archivados = principales.filter(p => p.archivado).length;
+      const totalNotas = principales.reduce((t, p) => t + (p.notas || 0), 0);
+      $('cifrasProy').innerHTML = `<b>${plural(numProyectos, 'proyecto')}</b>` + [subs && plural(subs, 'subcarpeta'), archivados && plural(archivados, 'archivado'), plural(totalNotas, 'nota')].filter(Boolean).map(x => ' · ' + x).join('');
+    } else $('cifrasProy').innerHTML = `<b>${plural(numProyectosVistos, 'resultado')}</b> de la búsqueda`;
     const l = $('listaProyectos'); l.innerHTML = '';
     if (!activos.length) l.innerHTML = `<p class="vacio">${buscando ? 'Ningún proyecto ni subcarpeta coincide.' : 'Sin proyectos todavía. Pulsa ＋ para crear el primero.'}</p>`;
     activos.forEach(p => l.appendChild(tarjeta(p)));
@@ -2070,7 +2270,7 @@
   $('archBtn').onclick = () => { archAbiertos = !archAbiertos; cargarProyectos(); };
   let tp; $('pq').oninput = () => { clearTimeout(tp); tp = setTimeout(cargarProyectos, 250); };
   $('porden').onchange = () => { try { localStorage.setItem(CLAVE_ORDEN, $('porden').value); } catch {} cargarProyectos(); };
-  $('proyectosBtn').onclick = $('tabProy').onclick = () => { $('pq').value = ''; cargarProyectos(); };
+  $('tabProy').onclick = () => { $('pq').value = ''; cargarProyectos(); };
   // Pestaña Notas: vuelve al proyecto activo; sin proyecto elegido, todas las notas.
   $('tabNotas').onclick = () => {
     if (proyectoActivo) { entrarProyecto(proyectoActivo); return; }
@@ -2094,7 +2294,7 @@
       const fresco = await api('/proyectos/' + encodeURIComponent(p.id));
       if (proyectoActivo && proyectoActivo.id === fresco.id) {
         fijarProyecto(fresco);
-        if (!$('lista').classList.contains('hidden')) { $('cab').textContent = modoSel ? 'Elegir' : fresco.nombre; pintarCabProyecto(); pintarMigas(); pintarCarpetas(); }
+        if (!$('lista').classList.contains('hidden')) { pintarTitulo(); pintarCabProyecto(); pintarMigas(); pintarCarpetas(); }
       }
     } catch (e) {
       // Borrado desde otro sitio: a la lista de proyectos.
@@ -2717,6 +2917,7 @@
   // Con grabaciones sin subir, el icono de la pestaña avisa sin alargarla.
   function marcarPestanaEnt(n) {
     $('tabEntIco').textContent = n ? '⚠️' : '🎙';
+    $('menuBtn').classList.toggle('conAviso', n > 0);
     $('tabEnt').title = n ? `${n} grabación${n === 1 ? '' : 'es'} sin subir` : '';
   }
   async function pintarPestanaEnt() {
@@ -2757,7 +2958,11 @@
       if (mia !== cargaEnt) return;
       entrevistas = lista;
       pintarEntrevistas();
-      estado(`mock 20 · ${API.replace('https://', '')}`);
+      // Primera fila (D73): cuántas, cuánto grabado y qué falta por hacer.
+      const min = Math.round(lista.reduce((t, e) => t + (e.duracion_s || 0), 0) / 60);
+      const sinTranscribir = lista.filter(e => e.estado === 'grabada').length, sinResumen = lista.filter(e => e.estado === 'transcrita' && e.estado_resumen !== 'listo').length;
+      $('cifrasEnt').innerHTML = lista.length ? `<b>${plural(lista.length, 'entrevista')}</b> · ` + [min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min grabados` : `${min} min grabados`, sinTranscribir && `${sinTranscribir} sin transcribir`, sinResumen && `${sinResumen} sin resumir`].filter(Boolean).join(' · ') : '';
+      estado(`mock 21 · ${API.replace('https://', '')}`);
       // Mientras algo se transcribe o se resume, la lista se refresca sola.
       if (lista.some(e => e.estado === 'transcribiendo' || e.estado_resumen === 'pendiente'))
         sondeoLista = setTimeout(() => { if (!$('entrevistas').classList.contains('hidden')) cargarEntrevistas(); }, 5000);
