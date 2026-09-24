@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <script>try { const t = localStorage.getItem('mock21-tema'); if (t) document.documentElement.dataset.tema = t; } catch {}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="build" content="PR-B1-20260924-029">
+  <meta name="theme-color" content="#0b6e7a">
+  <title>Notas · mock 21 · Menú de una línea</title>
+  <style>
+    :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; --mock:#fff4d6; --mockTxt:#6b4e00; }
+    @media (prefers-color-scheme: dark) { :root:not([data-tema="claro"]) { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; --mock:#3a3010; --mockTxt:#f2d27a; } }
+    :root[data-tema="oscuro"] { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; --mock:#3a3010; --mockTxt:#f2d27a; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--txt); }
+    .hidden { display:none !important; }
+    .bandaMock { background:var(--mock); color:var(--mockTxt); font-size:.8rem; padding:.35rem 1rem; display:flex; gap:.5rem; align-items:center; justify-content:space-between; }
+    .bandaMock button { border:1px solid currentColor; background:transparent; color:inherit; border-radius:999px; font:inherit; padding:.1rem .6rem; cursor:pointer; white-space:nowrap; }
+    main { max-width:40rem; margin:0 auto; padding:.75rem 1rem 6rem; }
+    input, select { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; width:100%; }
+    .fila { display:flex; gap:.5rem; align-items:center; }
+    .chips { display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.5rem; }
+    .chip { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:999px; padding:.25rem .7rem; font:inherit; font-size:.85rem; cursor:pointer; white-space:nowrap; }
+    .chip.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+    .chip.et { background:var(--acc2); border-color:transparent; color:var(--acc); cursor:default; font-size:.75rem; padding:.15rem .55rem; }
+    .chip.sub { background:var(--acc2); border-color:transparent; color:var(--acc); font-size:.8rem; padding:.2rem .6rem; }
+    .nota, .doc { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; position:relative; }
+    .nota h2, .doc h2 { font-size:1rem; margin:0 0 .25rem; }
+    .nota time, .doc time { color:var(--mut); font-size:.8rem; }
+    .nota p, .doc p { margin:.4rem 0 0; color:var(--mut); font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .nota.elegida { border-color:var(--acc); padding-left:3rem; }
+    .nota .caja { position:absolute; left:.9rem; top:50%; transform:translateY(-50%); width:1.4rem; height:1.4rem; border-radius:6px; border:2px solid var(--line); }
+    .nota.elegida .caja { background:var(--acc); border-color:var(--acc); }
+    .nota.elegida .caja::after { content:'✓'; color:#fff; display:block; text-align:center; font-size:.85rem; line-height:1.1rem; font-weight:700; }
+    .btn { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:8px; padding:.6rem 1rem; font:inherit; cursor:pointer; }
+    .btn.pri { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
+    .acciones { display:flex; gap:.5rem; margin-top:.75rem; }
+    .acciones .btn { flex:1; }
+    .aviso { font-size:.8rem; color:var(--mut); margin:.5rem 0 0; line-height:1.4; }
+    .fab { position:fixed; right:1.25rem; bottom:calc(1.25rem + env(safe-area-inset-bottom)); width:3.5rem; height:3.5rem; border-radius:50%; border:0; background:var(--acc); color:#fff; font-size:2rem; line-height:1; box-shadow:0 4px 14px rgba(0,0,0,.25); cursor:pointer; z-index:3; }
+    .toast { position:fixed; left:50%; bottom:5.5rem; transform:translateX(-50%); background:var(--txt); color:var(--bg); padding:.5rem .9rem; border-radius:999px; font-size:.85rem; z-index:20; opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; }
+    .toast.ver { opacity:.92; }
+    .velo { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:flex-end; justify-content:center; z-index:15; }
+    .hoja { background:var(--panel); color:var(--txt); width:100%; max-width:40rem; max-height:92vh; overflow:auto; border-radius:16px 16px 0 0; padding:1.25rem 1rem calc(1.25rem + env(safe-area-inset-bottom)); }
+    .hoja h3 { margin:0 0 .5rem; font-size:1.05rem; }
+    .info ul { padding-left:1.1rem; margin:.25rem 0 .5rem; }
+    .info li { margin:.35rem 0; line-height:1.45; font-size:.9rem; }
+    .info b { color:var(--acc); }
+    .sup { font-size:.72rem; color:var(--mockTxt); background:var(--mock); border-radius:4px; padding:0 .3rem; }
+    .marca { display:inline-block; border-radius:999px; padding:.1rem .55rem; font-size:.75rem; border:1px solid var(--line); color:var(--mut); }
+
+    /* ---- Nuevo en este mock: una sola barra ---- */
+    .barra { position:sticky; top:0; z-index:10; background:var(--panel); border-bottom:1px solid var(--line); height:56px; display:flex; align-items:center; gap:.15rem; padding:0 .4rem; }
+    .barra .ic { flex:0 0 auto; width:44px; height:44px; border:0; background:transparent; color:var(--txt); font-size:1.35rem; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .barra .ic:active, .barra .ic[aria-expanded="true"] { background:var(--acc2); color:var(--acc); }
+    .barra .ic.puesto { color:var(--acc); }
+    .hamburguesa { display:flex; flex-direction:column; gap:4px; }
+    .hamburguesa i { display:block; width:20px; height:2px; background:currentColor; border-radius:1px; transition:transform .2s, opacity .2s; }
+    [aria-expanded="true"] .hamburguesa i:nth-child(1) { transform:translateY(6px) rotate(45deg); }
+    [aria-expanded="true"] .hamburguesa i:nth-child(2) { opacity:0; }
+    [aria-expanded="true"] .hamburguesa i:nth-child(3) { transform:translateY(-6px) rotate(-45deg); }
+    /* Título en dos pisos: la sección en pequeño y, debajo, el proyecto (con migas) */
+    .titulo { flex:1 1 auto; min-width:0; padding:0 .25rem; line-height:1.15; cursor:default; }
+    .titulo .seccion { display:block; font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--acc); }
+    .titulo .nombre { display:flex; align-items:baseline; gap:.3rem; font-size:1.05rem; font-weight:700; white-space:nowrap; min-width:0; }
+    .titulo .nombre .migas { font-weight:400; color:var(--mut); overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; max-width:50%; cursor:pointer; }
+    .titulo .nombre .actual { overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    /* Menú: baja bajo la barra, con velo; se cierra al elegir, al tocar fuera y con Atrás */
+    .menuVelo { position:fixed; inset:56px 0 0 0; background:rgba(0,0,0,.35); z-index:9; }
+    .menu { position:fixed; top:56px; left:0; right:0; max-width:40rem; margin:0 auto; background:var(--panel); border-bottom:1px solid var(--line); border-radius:0 0 16px 16px; box-shadow:0 10px 24px rgba(0,0,0,.25); z-index:9; padding:.35rem 0 .6rem; max-height:calc(100vh - 56px); overflow:auto; }
+    .menu .grupo { font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--mut); padding:.7rem 1.1rem .3rem; }
+    .menu button { display:flex; align-items:center; gap:.8rem; width:100%; border:0; background:transparent; color:var(--txt); font:inherit; font-size:1rem; padding:.7rem 1.1rem; text-align:left; cursor:pointer; min-height:48px; }
+    .menu button .i { width:1.6rem; text-align:center; font-size:1.2rem; }
+    .menu button .n { margin-left:auto; color:var(--mut); font-size:.85rem; }
+    .menu button.actual { background:var(--acc2); color:var(--acc); font-weight:600; }
+    .menu button.actual .n { color:var(--acc); }
+    .menu .sep { border-top:1px solid var(--line); margin:.35rem 0; }
+    /* Búsqueda: panel bajo la barra; con filtro puesto y cerrado, una tira lo resume */
+    .buscador { position:sticky; top:56px; z-index:8; background:var(--panel); border-bottom:1px solid var(--line); padding:.6rem 1rem .7rem; }
+    .buscador .filtros { display:flex; align-items:center; gap:.5rem; margin-top:.5rem; font-size:.85rem; color:var(--mut); }
+    .buscador .filtros label { display:flex; align-items:center; gap:.3rem; margin-left:auto; white-space:nowrap; }
+    .buscador .filtros input { width:auto; margin:0; }
+    .etqBtn { border:0; background:transparent; color:var(--mut); font:inherit; font-size:.85rem; padding:.2rem 0; cursor:pointer; }
+    .resumenFiltro { display:flex; align-items:center; gap:.5rem; background:var(--acc2); color:var(--acc); border-radius:10px; padding:.45rem .5rem .45rem .75rem; margin-bottom:.6rem; font-size:.88rem; }
+    .resumenFiltro span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+    .resumenFiltro button { border:0; background:transparent; color:inherit; font-size:1.1rem; cursor:pointer; padding:0 .3rem; }
+    /* Primera fila del contenido: qué es esto, en cifras */
+    .cifras { color:var(--mut); font-size:.85rem; margin:0 0 .6rem; line-height:1.4; }
+    .cifras b { color:var(--txt); font-weight:600; }
+    .cifras .desc { display:block; margin-top:.15rem; font-style:italic; }
+    .carpetas { display:flex; gap:.4rem; overflow-x:auto; margin:0 -1rem .7rem; padding:0 1rem .2rem; scrollbar-width:none; }
+    .carpetas::-webkit-scrollbar { display:none; }
+    .carpetas .chip { flex:0 0 auto; }
+    .chip .n { opacity:.65; margin-left:.3rem; font-size:.75rem; }
+    .barraSel { position:fixed; left:0; right:0; bottom:0; background:var(--panel); border-top:1px solid var(--line); padding:.6rem 1rem calc(.6rem + env(safe-area-inset-bottom)); z-index:4; }
+    .barraSel .acciones { margin-top:.4rem; }
+    .barraSel .btn { padding:.6rem .3rem; min-width:0; }
+    .barraSel .cuenta { color:var(--mut); font-size:.85rem; }
+    .comparar { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin:.5rem 0; font-size:.82rem; }
+    .comparar div { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:.5rem .6rem; }
+    .comparar b { display:block; font-size:1.2rem; color:var(--acc); }
+  </style>
+</head>
+<body>
+<div class="bandaMock"><span>Mock 21 · menú de una línea · datos de ejemplo</span><button type="button" id="infoBtn">Qué cambia</button></div>
+
+<!-- La única barra: menú, título, buscar y tema -->
+<div class="barra" id="barra">
+  <button class="ic" id="menuBtn" type="button" aria-label="Menú" aria-expanded="false" aria-controls="menu"><span class="hamburguesa"><i></i><i></i><i></i></span></button>
+  <div class="titulo" id="titulo"><span class="seccion" id="tSeccion"></span><span class="nombre"><span class="migas hidden" id="tMigas" title="Ir al proyecto"></span><span class="actual" id="tNombre"></span></span></div>
+  <button class="ic" id="buscarBtn" type="button" aria-label="Buscar" aria-expanded="false">🔍</button>
+  <button class="ic" id="temaBtn" type="button" aria-label="Tema">🌗</button>
+</div>
+
+<div class="menuVelo hidden" id="menuVelo"></div>
+<nav class="menu hidden" id="menu" aria-label="Menú"></nav>
+
+<div class="buscador hidden" id="buscador">
+  <div class="fila">
+    <input id="q" type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
+    <input id="dia" type="date" style="flex:0 0 auto;width:9.2rem" title="Filtrar por día">
+  </div>
+  <div class="filtros" id="filtrosNotas">
+    <button class="etqBtn" id="etqBtn" type="button">Etiquetas · 6 ▾</button>
+    <label><input type="checkbox" id="enTodos"> En todos los proyectos</label>
+  </div>
+  <div class="chips hidden" id="etiquetas"></div>
+  <div class="fila hidden" id="filtrosProy" style="margin-top:.5rem">
+    <span class="aviso" style="margin:0">Orden</span>
+    <select id="orden" style="width:auto"><option>Actividad</option><option>Nombre</option><option>Creación</option><option>Nº de notas</option></select>
+  </div>
+</div>
+
+<main>
+  <div class="resumenFiltro hidden" id="resumenFiltro"><span id="rfTexto"></span><button type="button" id="rfQuitar" aria-label="Quitar el filtro">✕</button></div>
+  <p class="cifras" id="cifras"></p>
+  <div class="carpetas hidden" id="carpetas"></div>
+  <div id="contenido"></div>
+</main>
+
+<button class="fab" id="fab" type="button">+</button>
+<div class="barraSel hidden" id="barraSel">
+  <div class="cuenta" id="selCuenta"></div>
+  <div class="acciones"><button class="btn" type="button" id="selNinguna">Ninguna</button><button class="btn" type="button">Mover</button><button class="btn" type="button" id="selCancelar">Cancelar</button><button class="btn pri" type="button">Generar</button></div>
+</div>
+
+<div id="hojaInfo" class="velo hidden" role="dialog" aria-modal="true">
+  <div class="hoja info">
+    <h3>Qué propone el mock 21</h3>
+    <div class="comparar">
+      <div>Hoy<b>185 px</b>de cabecera fija (24 %) · primera nota en el px 293</div>
+      <div>Mock 21<b>56 px</b>de cabecera fija (7 %) · primera nota en el px ~120</div>
+    </div>
+    <ul>
+      <li><b>Una sola barra:</b> ☰ menú, el título, 🔍 buscar y el tema. Todo lo demás (pestañas, buscador, etiquetas, ☑, 📄, ⚙, «Editar proyecto» y «＋ Subcarpeta») pasa al menú o a la lupa.</li>
+      <li><b>El título dice siempre dónde estás</b>, en dos pisos: arriba la sección en pequeño (PROYECTOS · NOTAS · ENTREVISTAS · DOCUMENTOS · AJUSTES) y abajo el proyecto; en una subcarpeta, «Padre › Subcarpeta», y tocar el padre vuelve a él.</li>
+      <li><b>El menú</b> baja bajo la barra en tres bloques: <i>Ir a</i> (con cifras y la sección actual marcada), <i>Este proyecto</i> (Seleccionar notas, Documentos, Editar proyecto, Nueva subcarpeta) y <i>General</i> (Ajustes). Se cierra al elegir, al tocar fuera, con Escape y con el botón Atrás del móvil.</li>
+      <li><b>🔍</b> abre el buscador con el cursor dentro: en Notas, texto, día, etiquetas y «En todos los proyectos»; en Proyectos, texto y orden. En Entrevistas no hay búsqueda y la lupa no sale.</li>
+      <li><b>Con un filtro puesto</b> y el buscador cerrado, una tira lo resume («🔍 "reserva" · #app · 3 de 15 ✕») y la lupa se queda en color: la lista nunca sale recortada sin explicación.</li>
+      <li><b>La primera fila del contenido</b> son las cifras de lo que estás viendo (notas, entrevistas, subcarpetas, última actividad) y la descripción del proyecto. Se va al hacer scroll.</li>
+      <li><b>La tira de subcarpetas</b> solo sale si el proyecto tiene alguna; crear una va al menú.</li>
+      <li><b>Seleccionar</b> cambia la barra: ✕ para salir, «Elegir · 3 de 15» y la barra de abajo de siempre.</li>
+    </ul>
+    <p class="aviso">Decisiones D68 a D75 en <code>docs/planificacion/plan-menu.md</code>. Atajos: <code>?v=menu</code>, <code>buscar</code>, <code>filtro</code>, <code>sub</code>, <code>proyectos</code>, <code>entrevistas</code>, <code>elegir</code>, <code>todas</code>.</p>
+    <div class="acciones"><button class="btn pri" id="infoNo" type="button">Entendido</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const H = 3600e3, ahora = Date.now();
+  const plural = (n, s, pl) => `${n} ${n === 1 ? s : (pl || s + 's')}`;
+  const hace = t => { const h = Math.round((ahora - t) / H); return h < 1 ? 'ahora' : h < 24 ? `hace ${h} h` : `hace ${Math.round(h / 24)} d`; };
+  const fmt = t => new Date(t).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  function aviso(t) { const e = $('toast'); e.textContent = t; e.classList.add('ver'); clearTimeout(aviso.t); aviso.t = setTimeout(() => e.classList.remove('ver'), 1800); }
+
+  // --- Datos de ejemplo ---
+  const P = [
+    { id: 'app', nombre: 'App de notas', descripcion: 'La PWA de notas: dictado, proyectos y entrevistas.', padre: null },
+    { id: 'app-dis', nombre: 'Diseño', descripcion: 'Pantallas, mocks y estilo.', padre: 'app' },
+    { id: 'app-back', nombre: 'Backend', descripcion: '', padre: 'app' },
+    { id: 'club', nombre: 'Club de pádel', descripcion: 'App de reservas para el club.', padre: null },
+    { id: 'casa', nombre: 'Casa', descripcion: '', padre: null },
+    { id: 'mud', nombre: 'Mudanza 2025', descripcion: '', padre: null, archivado: true },
+  ];
+  const N = [
+    ['app', 2, 'Prioridades de la próxima versión', 'Menú de una línea, luego informes con roles.', ['plan']],
+    ['app', 30, 'Revisar el coste de la IA', 'Cuánto gasta titular frente a redactar documentos.', ['ia', 'coste']],
+    ['app-dis', 3, 'Cabecera de una sola línea', 'Todo al menú menos el tema y la lupa.', ['ui']],
+    ['app-dis', 20, 'Icono de subcarpeta', '📂 para la subcarpeta y 📁 para el proyecto.', ['ui']],
+    ['app-dis', 50, 'Tema oscuro en la hoja de mover', 'El borde de los botones hijos se pierde.', ['ui', 'bug']],
+    ['app-back', 5, 'Migración 4', 'Informes con roles y modelos.', ['sqlite']],
+    ['app-back', 44, 'Filtro proyecto con hijos', 'proyecto=<id> trae también las subcarpetas.', ['api']],
+    ['club', 6, 'Reservas de pista desde el móvil', 'Hoy se reserva por WhatsApp y se pisan.', ['reservas', 'app']],
+    ['club', 26, 'Pagos y bonos de partidas', 'Tarjeta o bono de 10 partidas.', ['pagos']],
+    ['club', 60, 'Buscar pareja para jugar', 'Publicar «me falta uno para el jueves».', ['comunidad', 'app']],
+    ['club', 90, 'Lanzamiento con 40 socios', 'Probar en marzo.', ['negocio']],
+    ['casa', 12, 'Presupuesto de la cocina', 'Tres presupuestos antes de noviembre.', ['obra']],
+    [null, 8, 'Comprar pilas', 'AA y AAA.', ['compra']],
+    [null, 70, 'Libro recomendado', 'El de los hábitos pequeños.', ['lectura']],
+    ['mud', 900, 'Dar de baja la luz', 'Hecho.', ['casa']],
+  ].map(([proyecto, h, titulo, contenido, etiquetas], i) => ({ id: 'n' + i, proyecto, fecha: ahora - h * H, titulo, contenido, etiquetas }));
+  const E = [['app', 4, 'Entrevista con el primer usuario', 1860, 'Transcrita'], ['club', 28, 'Reunión con la junta del club', 3120, 'Resumida'], ['club', 100, 'Llamada con el conserje', 540, 'Sin transcribir']]
+    .map(([proyecto, h, titulo, dur, estado]) => ({ proyecto, fecha: ahora - h * H, titulo, dur, estado }));
+  const D = [['app', 10, 'Informe: menú de una línea', '🔎 Informe · 4 roles'], ['app', 55, 'Migrar el buscador', '📄 Encargo'], ['club', 20, 'Reservas del club: análisis', '🔎 Informe · 5 roles']]
+    .map(([proyecto, h, titulo, tipo]) => ({ proyecto, fecha: ahora - h * H, titulo, tipo }));
+
+  const proy = id => P.find(p => p.id === id);
+  const familia = id => [id, ...P.filter(p => p.padre === id).map(p => p.id)];
+  const hijas = id => P.filter(p => p.padre === id);
+  const de = (lista, id) => id === null ? lista.filter(x => x.proyecto === null) : lista.filter(x => familia(id).includes(x.proyecto));
+
+  // --- Estado ---
+  let vista = 'notas', activo = 'app', eligiendo = false, elegidas = new Set();
+  let q = '', etiqueta = null, enTodos = false, buscadorAbierto = false, qProy = '';
+
+  const SECCION = { proyectos: ['📁', 'Proyectos'], notas: ['📝', 'Notas'], entrevistas: ['🎙', 'Entrevistas'], documentos: ['📄', 'Documentos'], ajustes: ['⚙', 'Ajustes'] };
+
+  function pintar() {
+    const p = activo ? proy(activo) : null;
+    const enProyecto = ['notas', 'entrevistas', 'documentos'].includes(vista);
+    // Título: la sección siempre; debajo, el proyecto (o lo que corresponda)
+    $('tSeccion').textContent = eligiendo ? 'Elegir notas' : SECCION[vista][1];
+    const conMigas = enProyecto && p && p.padre && !eligiendo;
+    $('tMigas').classList.toggle('hidden', !conMigas);
+    if (conMigas) $('tMigas').textContent = proy(p.padre).nombre + ' ›';
+    $('tNombre').textContent = eligiendo ? `${elegidas.size} de ${notasVisibles().length}`
+      : vista === 'proyectos' ? 'Todos tus proyectos' : vista === 'ajustes' ? 'Versión y copia de seguridad'
+      : enTodos && vista === 'notas' ? 'En todos los proyectos' : p ? p.nombre : vista === 'notas' ? 'Todas las notas' : 'Sin proyecto';
+    // Barra: en selección, ✕ en lugar del menú
+    $('menuBtn').innerHTML = eligiendo ? '✕' : '<span class="hamburguesa"><i></i><i></i><i></i></span>';
+    $('menuBtn').setAttribute('aria-label', eligiendo ? 'Salir de la selección' : 'Menú');
+    const hayBusqueda = vista === 'notas' || vista === 'proyectos';
+    $('buscarBtn').classList.toggle('hidden', !hayBusqueda || eligiendo);
+    const filtroPuesto = vista === 'notas' ? !!(q || etiqueta || enTodos) : vista === 'proyectos' && !!qProy;
+    $('buscarBtn').classList.toggle('puesto', filtroPuesto);
+    $('buscador').classList.toggle('hidden', !(buscadorAbierto && hayBusqueda && !eligiendo));
+    $('buscarBtn').setAttribute('aria-expanded', String(buscadorAbierto));
+    $('filtrosNotas').classList.toggle('hidden', vista !== 'notas');
+    $('dia').classList.toggle('hidden', vista !== 'notas');
+    $('filtrosProy').classList.toggle('hidden', vista !== 'proyectos');
+    $('q').placeholder = vista === 'proyectos' ? 'Buscar proyecto o subcarpeta…' : 'Buscar en título y contenido…';
+    // Tira resumen del filtro, solo con el buscador cerrado
+    const rf = $('resumenFiltro');
+    rf.classList.toggle('hidden', !(filtroPuesto && !buscadorAbierto && !eligiendo));
+    if (vista === 'notas') $('rfTexto').textContent = `🔍 ${[q && `«${q}»`, etiqueta && '#' + etiqueta, enTodos && 'en todos los proyectos'].filter(Boolean).join(' · ')} · ${notasVisibles().length} de ${base().length}`;
+    else $('rfTexto').textContent = `🔍 «${qProy}» · ${proyectosVisibles().length} de ${P.filter(x => !x.padre && !x.archivado).length}`;
+    $('fab').classList.toggle('hidden', eligiendo || !['notas', 'proyectos', 'entrevistas'].includes(vista));
+    $('fab').title = { notas: 'Nueva nota', proyectos: 'Nuevo proyecto', entrevistas: 'Nueva entrevista' }[vista] || '';
+    $('barraSel').classList.toggle('hidden', !eligiendo);
+    $('selCuenta').textContent = `${plural(elegidas.size, 'nota')} elegidas`;
+    pintarCifras(); pintarCarpetas(); pintarContenido();
+  }
+
+  const base = () => enTodos ? N.filter(n => !proy(n.proyecto)?.archivado) : activo ? de(N, activo) : N.filter(n => !proy(n.proyecto)?.archivado);
+  const notasVisibles = () => base().filter(n => (!q || (n.titulo + ' ' + n.contenido).toLowerCase().includes(q.toLowerCase())) && (!etiqueta || n.etiquetas.includes(etiqueta)));
+  const proyectosVisibles = () => P.filter(x => !x.padre && !x.archivado && (!qProy || x.nombre.toLowerCase().includes(qProy.toLowerCase())));
+
+  // Primera fila: qué es esto, en cifras
+  function pintarCifras() {
+    const p = activo ? proy(activo) : null, c = $('cifras');
+    const ult = l => l.length ? ' · última ' + hace(Math.max(...l.map(x => x.fecha))) : '';
+    let t = '';
+    if (vista === 'notas' && !eligiendo) {
+      if (enTodos || !p) { const ns = base(); t = `<b>${plural(ns.length, 'nota')}</b> en ${plural(P.filter(x => !x.padre && !x.archivado).length, 'proyecto')}${ult(ns)}`; }
+      else { const ns = de(N, p.id), hs = hijas(p.id); t = `<b>${plural(ns.length, 'nota')}</b> · ${plural(de(E, p.id).length, 'entrevista')}${hs.length ? ' · ' + plural(hs.length, 'subcarpeta') : ''}${p.padre ? ' · subcarpeta de ' + proy(p.padre).nombre : ''}${ult(ns)}${p.descripcion ? `<span class="desc">${p.descripcion}</span>` : ''}`; }
+    }
+    if (eligiendo) t = 'Toca las notas para elegirlas; «Generar» hace un documento o un informe con ellas.';
+    if (vista === 'proyectos') { const ps = P.filter(x => !x.padre); t = `<b>${plural(ps.filter(x => !x.archivado).length, 'proyecto')}</b> · ${plural(P.filter(x => x.padre).length, 'subcarpeta')} · ${plural(ps.filter(x => x.archivado).length, 'archivado')} · ${plural(N.length, 'nota')}`; }
+    if (vista === 'entrevistas') { const es = de(E, activo); const min = Math.round(es.reduce((s, e) => s + e.dur, 0) / 60); t = `<b>${plural(es.length, 'entrevista')}</b> · ${min} min grabados · ${es.filter(e => e.estado === 'Sin transcribir').length} sin transcribir`; }
+    if (vista === 'documentos') { const ds = de(D, activo); t = `<b>${plural(ds.length, 'documento')}</b> · ${ds.filter(d => d.tipo.startsWith('🔎')).length} informes · ${ds.filter(d => d.tipo.startsWith('📄')).length} encargos`; }
+    if (vista === 'ajustes') t = 'Build <b>PR-B1-20260924-029</b> · token guardado · IA activa';
+    c.innerHTML = t;
+  }
+
+  // Tira de subcarpetas: solo si el proyecto tiene alguna (crear va al menú)
+  function pintarCarpetas() {
+    const z = $('carpetas'); z.innerHTML = '';
+    const p = activo ? proy(activo) : null, raiz = p && (p.padre ? proy(p.padre) : p);
+    const hs = raiz ? hijas(raiz.id) : [];
+    const ver = vista === 'notas' && !eligiendo && !enTodos && hs.length > 0;
+    z.classList.toggle('hidden', !ver);
+    if (!ver) return;
+    const chip = (txt, n, on, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip' + (on ? ' on' : ''); b.innerHTML = `${txt}<span class="n">${n}</span>`; b.onclick = fn; z.appendChild(b); };
+    chip('Todo', de(N, raiz.id).length, activo === raiz.id, () => entrar(raiz.id));
+    hs.forEach(h => chip('📂 ' + h.nombre, N.filter(n => n.proyecto === h.id).length, activo === h.id, () => entrar(h.id)));
+  }
+
+  function pintarContenido() {
+    const c = $('contenido'); c.innerHTML = '';
+    const tarjeta = (h, sub, p, fn, extra = '') => { const d = document.createElement('div'); d.className = 'doc'; d.innerHTML = `<h2>${h}</h2><time>${sub}</time>${p ? `<p>${p}</p>` : ''}${extra}`; d.onclick = fn; c.appendChild(d); return d; };
+    if (vista === 'notas') {
+      const ns = notasVisibles().sort((a, b) => b.fecha - a.fecha);
+      if (!ns.length) c.innerHTML = '<p class="aviso" style="text-align:center;padding:2rem 0">Ninguna nota coincide.</p>';
+      ns.forEach(n => {
+        const d = document.createElement('div'); d.className = 'nota' + (eligiendo && elegidas.has(n.id) ? ' elegida' : '');
+        if (eligiendo && !elegidas.has(n.id)) d.style.paddingLeft = '3rem';
+        const sub = n.proyecto && proy(n.proyecto).padre && (activo !== n.proyecto) ? `<span class="chip sub">📂 ${proy(n.proyecto).nombre}</span>` : '';
+        d.innerHTML = `${eligiendo ? '<span class="caja"></span>' : ''}<h2>${n.titulo}</h2><time>${fmt(n.fecha)}</time><div class="chips">${sub}${n.etiquetas.map(e => `<span class="chip et">${e}</span>`).join('')}</div><p>${n.contenido}</p>`;
+        d.onclick = () => { if (eligiendo) { elegidas.has(n.id) ? elegidas.delete(n.id) : elegidas.add(n.id); pintar(); } else aviso('Aquí se abriría la nota'); };
+        c.appendChild(d);
+      });
+    }
+    if (vista === 'proyectos') proyectosVisibles().forEach(p => {
+      const ns = de(N, p.id), hs = hijas(p.id);
+      const d = tarjeta((activo === p.id ? '● ' : '') + p.nombre, `${plural(ns.length, 'nota')}${hs.length ? ' · ' + plural(hs.length, 'subcarpeta') : ''}`, p.descripcion, () => { entrar(p.id); ir('notas'); },
+        hs.length ? `<div class="chips">${hs.map(h => `<span class="chip sub" data-id="${h.id}">📂 ${h.nombre}</span>`).join('')}</div>` : '');
+      d.querySelectorAll('[data-id]').forEach(s => s.onclick = ev => { ev.stopPropagation(); entrar(s.dataset.id); ir('notas'); });
+    });
+    if (vista === 'entrevistas') de(E, activo).forEach(e => tarjeta(e.titulo, `${fmt(e.fecha)} · ${Math.round(e.dur / 60)} min`, '', () => aviso('Aquí se abriría la entrevista'), `<div class="chips"><span class="marca">${e.estado}</span></div>`));
+    if (vista === 'documentos') de(D, activo).forEach(d => tarjeta(d.titulo, fmt(d.fecha), '', () => aviso('Aquí se abriría el documento'), `<div class="chips"><span class="marca">${d.tipo}</span></div>`));
+    if (vista === 'ajustes') c.innerHTML = '<p class="aviso">Ajustes no cambia: token, modelo, roles, instalar, versión y copia de seguridad.</p>';
+  }
+
+  // --- Menú ---
+  function pintarMenu() {
+    const p = activo ? proy(activo) : null, m = $('menu');
+    const item = (i, txt, n, actual, fn) => { const b = document.createElement('button'); b.type = 'button'; if (actual) b.className = 'actual'; b.innerHTML = `<span class="i">${i}</span>${txt}${n != null ? `<span class="n">${n}</span>` : ''}`; b.onclick = () => { cerrarMenu(); fn(); }; m.appendChild(b); };
+    const grupo = t => { const g = document.createElement('div'); g.className = 'grupo'; g.textContent = t; m.appendChild(g); };
+    m.innerHTML = '';
+    grupo('Ir a');
+    item('📁', 'Proyectos', P.filter(x => !x.padre && !x.archivado).length, vista === 'proyectos', () => ir('proyectos'));
+    item('📝', p ? 'Notas de ' + p.nombre : 'Todas las notas', (p ? de(N, p.id) : N).length, vista === 'notas', () => ir('notas'));
+    item('🎙', 'Entrevistas', de(E, activo).length, vista === 'entrevistas', () => ir('entrevistas'));
+    if (p) {
+      m.appendChild(Object.assign(document.createElement('div'), { className: 'sep' }));
+      grupo('Este proyecto');
+      item('☑', 'Seleccionar notas', null, false, () => { ir('notas'); eligiendo = true; elegidas.clear(); pintar(); });
+      item('📄', 'Documentos', de(D, activo).length, vista === 'documentos', () => ir('documentos'));
+      item('✏️', 'Editar proyecto', null, false, () => aviso('Aquí se abriría la hoja del proyecto'));
+      if (!p.padre) item('📂', 'Nueva subcarpeta', null, false, () => aviso('Aquí se abriría «Nueva subcarpeta en ' + p.nombre + '»'));
+    }
+    m.appendChild(Object.assign(document.createElement('div'), { className: 'sep' }));
+    grupo('General');
+    item('⚙', 'Ajustes', null, vista === 'ajustes', () => ir('ajustes'));
+  }
+  function abrirMenu() {
+    buscadorAbierto = false; pintar(); pintarMenu();
+    // El menú cuelga del borde inferior de la barra, esté donde esté (en el mock la empuja la banda).
+    const abajo = Math.round($('barra').getBoundingClientRect().bottom);
+    $('menu').style.top = abajo + 'px'; $('menu').style.maxHeight = `calc(100vh - ${abajo}px)`; $('menuVelo').style.top = abajo + 'px';
+    $('menu').classList.remove('hidden'); $('menuVelo').classList.remove('hidden'); $('menuBtn').setAttribute('aria-expanded', 'true');
+    history.pushState({ menu: 1 }, ''); // Atrás cierra el menú en vez de salir de la app
+  }
+  function cerrarMenu(desdeAtras) {
+    if ($('menu').classList.contains('hidden')) return;
+    $('menu').classList.add('hidden'); $('menuVelo').classList.add('hidden'); $('menuBtn').setAttribute('aria-expanded', 'false');
+    if (!desdeAtras && history.state && history.state.menu) history.back();
+  }
+  $('menuBtn').onclick = () => { if (eligiendo) { eligiendo = false; pintar(); return; } $('menu').classList.contains('hidden') ? abrirMenu() : cerrarMenu(); };
+  $('menuVelo').onclick = () => cerrarMenu();
+  addEventListener('popstate', () => cerrarMenu(true));
+  addEventListener('keydown', ev => { if (ev.key === 'Escape') { cerrarMenu(); if (buscadorAbierto) { buscadorAbierto = false; pintar(); } } });
+
+  function ir(v) { vista = v; eligiendo = false; buscadorAbierto = false; window.scrollTo(0, 0); pintar(); }
+  function entrar(id) { activo = id; enTodos = false; $('enTodos').checked = false; pintar(); }
+  $('tMigas').onclick = () => { const p = proy(activo); if (p && p.padre) entrar(p.padre); };
+
+  // --- Buscar ---
+  $('buscarBtn').onclick = () => { cerrarMenu(); buscadorAbierto = !buscadorAbierto; pintar(); if (buscadorAbierto) { $('q').value = vista === 'proyectos' ? qProy : q; $('q').focus(); } };
+  $('q').oninput = () => { if (vista === 'proyectos') qProy = $('q').value.trim(); else q = $('q').value.trim(); pintar(); };
+  $('enTodos').onchange = () => { enTodos = $('enTodos').checked; pintar(); };
+  $('etqBtn').onclick = () => {
+    const z = $('etiquetas'); z.classList.toggle('hidden');
+    const todas = [...new Set(base().flatMap(n => n.etiquetas))].sort();
+    z.innerHTML = ''; todas.forEach(e => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip' + (etiqueta === e ? ' on' : ''); b.textContent = e; b.onclick = () => { etiqueta = etiqueta === e ? null : e; $('etqBtn').textContent = etiqueta ? `Etiqueta: ${etiqueta} ▾` : `Etiquetas · ${todas.length} ▾`; $('etqBtn').click(); $('etqBtn').click(); pintar(); }; z.appendChild(b); });
+  };
+  $('rfTexto').onclick = () => { buscadorAbierto = true; pintar(); $('q').focus(); };
+  $('rfQuitar').onclick = () => { if (vista === 'proyectos') qProy = ''; else { q = ''; etiqueta = null; enTodos = false; $('enTodos').checked = false; $('etqBtn').textContent = 'Etiquetas · 6 ▾'; } $('q').value = ''; pintar(); };
+
+  // --- Tema: arriba, como hoy (automático → claro → oscuro) ---
+  function pintarTema() { const t = document.documentElement.dataset.tema; $('temaBtn').textContent = t === 'claro' ? '☀️' : t === 'oscuro' ? '🌙' : '🌗'; }
+  $('temaBtn').onclick = () => {
+    const t = document.documentElement.dataset.tema, sig = !t ? 'claro' : t === 'claro' ? 'oscuro' : null;
+    if (sig) document.documentElement.dataset.tema = sig; else delete document.documentElement.dataset.tema;
+    try { sig ? localStorage.setItem('mock21-tema', sig) : localStorage.removeItem('mock21-tema'); } catch {}
+    pintarTema(); aviso(sig ? 'Tema ' + sig : 'Tema automático');
+  };
+
+  $('fab').onclick = () => aviso({ notas: 'Nueva nota', proyectos: 'Nuevo proyecto', entrevistas: 'Nueva entrevista' }[vista]);
+  $('selCancelar').onclick = () => { eligiendo = false; pintar(); };
+  $('selNinguna').onclick = () => { elegidas.clear(); pintar(); };
+  $('infoBtn').onclick = () => $('hojaInfo').classList.remove('hidden');
+  $('infoNo').onclick = () => $('hojaInfo').classList.add('hidden');
+  $('hojaInfo').onclick = ev => { if (ev.target === $('hojaInfo')) $('hojaInfo').classList.add('hidden'); };
+
+  // ?v=menu|buscar|filtro|sub|proyectos|entrevistas|elegir|todas (para las capturas)
+  const inicio = new URLSearchParams(location.search).get('v');
+  pintarTema(); pintar();
+  if (inicio === 'menu') abrirMenu();
+  if (inicio === 'buscar') $('buscarBtn').click();
+  if (inicio === 'filtro') { etiqueta = 'ui'; $('etqBtn').textContent = 'Etiqueta: ui ▾'; pintar(); }
+  if (inicio === 'sub') entrar('app-dis');
+  if (inicio === 'proyectos') ir('proyectos');
+  if (inicio === 'entrevistas') ir('entrevistas');
+  if (inicio === 'elegir') { eligiendo = true; ['n0', 'n2', 'n3'].forEach(id => elegidas.add(id)); pintar(); }
+  if (inicio === 'todas') { activo = null; pintar(); }
+</script>
+</body>
+</html>
