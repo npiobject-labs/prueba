@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260924-026">
+  <meta name="build" content="PR-B1-20260924-027">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -159,12 +159,15 @@
     .bandaEnt span { flex:1 1 12rem; }
     .bandaEnt .btn { padding:.3rem .8rem; }
     .enlace { border:0; background:transparent; color:var(--mut); text-decoration:underline; font:inherit; font-size:.9rem; padding:.4rem 0; cursor:pointer; }
-    .fabEnt { position:fixed; right:1rem; bottom:calc(1rem + env(safe-area-inset-bottom)); border:0; border-radius:999px; background:var(--acc); color:#fff; font:inherit; font-size:1rem; font-weight:600; padding:.95rem 1.25rem; box-shadow:0 4px 14px rgba(0,0,0,.25); cursor:pointer; z-index:3; }
     .bloque { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin:.75rem 0; }
     .bloque h3 { margin:0 0 .5rem; font-size:1rem; }
     .bloque .texto { white-space:pre-wrap; line-height:1.55; }
-    .bloque details > summary { cursor:pointer; font-weight:600; list-style-position:outside; }
-    .bloque details[open] > summary { margin-bottom:.5rem; }
+    /* Bloques plegables del detalle de entrevista: todos con la misma flecha a la derecha, como Etiquetas y Archivados */
+    .plegable > summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:.5rem; font-weight:600; font-size:1rem; margin:-.85rem -1rem; padding:.85rem 1rem; }
+    .plegable > summary::-webkit-details-marker { display:none; }
+    .plegable > summary::after { content:'▾'; color:var(--mut); font-size:1.1rem; transition:transform .2s; }
+    .plegable[open] > summary { margin-bottom:0; padding-bottom:.5rem; }
+    .plegable[open] > summary::after { transform:rotate(180deg); }
     .bloque audio { width:100%; margin-top:.25rem; }
     .avance { height:6px; background:var(--line); border-radius:3px; margin:.5rem 0; overflow:hidden; }
     .avance i { display:block; height:100%; background:var(--acc); border-radius:3px; transition:width .4s; }
@@ -201,7 +204,6 @@
     .entsCab { display:flex; justify-content:space-between; align-items:center; color:var(--mut); font-size:.85rem; margin-bottom:.4rem; }
     .ent.compacta { padding:.6rem .9rem; margin-bottom:.5rem; border-color:var(--acc); }
     .ent.compacta h2 { font-size:.95rem; margin-bottom:.2rem; }
-    .nuevoProy { display:block; width:100%; margin:.75rem 0; border-style:dashed; border-color:var(--acc); color:var(--acc); font-weight:600; }
     .hoja p.libre { white-space:normal; overflow:visible; }
     .hidden { display:none !important; }
     .enlaces { margin-top:2rem; padding-top:1rem; border-top:1px solid var(--line); font-size:.85rem; color:var(--mut); }
@@ -251,7 +253,6 @@
         <option value="notas">Nº de notas</option>
       </select>
     </div>
-    <button class="btn nuevoProy" id="nuevoProyBtn" type="button">＋ Nuevo proyecto</button>
     <div id="listaProyectos"></div>
     <button class="chipsBtn hidden" id="archBtn" type="button" aria-expanded="false" aria-controls="listaArchivados">
       <span id="archTxt">Archivados</span><span class="flecha" id="archFlecha" aria-hidden="true">▾</span>
@@ -354,14 +355,14 @@
     <h2 id="entTitulo"></h2>
     <div class="meta" id="entMeta"></div>
     <div class="chips" id="entProyecto"></div>
-    <div class="bloque" id="entAudio"></div>
+    <details class="bloque plegable" id="entAudio" open><summary>Audio</summary><div id="entAudioCuerpo"></div></details>
     <div id="entTrans"></div>
     <div id="entResumen"></div>
     <div class="acciones"><button class="btn" id="entEditar" type="button">✏️ Editar</button><button class="btn" id="entMover" type="button">Mover a…</button></div>
     <div class="acciones"><button class="btn peligro" id="entBorrarAudio" type="button">Borrar audio</button><button class="btn peligro" id="entBorrar" type="button">Borrar</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260924-026</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260924-027</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -439,7 +440,6 @@
 </div>
 
 <button class="fab" id="nueva" title="Nueva nota" aria-label="Nueva nota">+</button>
-<button class="fabEnt hidden" id="nuevaEnt" type="button">🎙 Nueva entrevista</button>
 
 <!-- Captura rápida (D38): solo Grabar/Parar, Pausa y Cerrar, grandes -->
 <div id="captura" class="hidden" data-estado="inactiva" role="dialog" aria-modal="true" aria-label="Grabar entrevista">
@@ -609,16 +609,16 @@
   function ver(v) {
     vistas.forEach(x => $(x).classList.toggle('hidden', x !== v));
     $('buscador').classList.toggle('hidden', v !== 'lista');
-    // En Proyectos el + se confundía con «nueva nota»: allí crea el botón «Nuevo proyecto».
-    $('nueva').classList.toggle('hidden', !(v === 'lista' && !modoSel));
-    $('nueva').setAttribute('aria-label', $('nueva').title);
+    // Un solo + abajo a la derecha en las tres pestañas; crea lo de la pestaña en la que se está.
+    const fab = { lista: modoSel ? '' : 'Nueva nota', proyectos: 'Nuevo proyecto', entrevistas: 'Nueva entrevista' }[v];
+    $('nueva').classList.toggle('hidden', !fab);
+    if (fab) { $('nueva').title = fab; $('nueva').setAttribute('aria-label', fab); }
     // Las pestañas sustituyen al 📁 de la cabecera, que no se entendía.
     $('proyectosBtn').classList.add('hidden');
     $('pestanas').classList.toggle('hidden', !((v === 'lista' && !modoSel) || v === 'proyectos' || v === 'entrevistas'));
     $('tabProy').classList.toggle('on', v === 'proyectos');
     $('tabNotas').classList.toggle('on', v === 'lista');
     $('tabEnt').classList.toggle('on', v === 'entrevistas');
-    $('nuevaEnt').classList.toggle('hidden', v !== 'entrevistas');
     if (v !== 'entrevista' && typeof soltarAudio === 'function') soltarAudio();
     // Con tres pestañas no cabe el nombre del proyecto: ya lo dice la cabecera.
     $('tabNotasTxt').textContent = proyectoActivo ? 'Notas' : 'Todas las notas';
@@ -1208,6 +1208,8 @@
     const t = $('texto'); t.focus(); t.setSelectionRange(t.value.length, t.value.length);
   };
   $('nueva').onclick = () => {
+    if (!$('proyectos').classList.contains('hidden')) return abrirHojaProyecto(null);
+    if (!$('entrevistas').classList.contains('hidden')) return abrirCaptura();
     modoEditor(null);
     if (SR) $('avisoMic').textContent = '';
     llenarProyectosEditor();
@@ -1600,7 +1602,7 @@
     const tarjeta = p => tarjetaProyecto(p, buscando || !p.id ? [] : hijasDe(p.id), buscando);
     const activos = ps.filter(p => !p.archivado), arch = ps.filter(p => p.archivado);
     const l = $('listaProyectos'); l.innerHTML = '';
-    if (!activos.length) l.innerHTML = `<p class="vacio">${buscando ? 'Ningún proyecto ni subcarpeta coincide.' : 'Sin proyectos todavía. Pulsa «Nuevo proyecto» para crear el primero.'}</p>`;
+    if (!activos.length) l.innerHTML = `<p class="vacio">${buscando ? 'Ningún proyecto ni subcarpeta coincide.' : 'Sin proyectos todavía. Pulsa ＋ para crear el primero.'}</p>`;
     activos.forEach(p => l.appendChild(tarjeta(p)));
     // Archivados: plegados al final, como las etiquetas (D19).
     const a = $('listaArchivados'); a.innerHTML = '';
@@ -1612,7 +1614,6 @@
     $('archFlecha').textContent = abierto ? '▴' : '▾';
     a.classList.toggle('hidden', !abierto);
   }
-  $('nuevoProyBtn').onclick = () => abrirHojaProyecto(null);
   $('archBtn').onclick = () => { archAbiertos = !archAbiertos; cargarProyectos(); };
   let tp; $('pq').oninput = () => { clearTimeout(tp); tp = setTimeout(cargarProyectos, 250); };
   $('porden').onchange = () => { try { localStorage.setItem(CLAVE_ORDEN, $('porden').value); } catch {} cargarProyectos(); };
@@ -2333,15 +2334,26 @@
     });
   }
   $('tabEnt').onclick = () => { entrevistas = []; cargarEntrevistas(); };
-  $('nuevaEnt').onclick = () => abrirCaptura();
 
   // --- Detalle de una entrevista ---
   let entActual = null, sondeoEnt = null, urlAudio = null;
+  // Lo que el usuario pliega o despliega a mano en esta entrevista; el sondeo
+  // repinta cada 3 s y sin esto le cerraría lo que acaba de abrir.
+  let plegEnt = {};
+  function plegable(clave, titulo, abierto, d = document.createElement('details')) {
+    d.className = 'bloque plegable';
+    d.open = clave in plegEnt ? plegEnt[clave] : abierto;
+    let s = d.querySelector(':scope > summary');
+    if (!s) { s = document.createElement('summary'); d.prepend(s); }
+    s.textContent = titulo;
+    s.onclick = () => { plegEnt[clave] = !d.open; };
+    return d;
+  }
   function soltarAudio() { if (urlAudio) { URL.revokeObjectURL(urlAudio); urlAudio = null; } }
   function abrirEntrevista(e, refrescar = false) {
     clearTimeout(sondeoEnt); clearTimeout(sondeoLista);
     const otra = !entActual || entActual.id !== e.id;
-    if (otra) { soltarAudio(); $('entAviso').textContent = ''; }
+    if (otra) { soltarAudio(); plegEnt = {}; $('entAviso').textContent = ''; }
     entActual = e;
     pintarEntrevista(e, otra);
     ver('entrevista');
@@ -2363,7 +2375,8 @@
     else zp.appendChild(boton('📁 ' + ruta(e.proyecto), '', irA(e.proyecto || { id: null, nombre: 'Sin proyecto' })));
     zp.querySelectorAll('button').forEach(b => { b.className = 'chip proy'; });
     // Audio: se baja con el token solo cuando se pide (una hora son 14 MB).
-    const za = $('entAudio');
+    plegable('audio', 'Audio', true, $('entAudio'));
+    const za = $('entAudioCuerpo');
     if (audioNuevo || !e.audio || !za.querySelector('audio')) {
       if (!e.audio) soltarAudio();
       za.innerHTML = '';
@@ -2382,8 +2395,8 @@
     }
     // Transcripción (D30-D32)
     const zt = $('entTrans'); zt.innerHTML = '';
-    const bt = document.createElement('div'); bt.className = 'bloque'; zt.appendChild(bt);
-    bt.appendChild(Object.assign(document.createElement('h3'), { textContent: 'Transcripción' }));
+    // Plegada solo cuando ya hay resúmenes: hasta entonces es lo que hay que leer.
+    const bt = plegable('trans', 'Transcripción', !(e.estado === 'transcrita' && e.estado_resumen === 'listo')); zt.appendChild(bt);
     const transcribir = async ev => {
       ev.currentTarget.disabled = true;
       try { abrirEntrevista(await api('/entrevistas/' + encodeURIComponent(e.id) + '/transcribir', { method: 'POST' })); }
@@ -2405,39 +2418,28 @@
       if (e.trozos_hechos) bt.appendChild(parrafo(`Hay ${e.trozos_hechos} de ${e.trozos_total} trozos hechos; Reintentar sigue desde ahí.`));
       if (e.audio) bt.appendChild(boton('Reintentar', 'pri', transcribir));
     } else {
-      const det = document.createElement('details');
-      det.open = e.estado_resumen !== 'listo';
-      det.innerHTML = '<summary></summary><div class="texto"></div>';
-      det.querySelector('summary').textContent = det.open ? 'Texto completo' : 'Ver el texto completo';
-      det.ontoggle = () => { det.querySelector('summary').textContent = det.open ? 'Texto completo' : 'Ver el texto completo'; };
-      det.querySelector('.texto').textContent = e.transcripcion || '';
-      bt.appendChild(det);
+      bt.appendChild(Object.assign(document.createElement('div'), { className: 'texto', textContent: e.transcripcion || '' }));
     }
     // Resúmenes (D33): solo con la transcripción hecha.
     const zr = $('entResumen'); zr.innerHTML = '';
     if (e.estado === 'transcrita') {
-      const br = document.createElement('div'); br.className = 'bloque'; zr.appendChild(br);
+      const listo = e.estado_resumen === 'listo';
+      const br = plegable(listo ? 'ejec' : 'resumen', listo ? 'Resumen ejecutivo' : 'Resúmenes', true); zr.appendChild(br);
       const resumir = async ev => {
         ev.currentTarget.disabled = true;
         try { abrirEntrevista(await api('/entrevistas/' + encodeURIComponent(e.id) + '/resumir', { method: 'POST' })); }
         catch (err) { ev.currentTarget.disabled = false; br.appendChild(parrafo('No se pudo empezar (' + err.message + ').', 'aviso libre error')); }
       };
       if (e.estado_resumen === 'listo') {
-        br.appendChild(Object.assign(document.createElement('h3'), { textContent: 'Resumen ejecutivo' }));
         br.appendChild(Object.assign(document.createElement('div'), { className: 'texto', textContent: e.resumen_ejecutivo }));
-        const b2 = document.createElement('div'); b2.className = 'bloque'; zr.appendChild(b2);
-        const det = document.createElement('details');
-        det.innerHTML = '<summary>Resumen amplio</summary><div class="texto"></div>';
-        det.querySelector('.texto').textContent = e.resumen;
-        b2.appendChild(det);
+        const b2 = plegable('amplio', 'Resumen amplio', false); zr.appendChild(b2);
+        b2.appendChild(Object.assign(document.createElement('div'), { className: 'texto', textContent: e.resumen }));
         const acc = document.createElement('div'); acc.className = 'acciones'; zr.appendChild(acc);
         acc.appendChild(boton('📝 Guardar como nota', 'pri', () => { $('hnAviso').textContent = ''; $('hojaNotaEnt').querySelectorAll('button[data-cual]').forEach(b => { b.disabled = false; }); $('hojaNotaEnt').classList.remove('hidden'); }));
         acc.appendChild(boton('Rehacer resúmenes', '', resumir));
       } else if (e.estado_resumen === 'pendiente') {
-        br.appendChild(Object.assign(document.createElement('h3'), { textContent: 'Resúmenes' }));
         br.appendChild(parrafo('Redactando el resumen ejecutivo y el amplio… suele tardar menos de un minuto.'));
       } else {
-        br.appendChild(Object.assign(document.createElement('h3'), { textContent: 'Resúmenes' }));
         if (e.estado_resumen === 'fallido') br.appendChild(parrafo('No se pudo resumir: ' + (e.error_resumen || 'error desconocido') + '.', 'aviso libre error'));
         else br.appendChild(parrafo('Un resumen ejecutivo de diez líneas y otro amplio con participantes, temas, puntos clave, acuerdos, tareas y frases literales.'));
         br.appendChild(boton(e.estado_resumen === 'fallido' ? 'Reintentar' : '✨ Resumir', 'pri', resumir));
