@@ -1,0 +1,31 @@
+{
+  "fecha": "2026-09-24T10:28:00+02:00",
+  "titulo": "Subcarpetas en proyectos: backend y app",
+  "objetivo": "Desarrollar y desplegar las subcarpetas de proyecto del mock 19 con las respuestas del usuario.",
+  "prompts": [
+    { "texto": "Uno sí, dos sí, tres sí, cuatro subcarpeta, adelante con el desarrollo.", "nota": "Respuestas a las cuatro preguntas del mock 19: un nivel, ver en el padre lo de sus subcarpetas, borrado sin perder notas y «subcarpeta» en la interfaz." }
+  ],
+  "cambios": [
+    "app/src/main.rs: migración 3 (proyectos.padre_id), padre en POST/PATCH /proyectos, nombre único por padre, filtros con subcarpetas y solo=1, cifras del padre, archivar y borrar según D51/D52, documento en el padre común",
+    "app/src/entrevistas.rs: proyecto.padre, filtro con subcarpetas y contexto «Padre › Subcarpeta» para el modelo",
+    "docs/index.html (mock 19): tira de carpetas, migas, chips de subcarpeta, hoja del proyecto con «Dentro de» y subcarpetas, árbol en Mover y en el editor, exportación por ruta",
+    "docs/sw.js: caché del build nuevo",
+    ".github/workflows/deploy.yml: paso «Verificar subcarpetas»",
+    "CLAUDE.md y docs/planificacion/plan-subproyectos.md v2"
+  ],
+  "sha": "732a282",
+  "sha_completo": "732a28228ce17833521c40b0e11fb7312fd5e99c",
+  "run": 35975468214,
+  "mock": "mocks/019-subproyectos.html",
+  "build": "PR-B1-20260924-026",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Probar las subcarpetas en el móvil con las notas reales (si no aparece la tira, Ajustes → Buscar actualización)."
+  ],
+  "enlaces": [
+    { "texto": "PR #47", "url": "https://github.com/npiobject-labs/prueba/pull/47" },
+    { "texto": "Plan de subcarpetas", "url": "https://github.com/npiobject-labs/prueba/blob/main/docs/planificacion/plan-subproyectos.md" }
+  ],
+  "notas": "Continúa la sesión de las 09:52 (mock 19). Probado antes de desplegar: migración sobre una base creada con el binario de main, 40 comprobaciones de API con curl, 50 con Chromium a 390×844 contra el backend local y el paso nuevo de deploy.yml ejecutado en local; en Fly pasaron todos los pasos de verificación."
+}
