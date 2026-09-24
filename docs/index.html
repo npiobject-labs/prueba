@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260924-027">
+  <meta name="build" content="PR-B1-20260924-030">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 19</title>
+  <title>Notas · mock 20</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -20,10 +20,10 @@
     } catch (e) {}
   </script>
   <style>
-    :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; }
+    :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; --aviso:#fff4d6; --avisoTxt:#6b4e00; }
     /* En automatico manda el sistema; data-tema lo fuerza en un sentido u otro. */
-    @media (prefers-color-scheme: dark) { :root:not([data-tema="claro"]) { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; } }
-    :root[data-tema="oscuro"] { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; }
+    @media (prefers-color-scheme: dark) { :root:not([data-tema="claro"]) { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; --aviso:#3a3010; --avisoTxt:#f2d27a; } }
+    :root[data-tema="oscuro"] { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; --aviso:#3a3010; --avisoTxt:#f2d27a; }
     * { box-sizing:border-box; }
     body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--txt); }
     header { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--line); padding:.75rem 1rem; z-index:2; }
@@ -100,6 +100,76 @@
     .marca.pendiente { background:var(--acc2); color:var(--acc); border-color:transparent; }
     .marca.fallido { color:var(--danger); border-color:var(--danger); }
     .md { min-height:55vh; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.85rem; }
+    /* Informes con roles (D54-D67) */
+    .segm { display:flex; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:.2rem; gap:.2rem; margin:.6rem 0 .2rem; }
+    .segm button { flex:1; border:0; background:transparent; color:var(--mut); font:inherit; font-size:.95rem; padding:.5rem; border-radius:8px; cursor:pointer; }
+    .segm button.on { background:var(--acc); color:#fff; font-weight:600; }
+    .roles { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; }
+    .rol { position:relative; text-align:left; border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:12px; padding:.6rem .7rem; font:inherit; cursor:pointer; min-height:4.6rem; }
+    .rol b { display:block; font-size:.95rem; margin-bottom:.15rem; padding-right:1.4rem; }
+    .rol small { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; color:var(--mut); font-size:.75rem; line-height:1.3; }
+    .rol::after { content:''; position:absolute; top:.55rem; right:.55rem; width:1.1rem; height:1.1rem; border-radius:50%; border:2px solid var(--line); }
+    .rol.on { border-color:var(--acc); background:var(--acc2); }
+    .rol.on::after { content:'✓'; background:var(--acc); border-color:var(--acc); color:#fff; font-size:.7rem; line-height:1.1rem; text-align:center; font-weight:700; }
+    .rol.nuevo { border-style:dashed; border-color:var(--acc); color:var(--acc); display:flex; align-items:center; justify-content:center; font-weight:600; }
+    .rol.nuevo::after { display:none; }
+    .rol .propio { font-size:.65rem; color:var(--acc); font-weight:600; letter-spacing:.03em; }
+    .rolesCab { display:flex; justify-content:space-between; align-items:baseline; }
+    .rolesCab button { border:0; background:transparent; color:var(--acc); font:inherit; font-size:.8rem; cursor:pointer; padding:0 0 0 .6rem; }
+    .modeloBtn { display:flex; align-items:center; gap:.6rem; width:100%; text-align:left; border:1px solid var(--line); background:var(--bg); color:var(--txt); border-radius:10px; padding:.6rem .75rem; font:inherit; cursor:pointer; }
+    .modeloBtn > span:first-child { font-size:1.2rem; }
+    .modeloBtn > span:nth-child(2) { flex:1; min-width:0; }
+    .modeloBtn b { display:block; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .modeloBtn small { color:var(--mut); font-size:.75rem; }
+    .modeloBtn i { font-style:normal; color:var(--mut); }
+    .coste { margin-top:.6rem; background:var(--acc2); color:var(--acc); border-radius:10px; padding:.55rem .75rem; font-size:.85rem; line-height:1.4; }
+    .coste.caro { background:var(--aviso, #fff4d6); color:var(--avisoTxt, #6b4e00); }
+    .listaModelos { display:flex; flex-direction:column; gap:.35rem; margin-top:.35rem; }
+    .modelo { display:flex; gap:.5rem; align-items:flex-start; text-align:left; border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:10px; padding:.55rem .7rem; font:inherit; cursor:pointer; width:100%; }
+    .modelo > span:first-child { flex:1; min-width:0; }
+    .modelo b { font-size:.92rem; }
+    .modelo code { display:block; color:var(--mut); font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .modelo small { display:block; color:var(--mut); font-size:.75rem; margin-top:.1rem; }
+    .modelo .tick { color:var(--acc); font-weight:700; visibility:hidden; }
+    .modelo.on { border-color:var(--acc); }
+    .modelo.on .tick { visibility:visible; }
+    .grupoM { font-size:.75rem; color:var(--mut); text-transform:uppercase; letter-spacing:.06em; margin:.8rem 0 .1rem; }
+    .progreso { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-top:.75rem; }
+    .progreso .paso { display:flex; align-items:center; gap:.6rem; padding:.35rem 0; font-size:.95rem; }
+    .progreso .paso .est { width:1.4rem; text-align:center; }
+    .progreso .paso small { margin-left:auto; color:var(--mut); font-size:.78rem; text-align:right; }
+    .progreso .paso.ok small { color:var(--acc); }
+    .progreso .paso.mal small { color:var(--danger); }
+    .progreso .sep { border-top:1px dashed var(--line); margin:.35rem 0; }
+    .progreso .trabajando .est { animation:pulso 1.1s infinite; }
+    .ficha { color:var(--mut); font-size:.82rem; margin-top:.2rem; }
+    .alerta { background:var(--aviso, #fff4d6); color:var(--avisoTxt, #6b4e00); border-radius:10px; padding:.6rem .75rem; margin-top:.75rem; font-size:.88rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+    .alerta span { flex:1 1 12rem; }
+    .alerta .btn { padding:.3rem .8rem; }
+    .detalle article.informe { white-space:normal; font-size:.95rem; overflow-wrap:anywhere; }
+    .informe h1 { font-size:1.2rem; margin:0 0 .6rem; line-height:1.3; }
+    .informe > h1:first-child { display:none; }
+    .informe > h1:first-child + h2 { margin-top:0; padding-top:0; border-top:0; }
+    .informe h2 { font-size:1.05rem; margin:1.3rem 0 .4rem; padding-top:.8rem; border-top:1px solid var(--line); }
+    .informe h3 { font-size:.98rem; margin:1rem 0 .3rem; color:var(--acc); }
+    .informe h4 { font-size:.92rem; margin:.8rem 0 .2rem; }
+    .informe p { margin:.4rem 0; }
+    .informe ul, .informe ol { margin:.3rem 0 .5rem; padding-left:1.3rem; }
+    .informe li { margin:.2rem 0; }
+    .informe code { background:var(--acc2); color:var(--acc); padding:0 .3rem; border-radius:4px; font-size:.85em; }
+    .lineaRol { display:flex; align-items:center; gap:.6rem; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:.55rem .75rem; margin-bottom:.4rem; cursor:pointer; }
+    .lineaRol .ic { font-size:1.2rem; width:1.6rem; text-align:center; }
+    .lineaRol > span:nth-child(2) { flex:1; min-width:0; }
+    .lineaRol b { font-size:.93rem; }
+    .lineaRol small { display:block; color:var(--mut); font-size:.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .lineaRol i { font-style:normal; color:var(--mut); }
+    .nuevoRol { width:100%; border-style:dashed; border-color:var(--acc); color:var(--acc); font-weight:600; }
+    @media print {
+      body * { visibility:hidden !important; }
+      #gMd, #gMd * { visibility:visible !important; }
+      #gMd { position:absolute; left:0; top:0; width:100%; border:0; padding:0; background:#fff; color:#000; }
+      #gMd > h1:first-child { display:block; }
+    }
     .hoja textarea { min-height:5.5rem; }
     /* Proyectos (D14-D22) */
     .proy { position:relative; padding-right:3rem; }
@@ -212,7 +282,7 @@
 </head>
 <body>
 <header>
-  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><button class="migas hidden" id="migas" type="button" title="Ir al proyecto"></button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 19 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><button class="migas hidden" id="migas" type="button" title="Ir al proyecto"></button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 20 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <nav class="pestanas" id="pestanas" aria-label="Secciones">
     <button type="button" id="tabProy">📁 Proyectos</button>
     <button type="button" id="tabNotas">📝 <span id="tabNotasTxt">Notas</span></button>
@@ -268,21 +338,27 @@
   </section>
 
   <section id="documento" class="hidden detalle">
-    <button class="btn" id="volverDocumento" type="button">← Volver</button>
+    <div class="barraDet"><button class="btn" id="volverDocumento" type="button">← Volver</button><button class="btn" id="gCopiarArriba" type="button" title="Copiar en markdown">📋 Copiar</button></div>
     <h2 id="gTitulo"></h2>
     <time id="gFecha" style="color:var(--mut);font-size:.85rem"></time>
+    <div class="ficha" id="gFicha"></div>
     <p id="gEstado" class="aviso"></p>
+    <div class="chips" id="gRoles"></div>
+    <div id="gProgreso" class="progreso hidden"></div>
+    <div id="gAlerta" class="alerta hidden"></div>
     <div class="chips" id="gNotas"></div>
     <div id="gCuerpo">
-      <label for="gTexto" style="display:block;font-size:.85rem;color:var(--mut);margin:.75rem 0 .3rem">Documento (editable)</label>
-      <textarea id="gTexto" class="md" spellcheck="false"></textarea>
+      <div class="segm" id="gModo" style="margin-top:.9rem"><button type="button" data-m="leer" class="on">Leer</button><button type="button" data-m="editar">Editar</button></div>
+      <article id="gMd" class="informe"></article>
+      <textarea id="gTexto" class="md hidden" spellcheck="false" aria-label="Documento en markdown"></textarea>
       <div class="acciones">
-        <button class="btn pri" id="gCopiar" type="button">Copiar</button>
+        <button class="btn pri" id="gCopiar" type="button">📋 Copiar</button>
         <button class="btn" id="gCompartir" type="button">Compartir</button>
-        <button class="btn" id="gDescargar" type="button">Descargar</button>
+        <button class="btn" id="gDescargar" type="button">⬇ .md</button>
       </div>
       <div class="acciones">
-        <button class="btn" id="gGuardar" type="button" disabled>Guardar cambios</button>
+        <button class="btn" id="gPdf" type="button">🖨 PDF</button>
+        <button class="btn hidden" id="gGuardar" type="button" disabled>Guardar</button>
         <button class="btn" id="gRegenerar" type="button">Regenerar</button>
         <button class="btn peligro" id="gBorrar" type="button">Borrar</button>
       </div>
@@ -303,6 +379,13 @@
     </div>
     <p class="aviso">Se guarda solo en este navegador. La app es instalable: en Chrome/Android «Añadir a pantalla de inicio»; en iOS, Compartir → «Añadir a pantalla de inicio».</p>
     <div class="acciones hidden" id="aInstalarFila"><button class="btn pri" id="aInstalar" type="button">Instalar la app</button></div>
+    <label>Modelo para documentos e informes</label>
+    <button class="modeloBtn" id="aModelo" type="button"></button>
+    <p class="aviso" id="aModeloAviso">Titular y etiquetar notas sigue con el modelo barato del servidor: esto solo cambia lo que redacta. En la hoja de Generar se puede cambiar para un documento concreto.</p>
+    <label>Roles de análisis</label>
+    <div id="aRoles"></div>
+    <button class="btn nuevoRol" id="aNuevoRol" type="button">＋ Nuevo rol</button>
+    <p class="aviso">Los roles propios se guardan en el servidor y salen en todos tus dispositivos. Los de serie no se editan, pero se pueden duplicar para ajustarlos.</p>
     <label>Versión</label>
     <p class="aviso" id="aVersion"></p>
     <div class="acciones"><button class="btn" id="aBuscarVersion" type="button">Buscar actualización</button></div>
@@ -362,7 +445,7 @@
     <div class="acciones"><button class="btn peligro" id="entBorrarAudio" type="button">Borrar audio</button><button class="btn peligro" id="entBorrar" type="button">Borrar</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260924-027</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260924-030</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -389,11 +472,55 @@
   <div class="hoja">
     <h3 id="gaTitulo">Generar documento</h3>
     <p class="libre" id="gaResumen"></p>
-    <label for="gaInstruccion" style="display:block;font-size:.85rem;color:var(--mut);margin-bottom:.3rem">Instrucción (opcional)</label>
+    <div class="segm" id="gaModo"><button type="button" data-m="encargo">📄 Encargo</button><button type="button" data-m="informe">🔎 Análisis</button></div>
+    <p class="aviso libre" id="gaEncargo">El documento de siempre: Contexto, Objetivo, Requisitos, Decisiones, Criterios de aceptación y Dudas, listo para un agente de programación.</p>
+    <div id="gaAnalisis">
+      <div class="rolesCab"><span class="etq">Roles <span id="gaCuantos"></span></span><span><button type="button" id="gaTodos">Todos</button><button type="button" id="gaNinguno">Ninguno</button></span></div>
+      <div class="roles" id="gaRoles"></div>
+      <p class="aviso libre">Cada rol lee todas las notas por su cuenta; al final, una última pasada lo junta en un informe único.</p>
+    </div>
+    <label class="etq">Modelo</label>
+    <button class="modeloBtn" id="gaModelo" type="button"></button>
+    <div class="coste" id="gaCoste"></div>
+    <label for="gaInstruccion" style="display:block;font-size:.85rem;color:var(--mut);margin:.8rem 0 .3rem">Instrucción (opcional)</label>
     <textarea id="gaInstruccion" placeholder="Por ejemplo: es un bug, céntrate en la API…"></textarea>
     <div class="acciones">
       <button class="btn" id="gaNo" type="button">Cancelar</button>
       <button class="btn pri" id="gaSi" type="button">Generar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Selector de modelo (D60): el catálogo del servicio, con precio y contexto -->
+<div id="hojaModelo" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="smTitulo">
+  <div class="hoja">
+    <h3 id="smTitulo">Modelo</h3>
+    <p class="libre" id="smAviso"></p>
+    <input id="smBuscar" type="search" placeholder="Buscar modelo o proveedor…" autocomplete="off">
+    <div id="smLista"></div>
+    <p class="aviso libre">Precios en dólares por millón de tokens (entrada / salida), del catálogo de OpenRouter.</p>
+    <div class="acciones"><button class="btn" id="smNo" type="button">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- Crear, editar, ver o duplicar un rol de análisis (D59) -->
+<div id="hojaRol" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="roTitulo">
+  <div class="hoja">
+    <h3 id="roTitulo">Nuevo rol</h3>
+    <div class="fila" style="align-items:flex-end">
+      <div style="width:4.5rem"><label class="etq" for="roIcono">Icono</label><input id="roIcono" maxlength="8" placeholder="🧪" autocomplete="off" style="text-align:center;font-size:1.2rem;padding:.45rem"></div>
+      <div style="flex:1"><label class="etq" for="roNombre">Nombre</label><input id="roNombre" maxlength="30" autocomplete="off" placeholder="Por ejemplo: Accesibilidad"></div>
+    </div>
+    <label class="etq" for="roEnfoque">Qué mira este rol</label>
+    <textarea id="roEnfoque" maxlength="600" style="min-height:7rem" placeholder="Por ejemplo: revisa si cumple la norma europea de accesibilidad: contraste, tamaño de toque, lector de pantalla y alternativas al audio."></textarea>
+    <p class="aviso libre" id="roAviso"></p>
+    <div class="acciones">
+      <button class="btn" id="roNo" type="button">Cancelar</button>
+      <button class="btn pri" id="roSi" type="button">Guardar</button>
+    </div>
+    <div class="acciones" id="roMas">
+      <button class="btn" id="roDuplicar" type="button">Duplicar como propio</button>
+      <button class="btn peligro" id="roBorrar" type="button">Borrar</button>
     </div>
   </div>
 </div>
@@ -560,7 +687,11 @@
       if (token) headers['Authorization'] = 'Bearer ' + token;
       const r = await fetch(API + ruta, { ...init, headers, signal: AbortSignal.timeout(ESPERA) });
       if (r.status === 401) { abrirAjustes('El backend pide un token de acceso y el guardado aquí ' + (token ? 'no es válido' : 'está vacío') + '.'); throw new Error('HTTP 401: token de acceso'); }
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      if (!r.ok) {
+        let motivo = '';
+        try { motivo = (await r.json()).error || ''; } catch {}
+        throw new Error(`HTTP ${r.status}` + (motivo ? ': ' + motivo : ''));
+      }
       return r.status === 204 ? null : r.json();
     } catch (e) {
       const cortada = e.name === 'TimeoutError' || e.name === 'AbortError' || e.name === 'TypeError';
@@ -568,7 +699,7 @@
       throw e;
     } finally { clearTimeout(avisador); }
   }
-  // «mock 19 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
+  // «mock 20 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
   // Los avisos («arrancando el backend…») y los errores se siguen viendo.
   const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); $('estado').dataset.rutina = !err && txt.startsWith('mock ') ? '1' : ''; };
 
@@ -834,18 +965,7 @@
   $('todasSel').onclick = alternarTodas;
   $('salirSel').onclick = salirSeleccion;
   $('moverSel').onclick = () => abrirMover([...seleccion.keys()], 'seleccion');
-  $('generarSel').onclick = () => {
-    const caracteres = [...seleccion.values()].reduce((t, x) => t + x.contenido.length, 0);
-    const n = seleccion.size;
-    regenerando = null;
-    $('gaTitulo').textContent = 'Generar documento';
-    $('gaResumen').classList.remove('error');
-    $('gaResumen').textContent = `${n} nota${n === 1 ? '' : 's'} seleccionada${n === 1 ? '' : 's'}.`
-      + (caracteres > TOPE_CARACTERES ? ' Son muchas letras: el servidor recortará las notas más largas y lo dirá en el documento.' : '');
-    $('gaInstruccion').value = '';
-    $('hojaGen').classList.remove('hidden');
-    $('gaInstruccion').focus();
-  };
+  $('generarSel').onclick = () => abrirGen(null);
   // La misma hoja sirve para generar y para regenerar: lo unico que cambia es
   // de donde salen las notas y si la instruccion viene puesta.
   let regenerando = null;
@@ -855,16 +975,27 @@
   $('gaSi').onclick = async () => {
     $('gaSi').disabled = true; $('gaSi').textContent = 'Generando…';
     const instruccion = $('gaInstruccion').value.trim();
+    const modelo = modeloElegido();
+    // Los roles van en el orden de la lista, que es el orden del informe.
+    const roles = genModo === 'informe' && rolesCache ? rolesCache.filter(r => genRoles.has(r.id)).map(r => r.id) : [];
+    guardarLS(CLAVE_MODO_GEN, genModo);
+    if (genModo === 'informe') guardarLS(CLAVE_ROLES, JSON.stringify(roles));
     try {
       if (regenerando) {
+        const cuerpo = { instruccion, tipo: genModo, modelo: modelo || null };
+        // Sin cambios en los roles no se mandan: el backend reutiliza su copia.
+        const antes = (docActual && docActual.roles || []).map(r => r.id).join(',');
+        if (genModo === 'informe' && roles.join(',') !== antes) cuerpo.roles = roles;
         const doc = await api('/documentos/' + encodeURIComponent(regenerando) + '/regenerar', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instruccion })
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo)
         });
         cerrarHojaGen(); abrirDocumento(doc);
       } else {
+        const cuerpo = { notas: [...seleccion.keys()], instruccion, tipo: genModo };
+        if (modelo) cuerpo.modelo = modelo;
+        if (genModo === 'informe') cuerpo.roles = roles;
         const doc = await api('/documentos', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notas: [...seleccion.keys()], instruccion })
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo)
         });
         cerrarHojaGen(); salirSeleccion(); abrirDocumento(doc);
       }
@@ -872,7 +1003,7 @@
       $('gaResumen').textContent = 'No se pudo generar (' + e.message + '). '
         + (regenerando ? 'El documento sigue como estaba.' : 'La selección sigue aquí.');
       $('gaResumen').classList.add('error');
-    } finally { $('gaSi').disabled = false; $('gaSi').textContent = 'Generar'; }
+    } finally { $('gaSi').textContent = 'Generar'; pintarCoste(); }
   };
   let cargaActual = 0;
   async function cargar() {
@@ -904,7 +1035,7 @@
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
       // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
       if (modoSel) pintarSeleccion();
-      estado(`mock 19 · ${API.replace('https://', '')}`);
+      estado(`mock 20 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -1005,6 +1136,7 @@
         e.querySelector('time').textContent = fmt(d.creado_en) + ' · ' + d.notas.length + ' nota' + (d.notas.length === 1 ? '' : 's');
         const c = e.querySelector('.chips');
         if (d.proyecto && (!filtrados || d.proyecto.id !== proyectoActivo.id)) { const s = document.createElement('span'); s.className = 'chip proy'; s.textContent = (filtrados ? '📂 ' + d.proyecto.nombre : '📁 ' + ruta(d.proyecto)); c.appendChild(s); }
+        if (d.tipo === 'informe') c.appendChild(marca('🔎 Informe · ' + d.roles.length + (d.roles.length === 1 ? ' rol ' : ' roles ') + d.roles.map(r => r.icono).join(''), 'pendiente'));
         if (d.estado !== 'listo') c.appendChild(marca(d.estado === 'pendiente' ? 'generando…' : 'falló', d.estado));
         if (d.editado) c.appendChild(marca('editado', ''));
         e.onclick = () => abrirDocumento(d);
@@ -1021,22 +1153,44 @@
     return s;
   }
 
+  let modoDoc = 'leer';
   function abrirDocumento(d) {
+    if (!docActual || docActual.id !== d.id) modoDoc = 'leer';
     docActual = d;
+    const inf = d.tipo === 'informe', pendiente = d.estado === 'pendiente';
     $('gTitulo').textContent = d.titulo;
     $('gFecha').textContent = fmt(d.creado_en) + (d.proyecto ? ' · 📁 ' + ruta(d.proyecto) : '');
+    $('gFicha').textContent = [inf ? '🔎 Informe' : '📄 Encargo', '🧠 ' + nombreModelo(d.modelo), d.coste != null ? dolares(d.coste) : null].filter(Boolean).join(' · ');
+    $('gRoles').innerHTML = '';
+    (d.roles || []).forEach(r => $('gRoles').appendChild(Object.assign(document.createElement('span'), { className: 'chip', textContent: r.icono + ' ' + r.nombre })));
     $('gTexto').value = d.texto;
     $('gAviso').textContent = '';
     $('gGuardar').disabled = true;
-    const pendiente = d.estado === 'pendiente';
-    $('gCuerpo').classList.toggle('hidden', pendiente);
+    $('gCopiarArriba').classList.toggle('hidden', d.estado !== 'listo');
     $('gEstado').textContent = pendiente
-      ? 'Redactando el documento… puede tardar hasta dos minutos. Puedes cerrar la app: sigue generándose.'
-      : d.estado === 'fallido' ? 'No se pudo generar: ' + (d.error || 'sin detalle') + ' Pulsa Regenerar para volver a intentarlo.'
+      ? (inf ? 'Puedes cerrar la app: el informe sigue haciéndose en el servidor.' : 'Redactando el documento… puede tardar hasta dos minutos. Puedes cerrar la app: sigue generándose.')
+      : d.estado === 'fallido' ? 'No se pudo generar: ' + (d.error || 'sin detalle') + (inf ? '' : ' Pulsa Regenerar para volver a intentarlo.')
       : d.editado ? 'Editado a mano después de generarlo.' : '';
     $('gEstado').classList.toggle('error', d.estado === 'fallido');
-    // Si fallo, el cuerpo se enseña igual para poder regenerar o borrar.
-    if (d.estado === 'fallido') $('gCuerpo').classList.remove('hidden');
+    pintarProgreso(d);
+    // Roles que fallaron en un informe hecho: sale igual, con aviso y reintento (D64).
+    const malos = inf && d.estado === 'listo' ? d.roles.filter(r => r.estado !== 'hecho') : [];
+    const a = $('gAlerta'); a.innerHTML = ''; a.classList.toggle('hidden', !malos.length);
+    if (malos.length) {
+      a.appendChild(Object.assign(document.createElement('span'), { textContent: `⚠️ ${malos.map(r => r.nombre).join(', ')} no respondió (${malos[0].error || 'sin detalle'}). El informe se hizo con ${d.roles.length - malos.length} de ${d.roles.length} roles.` }));
+      a.appendChild(boton('Reintentar ' + (malos.length === 1 ? malos[0].nombre : 'esos'), '', reintentarInforme));
+    }
+    // El cuerpo se ve hecho o fallido (para regenerar o borrar), no mientras se genera.
+    $('gCuerpo').classList.toggle('hidden', pendiente);
+    const hayTexto = !!d.texto.trim();
+    $('gModo').classList.toggle('hidden', !hayTexto);
+    $('gModo').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === modoDoc));
+    $('gMd').classList.toggle('hidden', modoDoc !== 'leer' || !hayTexto);
+    $('gTexto').classList.toggle('hidden', modoDoc !== 'editar' || !hayTexto);
+    $('gPdf').classList.toggle('hidden', modoDoc !== 'leer' || !hayTexto);
+    $('gGuardar').classList.toggle('hidden', modoDoc !== 'editar');
+    ['gCopiar', 'gCompartir', 'gDescargar'].forEach(id => { $(id).disabled = !hayTexto; });
+    if (modoDoc === 'leer') $('gMd').innerHTML = markdown(d.texto);
 
     const c = $('gNotas'); c.innerHTML = '';
     d.notas.forEach(n => {
@@ -1047,7 +1201,44 @@
       c.appendChild(b);
     });
     ver('documento');
+    $('cab').textContent = inf ? 'Informe' : 'Documento';
     vigilar(d);
+    if (d.modelo && !modelosCache) cargarModelos().then(() => { if (docActual === d) $('gFicha').textContent = $('gFicha').textContent.replace(d.modelo, nombreModelo(d.modelo)); });
+  }
+  $('gModo').onclick = ev => {
+    const b = ev.target.closest('button'); if (!b || !docActual) return;
+    if (modoDoc === 'editar' && b.dataset.m === 'leer' && !$('gGuardar').disabled && !confirm('Hay cambios sin guardar. ¿Descartarlos?')) return;
+    modoDoc = b.dataset.m; abrirDocumento(docActual);
+  };
+
+  // Progreso rol a rol de un informe (D63): mientras se hace o si falló.
+  function pintarProgreso(d) {
+    const p = $('gProgreso');
+    const ver_ = d.tipo === 'informe' && d.estado !== 'listo';
+    p.classList.toggle('hidden', !ver_);
+    if (!ver_) return;
+    const txt = { espera: ['·', 'en espera'], trabajando: ['⏳', 'leyendo las notas…'], hecho: ['✓', 'hecho'], fallido: ['✗', 'falló'] };
+    const activos = d.roles.some(r => r.estado === 'espera' || r.estado === 'trabajando');
+    const sintesis = d.estado === 'pendiente' ? (activos ? 'espera' : 'trabajando') : (activos || !d.roles.some(r => r.estado === 'hecho') ? 'espera' : 'fallido');
+    const hechos = d.roles.filter(r => r.estado === 'hecho' || r.estado === 'fallido').length;
+    p.innerHTML = '';
+    const fila = (est, clase, titulo, detalle) => {
+      const f = document.createElement('div'); f.className = 'paso ' + clase;
+      f.innerHTML = '<span class="est"></span><span></span><small></small>';
+      f.children[0].textContent = est; f.children[1].textContent = titulo; f.children[2].textContent = detalle;
+      p.appendChild(f);
+    };
+    d.roles.forEach(r => fila(txt[r.estado][0], r.estado === 'hecho' ? 'ok' : r.estado === 'fallido' ? 'mal' : r.estado, r.icono + ' ' + r.nombre, r.estado === 'fallido' && r.error ? 'falló: ' + r.error.slice(0, 60) : txt[r.estado][1]));
+    p.appendChild(Object.assign(document.createElement('div'), { className: 'sep' }));
+    fila({ espera: '·', trabajando: '⏳', fallido: '✗' }[sintesis], sintesis === 'fallido' ? 'mal' : sintesis, '🧩 Síntesis: informe único', { espera: d.estado === 'pendiente' ? 'cuando acaben los roles' : 'no llegó a hacerse', trabajando: 'redactando…', fallido: 'falló' }[sintesis]);
+    const av = document.createElement('div'); av.className = 'avance';
+    av.innerHTML = `<i style="width:${Math.round(100 * hechos / (d.roles.length + 1))}%"></i>`; p.appendChild(av);
+    if (d.estado === 'fallido') p.appendChild(boton('Reintentar lo que falló', 'pri', reintentarInforme));
+  }
+  async function reintentarInforme(ev) {
+    ev.currentTarget.disabled = true;
+    try { abrirDocumento(await api('/documentos/' + encodeURIComponent(docActual.id) + '/reintentar', { method: 'POST' })); }
+    catch (e) { ev.currentTarget.disabled = false; $('gAviso').textContent = 'No se pudo reintentar (' + e.message + ').'; $('gCuerpo').classList.remove('hidden'); }
   }
 
   // Mientras el servidor redacta, se pregunta cada tres segundos. Es el precio
@@ -1075,23 +1266,26 @@
   $('volverDocumento').onclick = () => { clearTimeout(sondeo); cargarDocumentos(); };
   $('gTexto').oninput = () => { $('gGuardar').disabled = !docActual || $('gTexto').value.trim() === docActual.texto.trim(); };
 
-  $('gCopiar').onclick = async () => {
-    const texto = $('gTexto').value;
+  $('gCopiar').onclick = $('gCopiarArriba').onclick = async () => {
+    const texto = modoDoc === 'editar' ? $('gTexto').value : docActual.texto;
     try {
       await navigator.clipboard.writeText(texto);
-      $('gAviso').textContent = 'Copiado. Pégalo en Claude Code.';
+      $('gAviso').textContent = docActual.tipo === 'informe' ? 'Copiado en markdown.' : 'Copiado. Pégalo en Claude Code.';
     } catch {
       // Sin permiso de portapapeles (o sin HTTPS): al menos se selecciona.
+      modoDoc = 'editar'; abrirDocumento(docActual);
       $('gTexto').select();
       $('gAviso').textContent = 'Este navegador no deja copiar solo: el texto está seleccionado, copia a mano.';
     }
+    $('gCuerpo').scrollIntoView({ block: 'end', behavior: 'smooth' });
   };
+  $('gPdf').onclick = () => window.print();
   $('gCompartir').onclick = async () => {
     if (!navigator.share) { $('gAviso').textContent = 'Este navegador no tiene compartir; usa Copiar o Descargar.'; return; }
-    try { await navigator.share({ title: docActual.titulo, text: $('gTexto').value }); }
+    try { await navigator.share({ title: docActual.titulo, text: modoDoc === 'editar' ? $('gTexto').value : docActual.texto }); }
     catch { /* cancelar no es un error */ }
   };
-  $('gDescargar').onclick = () => descargarMd(nombreDeFichero(docActual.titulo, 'documento'), $('gTexto').value);
+  $('gDescargar').onclick = () => descargarMd(nombreDeFichero(docActual.titulo, docActual.tipo === 'informe' ? 'informe' : 'documento'), modoDoc === 'editar' ? $('gTexto').value : docActual.texto);
   $('gGuardar').onclick = async () => {
     $('gGuardar').disabled = true; $('gAviso').textContent = 'guardando…';
     try {
@@ -1101,17 +1295,275 @@
       $('gAviso').textContent = 'Cambios guardados.';
     } catch (e) { $('gGuardar').disabled = false; $('gAviso').textContent = 'No se pudo guardar (' + e.message + ').'; }
   };
-  $('gRegenerar').onclick = () => {
-    regenerando = docActual.id;
-    $('gaTitulo').textContent = 'Regenerar documento';
-    $('gaResumen').classList.remove('error');
-    $('gaResumen').textContent = `Se vuelve a redactar con las mismas ${docActual.notas.length} nota`
-      + (docActual.notas.length === 1 ? '' : 's') + '. Lo que haya ahora se pierde.';
-    $('gaInstruccion').value = docActual.instruccion || '';
-    $('hojaGen').classList.remove('hidden');
-    $('gaInstruccion').focus();
-  };
+  $('gRegenerar').onclick = () => abrirGen(docActual);
   $('gBorrar').onclick = () => pedirBorrado(docActual, 'documento');
+
+  // --- Informes con roles (D54-D67): hoja de Generar, modelo y roles ---
+  const CLAVE_ROLES = 'notas-roles', CLAVE_MODELO = 'notas-modelo', CLAVE_MODO_GEN = 'notas-generar';
+  const MAX_ROLES = 8, UMBRAL_CARO = 0.25;
+  const leerLS = k => { try { return localStorage.getItem(k); } catch { return null; } };
+  const guardarLS = (k, v) => { try { v == null || v === '' ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
+  let rolesCache = null, modelosCache = null;
+  let genModo = leerLS(CLAVE_MODO_GEN) === 'informe' ? 'informe' : 'encargo';
+  let genRoles = new Set((() => { try { return JSON.parse(leerLS(CLAVE_ROLES)) || ['critico', 'analitico']; } catch { return ['critico', 'analitico']; } })());
+  // `null`: el de Ajustes. Una cadena (vacía = el del servidor): solo para esta hoja.
+  let genModelo = null, genCaracteres = 0, genNotas = 0;
+  const modeloAjustes = () => leerLS(CLAVE_MODELO) || '';
+  const modeloElegido = () => genModelo ?? modeloAjustes();
+  const modeloInfo = id => modelosCache && modelosCache.modelos.find(m => m.id === id);
+  const nombreModelo = id => id ? ((modeloInfo(id) || {}).nombre || id) : 'el del servidor';
+  const dolares = v => (v < 0.01 ? '< 0,01' : v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + ' $';
+  const precio = m => m ? `${m.entrada.toLocaleString('es-ES', { maximumFractionDigits: 3 })} / ${m.salida.toLocaleString('es-ES', { maximumFractionDigits: 3 })} $ · ${m.contexto >= 1e6 ? Math.round(m.contexto / 1e5) / 10 + 'M' : Math.round(m.contexto / 1000) + 'K'}` : '';
+  const sinAcentos = t => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  async function cargarRoles(forzar) { if (!rolesCache || forzar) rolesCache = await api('/roles'); return rolesCache; }
+  // Si el catálogo no llega, la hoja sigue sirviendo con el modelo del servidor.
+  async function cargarModelos() {
+    if (modelosCache && !modelosCache.error) return modelosCache;
+    try { modelosCache = await api('/modelos'); } catch (e) { modelosCache = { defecto: null, modelos: [], error: e.message }; }
+    return modelosCache;
+  }
+
+  async function abrirGen(desde) {
+    regenerando = desde ? desde.id : null;
+    genModelo = null;
+    if (desde) {
+      genModo = desde.tipo === 'informe' ? 'informe' : 'encargo';
+      if (desde.roles && desde.roles.length) genRoles = new Set(desde.roles.map(r => r.id));
+      const m = desde.modelo || '';
+      if (m !== modeloAjustes()) genModelo = m;
+      $('gaInstruccion').value = desde.instruccion || '';
+      genCaracteres = 0; genNotas = desde.notas.length;
+    } else {
+      genCaracteres = [...seleccion.values()].reduce((t, x) => t + x.contenido.length + x.titulo.length, 0);
+      genNotas = seleccion.size;
+      $('gaInstruccion').value = '';
+    }
+    $('gaTitulo').textContent = desde ? 'Regenerar' : `Generar con ${genNotas} nota${genNotas === 1 ? '' : 's'}`;
+    $('gaResumen').classList.remove('error');
+    $('gaResumen').textContent = desde
+      ? `Se vuelve a hacer con las mismas ${genNotas} nota${genNotas === 1 ? '' : 's'}; puedes cambiar el tipo, los roles, el modelo y la instrucción. Lo que haya ahora se pierde.`
+      : `${genNotas} nota${genNotas === 1 ? '' : 's'} · ${(genCaracteres / 1000).toLocaleString('es-ES', { maximumFractionDigits: 1 })} mil caracteres.`
+        + (genCaracteres > TOPE_CARACTERES ? ' Son muchas letras: el servidor recortará las notas más largas y lo dirá en el documento.' : '');
+    pintarGen();
+    $('hojaGen').classList.remove('hidden');
+    await Promise.all([cargarRoles().catch(() => null), cargarModelos()]);
+    if (!$('hojaGen').classList.contains('hidden')) pintarGen();
+  }
+  function pintarGen() {
+    $('gaModo').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === genModo));
+    $('gaEncargo').classList.toggle('hidden', genModo !== 'encargo');
+    $('gaAnalisis').classList.toggle('hidden', genModo !== 'informe');
+    const g = $('gaRoles'); g.innerHTML = '';
+    if (!rolesCache) g.appendChild(parrafo('Cargando los roles…'));
+    else {
+      const conocidos = new Set(rolesCache.map(r => r.id));
+      [...genRoles].forEach(id => { if (!conocidos.has(id)) genRoles.delete(id); });
+      rolesCache.forEach(r => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'rol' + (genRoles.has(r.id) ? ' on' : '');
+        b.innerHTML = '<b></b><small></small>';
+        b.querySelector('b').textContent = r.icono + ' ' + r.nombre;
+        b.querySelector('small').textContent = r.enfoque;
+        if (r.propio) b.querySelector('small').prepend(Object.assign(document.createElement('span'), { className: 'propio', textContent: 'PROPIO · ' }));
+        b.onclick = () => {
+          if (genRoles.has(r.id)) genRoles.delete(r.id);
+          else if (genRoles.size >= MAX_ROLES) { $('gaCuantos').textContent = `· como mucho ${MAX_ROLES}`; return; }
+          else genRoles.add(r.id);
+          pintarGen();
+        };
+        g.appendChild(b);
+      });
+      const nuevo = document.createElement('button'); nuevo.type = 'button'; nuevo.className = 'rol nuevo'; nuevo.textContent = '＋ Rol propio';
+      nuevo.onclick = () => abrirRol(null, true); g.appendChild(nuevo);
+    }
+    $('gaCuantos').textContent = genRoles.size ? `· ${genRoles.size} elegido${genRoles.size === 1 ? '' : 's'}` : '';
+    pintarModeloBtn($('gaModelo'), modeloElegido(), genModelo != null ? 'Solo para este documento' : 'El de Ajustes');
+    pintarCoste();
+  }
+  function pintarModeloBtn(b, id, etiqueta) {
+    const defecto = modelosCache && modelosCache.defecto;
+    const m = modeloInfo(id || defecto);
+    b.innerHTML = '<span>🧠</span><span><b></b><small></small></span><i>›</i>';
+    b.querySelector('b').textContent = id ? nombreModelo(id) : 'El del servidor' + (defecto ? ' · ' + nombreModelo(defecto) : '');
+    b.querySelector('small').textContent = [etiqueta, precio(m)].filter(Boolean).join(' · ');
+  }
+  // Estimación (D62): unos 3,6 caracteres por token; cada rol escribe unos
+  // 1.200 tokens y la síntesis 1.500. Al regenerar no se sabe el tamaño.
+  function estimar(nRoles, m) {
+    const notas = genCaracteres / 3.6 + genNotas * 25, sistema = 500;
+    if (!nRoles) return ((notas + sistema) * m.entrada + 1500 * m.salida) / 1e6;
+    const entrada = nRoles * (notas + sistema) + (notas + sistema + nRoles * 1200), salida = nRoles * 1200 + 1500;
+    return (entrada * m.entrada + salida * m.salida) / 1e6;
+  }
+  function pintarCoste() {
+    const m = modeloInfo(modeloElegido() || (modelosCache && modelosCache.defecto)), c = $('gaCoste');
+    c.className = 'coste';
+    if (genModo === 'encargo') {
+      if (m && !m.json) { c.className = 'coste caro'; c.textContent = 'Este modelo no da salida estructurada y el encargo la necesita: elige otro o usa Análisis.'; $('gaSi').disabled = true; return; }
+      $('gaSi').disabled = false;
+      c.textContent = '1 llamada' + (m && genCaracteres ? ' · ≈ ' + dolares(estimar(0, m)) : '') + ' · menos de un minuto';
+      return;
+    }
+    const n = genRoles.size;
+    $('gaSi').disabled = n === 0;
+    if (!n) { c.textContent = 'Elige al menos un rol.'; return; }
+    const coste = m && genCaracteres ? estimar(n, m) : null;
+    const caro = coste != null && coste > UMBRAL_CARO;
+    c.className = 'coste' + (caro ? ' caro' : '');
+    c.innerHTML = `${n + 1} llamadas (${n} ${n === 1 ? 'rol' : 'roles'} + síntesis)` + (coste != null ? ` · <b>≈ ${dolares(coste)}</b>` : '')
+      + ` · ${n > 4 ? '2–3' : '1–2'} min` + (caro ? '<br>Es un informe caro con este modelo: revisa los roles o prueba uno más barato.' : '');
+  }
+  $('gaModo').onclick = ev => { const b = ev.target.closest('button'); if (!b) return; genModo = b.dataset.m; pintarGen(); };
+  $('gaTodos').onclick = () => { if (rolesCache) genRoles = new Set(rolesCache.slice(0, MAX_ROLES).map(r => r.id)); pintarGen(); if (rolesCache && rolesCache.length > MAX_ROLES) $('gaCuantos').textContent += ` (los ${MAX_ROLES} primeros: es el tope)`; };
+  $('gaNinguno').onclick = () => { genRoles.clear(); pintarGen(); };
+  $('gaModelo').onclick = () => abrirModelo('hoja');
+
+  // Selector de modelo (D60): el de Ajustes o solo para la hoja de Generar.
+  let smDesde = 'ajustes';
+  async function abrirModelo(desde) {
+    smDesde = desde; $('smBuscar').value = '';
+    $('smTitulo').textContent = desde === 'hoja' ? 'Modelo para este documento' : 'Modelo para documentos e informes';
+    $('smAviso').textContent = desde === 'hoja' ? 'Solo cambia lo que vas a generar; el de siempre está en ⚙ Ajustes.' : 'El que usan Generar y Regenerar si no eliges otro en la hoja. Se guarda en este dispositivo.';
+    $('smLista').innerHTML = ''; $('smLista').appendChild(parrafo('Cargando el catálogo…'));
+    $('hojaModelo').classList.remove('hidden');
+    await cargarModelos(); pintarModelos();
+  }
+  function pintarModelos() {
+    const mc = modelosCache, l = $('smLista'), q = sinAcentos($('smBuscar').value.trim());
+    const actual = smDesde === 'hoja' ? modeloElegido() : modeloAjustes();
+    const paraEncargo = smDesde === 'hoja' && genModo === 'encargo';
+    l.innerHTML = '';
+    const lista = cosas => { const d = document.createElement('div'); d.className = 'listaModelos'; cosas.forEach(x => d.appendChild(x)); l.appendChild(d); };
+    const grupo = t => l.appendChild(Object.assign(document.createElement('div'), { className: 'grupoM', textContent: t }));
+    const boton_ = (id, nombre, sub) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'modelo' + (id === actual ? ' on' : '');
+      b.innerHTML = '<span><b></b><code></code><small></small></span><span class="tick">✓</span>';
+      b.querySelector('b').textContent = nombre; b.querySelector('code').textContent = id || (mc.defecto || '');
+      b.querySelector('small').textContent = sub;
+      b.onclick = () => elegirModelo(id);
+      return b;
+    };
+    const sub = m => [precio(m), m.recomendado, paraEncargo && !m.json ? 'sin salida estructurada: no vale para encargos' : ''].filter(Boolean).join(' · ');
+    lista([boton_('', 'El del servidor', 'Por defecto' + (mc.defecto && modeloInfo(mc.defecto) ? ' · ' + precio(modeloInfo(mc.defecto)) : ''))]);
+    if (mc.error) { l.appendChild(parrafo('No se pudo traer el catálogo (' + mc.error + '). Queda el del servidor.', 'aviso libre error')); return; }
+    const cabe = m => !q || sinAcentos(m.nombre + ' ' + m.id).includes(q);
+    const rec = mc.modelos.filter(m => m.recomendado && cabe(m)), resto = mc.modelos.filter(m => !m.recomendado && cabe(m));
+    if (rec.length) { grupo('Recomendados para informes'); lista(rec.map(m => boton_(m.id, m.nombre, sub(m)))); }
+    if (resto.length) {
+      grupo(q ? `Coinciden ${resto.length}` : `Todos · ${mc.modelos.length} en el catálogo`);
+      lista(resto.slice(0, 60).map(m => boton_(m.id, m.nombre, sub(m))));
+      if (resto.length > 60) l.appendChild(parrafo(`Y ${resto.length - 60} más: escribe arriba para encontrarlos.`));
+    }
+    if (!rec.length && !resto.length) l.appendChild(parrafo('Ningún modelo coincide.'));
+  }
+  function elegirModelo(id) {
+    $('hojaModelo').classList.add('hidden');
+    if (smDesde === 'hoja') { genModelo = id === modeloAjustes() ? null : id; pintarGen(); }
+    else { guardarLS(CLAVE_MODELO, id); pintarAjustesIA(); $('aModeloAviso').textContent = 'Guardado en este dispositivo: ' + (id ? nombreModelo(id) : 'el del servidor') + '.'; }
+  }
+  let tsm; $('smBuscar').oninput = () => { clearTimeout(tsm); tsm = setTimeout(pintarModelos, 150); };
+  $('smNo').onclick = () => $('hojaModelo').classList.add('hidden');
+  $('hojaModelo').onclick = ev => { if (ev.target === $('hojaModelo')) $('hojaModelo').classList.add('hidden'); };
+
+  // Roles (D59): crear, editar, ver, duplicar y borrar.
+  let editandoRol = null, rolDesdeHoja = false;
+  function abrirRol(r, desdeHoja, copia) {
+    editandoRol = r; rolDesdeHoja = !!desdeHoja;
+    const deSerie = !!(r && !r.propio);
+    const base_ = r || copia;
+    $('roTitulo').textContent = !r ? (copia ? 'Duplicar rol' : 'Nuevo rol') : deSerie ? 'Rol de serie' : 'Editar rol';
+    $('roIcono').value = base_ ? base_.icono : ''; $('roNombre').value = base_ ? base_.nombre : ''; $('roEnfoque').value = base_ ? base_.enfoque : '';
+    ['roIcono', 'roNombre', 'roEnfoque'].forEach(id => { $(id).readOnly = deSerie; });
+    $('roSi').classList.toggle('hidden', deSerie); $('roSi').disabled = false;
+    $('roNo').textContent = deSerie ? 'Cerrar' : 'Cancelar';
+    $('roAviso').classList.remove('error');
+    $('roAviso').textContent = deSerie ? 'Los roles de serie mejoran con cada versión de la app; para ajustar uno, duplícalo.'
+      : 'Escríbelo como un encargo: qué debe buscar y qué debe proponer. La app le añade la estructura común (veredicto, hallazgos, recomendaciones y preguntas).';
+    $('roMas').classList.toggle('hidden', !r);
+    $('roDuplicar').classList.toggle('hidden', !deSerie);
+    $('roBorrar').classList.toggle('hidden', !r || deSerie);
+    $('hojaRol').classList.remove('hidden');
+    if (!deSerie) $('roNombre').focus();
+  }
+  $('roNo').onclick = () => $('hojaRol').classList.add('hidden');
+  $('hojaRol').onclick = ev => { if (ev.target === $('hojaRol')) $('hojaRol').classList.add('hidden'); };
+  $('roSi').onclick = async () => {
+    const cuerpo = { nombre: $('roNombre').value.trim(), icono: $('roIcono').value.trim(), enfoque: $('roEnfoque').value.trim() };
+    if (!cuerpo.nombre) { $('roNombre').focus(); return; }
+    if (!cuerpo.enfoque) { $('roEnfoque').focus(); return; }
+    $('roSi').disabled = true;
+    try {
+      const r = await api(editandoRol ? '/roles/' + encodeURIComponent(editandoRol.id) : '/roles', {
+        method: editandoRol ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo)
+      });
+      await cargarRoles(true);
+      if (!editandoRol && rolDesdeHoja && genRoles.size < MAX_ROLES) genRoles.add(r.id);
+      $('hojaRol').classList.add('hidden');
+      if (!$('hojaGen').classList.contains('hidden')) pintarGen();
+      if (!$('ajustes').classList.contains('hidden')) pintarAjustesIA();
+    } catch (e) {
+      $('roSi').disabled = false;
+      $('roAviso').textContent = /HTTP 409/.test(e.message) ? 'Ya hay un rol con ese nombre.' : 'No se pudo guardar (' + e.message + ').';
+      $('roAviso').classList.add('error');
+    }
+  };
+  $('roDuplicar').onclick = () => { const r = editandoRol; abrirRol(null, rolDesdeHoja, { nombre: (r.nombre + ' (mío)').slice(0, 30), icono: r.icono, enfoque: r.enfoque }); };
+  $('roBorrar').onclick = async () => {
+    const r = editandoRol;
+    if (!confirm(`¿Borrar el rol «${r.nombre}»? Los informes ya hechos no cambian.`)) return;
+    try {
+      await api('/roles/' + encodeURIComponent(r.id), { method: 'DELETE' });
+      genRoles.delete(r.id); guardarLS(CLAVE_ROLES, JSON.stringify([...genRoles]));
+      await cargarRoles(true);
+      $('hojaRol').classList.add('hidden');
+      if (!$('ajustes').classList.contains('hidden')) pintarAjustesIA();
+      if (!$('hojaGen').classList.contains('hidden')) pintarGen();
+    } catch (e) { $('roAviso').textContent = 'No se pudo borrar (' + e.message + ').'; $('roAviso').classList.add('error'); }
+  };
+
+  // Ajustes: modelo por defecto y lista de roles.
+  async function pintarAjustesIA() {
+    pintarModeloBtn($('aModelo'), modeloAjustes(), modeloAjustes() || 'Por defecto');
+    const z = $('aRoles');
+    if (!rolesCache) { z.innerHTML = ''; z.appendChild(parrafo('Cargando los roles…')); }
+    await Promise.all([cargarModelos(), cargarRoles().catch(e => { z.innerHTML = ''; z.appendChild(parrafo('No se pudieron cargar los roles (' + e.message + ').', 'aviso libre error')); })]);
+    pintarModeloBtn($('aModelo'), modeloAjustes(), modeloAjustes() || 'Por defecto');
+    if (!rolesCache) return;
+    z.innerHTML = '';
+    rolesCache.forEach(r => {
+      const f = document.createElement('div'); f.className = 'lineaRol';
+      f.innerHTML = '<span class="ic"></span><span><b></b><small></small></span><i></i>';
+      f.querySelector('.ic').textContent = r.icono; f.querySelector('b').textContent = r.nombre;
+      f.querySelector('small').textContent = r.enfoque; f.querySelector('i').textContent = r.propio ? '✎' : '›';
+      if (r.propio) f.querySelector('b').after(Object.assign(document.createElement('span'), { className: 'marca pendiente', textContent: 'propio', style: 'margin-left:.4rem' }));
+      f.onclick = () => abrirRol(r);
+      z.appendChild(f);
+    });
+  }
+  $('aModelo').onclick = () => abrirModelo('ajustes');
+  $('aNuevoRol').onclick = () => abrirRol(null);
+
+  // Markdown mínimo y sin dependencias (la PWA funciona sin red, D65):
+  // títulos, listas, negrita, cursiva y código. Todo se escapa antes.
+  function markdown(texto) {
+    const esc = t => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const linea = t => esc(t)
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[\s(])[*_]([^*_\s][^*_]*?)[*_](?=[\s).,:;!?]|$)/g, '$1<em>$2</em>');
+    const out = []; let lista = null;
+    const cerrar = () => { if (lista) { out.push(`</${lista}>`); lista = null; } };
+    texto.split('\n').forEach(l => {
+      let m;
+      if ((m = l.match(/^(#{1,4})\s+(.*)/))) { cerrar(); out.push(`<h${m[1].length}>${linea(m[2])}</h${m[1].length}>`); }
+      else if ((m = l.match(/^\s*[-*•]\s+(.*)/))) { if (lista !== 'ul') { cerrar(); out.push('<ul>'); lista = 'ul'; } out.push(`<li>${linea(m[1])}</li>`); }
+      else if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { if (lista !== 'ol') { cerrar(); out.push('<ol>'); lista = 'ol'; } out.push(`<li>${linea(m[1])}</li>`); }
+      else if (!l.trim()) cerrar();
+      else { cerrar(); out.push(`<p>${linea(l)}</p>`); }
+    });
+    cerrar();
+    return out.join('');
+  }
 
   // --- Editor y dictado ---
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1378,6 +1830,7 @@
     $('aExportaAviso').classList.remove('error');
     $('aCompartirNotas').classList.add('hidden');
     ver('ajustes');
+    pintarAjustesIA();
   }
   $('ajustesBtn').onclick = () => abrirAjustes('');
   $('volverAjustes').onclick = irALista;
@@ -1555,7 +2008,7 @@
       const ps = await api('/proyectos?' + p);
       if (mia !== cargaProy) return;
       pintarProyectos(ps, !!q);
-      estado(`mock 19 · ${API.replace('https://', '')}`);
+      estado(`mock 20 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaProy) return;
       $('listaProyectos').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentarProy" type="button">Reintentar</button></p>`;
@@ -2304,7 +2757,7 @@
       if (mia !== cargaEnt) return;
       entrevistas = lista;
       pintarEntrevistas();
-      estado(`mock 19 · ${API.replace('https://', '')}`);
+      estado(`mock 20 · ${API.replace('https://', '')}`);
       // Mientras algo se transcribe o se resume, la lista se refresca sola.
       if (lista.some(e => e.estado === 'transcribiendo' || e.estado_resumen === 'pendiente'))
         sondeoLista = setTimeout(() => { if (!$('entrevistas').classList.contains('hidden')) cargarEntrevistas(); }, 5000);
