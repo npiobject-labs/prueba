@@ -37,6 +37,12 @@ const ESPERA_DOCUMENTO: Duration = Duration::from_secs(120);
 /// sobra; pasado esto se recorta y el documento lo dice.
 const MAXIMO_DOCUMENTO: usize = 30_000;
 
+/// Tope de salida de cada llamada de un informe (D67): un rol o la síntesis.
+const MAXIMO_TOKENS_INFORME: u32 = 2500;
+
+/// Consultas que no generan nada (catálogo, coste): si tardan, algo va mal.
+const ESPERA_CONSULTA: Duration = Duration::from_secs(20);
+
 /// D31: un trozo son cinco minutos de audio. El proxy espera 120 s al
 /// proveedor; aquí algo menos, para que el error sea nuestro y legible.
 const ESPERA_TRANSCRIPCION: Duration = Duration::from_secs(110);
@@ -121,6 +127,41 @@ pub struct Resumen {
     pub titulo: String,
     pub ejecutivo: String,
     pub amplio: Amplio,
+}
+
+/// Un rol del análisis (D55/D59) tal y como se le pide al modelo: quién es y
+/// qué mira. La estructura común de la respuesta la pone esta capa.
+pub struct RolPedido<'a> {
+    pub nombre: &'a str,
+    pub icono: &'a str,
+    pub enfoque: &'a str,
+}
+
+/// Lo que ya escribió un rol, para la síntesis (D57).
+pub struct AnalisisHecho<'a> {
+    pub nombre: &'a str,
+    pub icono: &'a str,
+    pub texto: &'a str,
+}
+
+/// Un modelo del catálogo del servicio (D60), con lo que hace falta para
+/// elegirlo: precio en dólares por millón de tokens, contexto y si da salida
+/// estructurada.
+#[derive(Debug, Clone, Deserialize, serde::Serialize)]
+pub struct ModeloCatalogo {
+    pub id: String,
+    #[serde(default)]
+    pub nombre: String,
+    #[serde(default)]
+    pub contexto: u64,
+    #[serde(default)]
+    pub entrada: f64,
+    #[serde(default)]
+    pub salida: f64,
+    #[serde(default)]
+    pub json: bool,
+    #[serde(default)]
+    pub modalidades: Vec<String>,
 }
 
 /// Configuración del servicio, leída del entorno una sola vez al arrancar.
@@ -444,13 +485,14 @@ impl Llm {
         notas: &[NotaFuente],
         instruccion: &str,
         proyecto: Option<&Proyecto>,
+        modelo: Option<&str>,
     ) -> Result<Documento, String> {
         if notas.is_empty() {
             return Err("no hay notas que documentar".into());
         }
         let texto = self
             .completar(
-                self.peticion_documento(notas, instruccion, proyecto),
+                self.peticion_documento(notas, instruccion, proyecto, modelo),
                 "notas-documento",
                 ESPERA_DOCUMENTO,
             )
@@ -464,6 +506,129 @@ impl Llm {
         Ok(documento)
     }
 
+    /// El análisis de un rol (D57): markdown con Veredicto, Hallazgos,
+    /// Recomendaciones y Preguntas abiertas, sin títulos propios (los baja a
+    /// cuarto nivel si se le escapan, porque el rol va bajo un `###`).
+    pub async fn analizar_rol(
+        &self,
+        rol: &RolPedido<'_>,
+        notas: &[NotaFuente],
+        instruccion: &str,
+        proyecto: Option<&Proyecto>,
+        modelo: Option<&str>,
+        operacion: &str,
+    ) -> Result<String, String> {
+        if notas.is_empty() {
+            return Err("no hay notas que analizar".into());
+        }
+        let (texto, _) = self
+            .completar_detalle(
+                self.peticion_rol(rol, notas, instruccion, proyecto, modelo),
+                operacion,
+                ESPERA_DOCUMENTO,
+            )
+            .await?;
+        let texto = bajar_titulos(&sin_cerco(&texto));
+        if texto.trim().is_empty() {
+            return Err("el modelo devolvió un análisis vacío".into());
+        }
+        Ok(texto)
+    }
+
+    /// La cabecera del informe (D57): título, resumen ejecutivo, conclusiones,
+    /// tensiones entre roles, plan de acción y preguntas. Devuelve también el
+    /// modelo que sirvió la llamada, que puede no ser el pedido.
+    pub async fn sintetizar(
+        &self,
+        notas: &[NotaFuente],
+        instruccion: &str,
+        proyecto: Option<&Proyecto>,
+        analisis: &[AnalisisHecho<'_>],
+        modelo: Option<&str>,
+        operacion: &str,
+    ) -> Result<(String, Option<String>), String> {
+        if analisis.is_empty() {
+            return Err("no hay análisis que sintetizar".into());
+        }
+        let (texto, servido) = self
+            .completar_detalle(
+                self.peticion_sintesis(notas, instruccion, proyecto, analisis, modelo),
+                operacion,
+                ESPERA_DOCUMENTO,
+            )
+            .await?;
+        let texto = sin_cerco(&texto);
+        if texto.trim().is_empty() {
+            return Err("el modelo devolvió una síntesis vacía".into());
+        }
+        Ok((texto, servido))
+    }
+
+    /// El modelo con que se redacta si nadie elige otro: el fijado en el
+    /// entorno o, si no, el que el servicio pone por defecto.
+    pub async fn modelo_defecto(&self) -> Option<String> {
+        if let Some(m) = &self.modelo_documento {
+            return Some(m.clone());
+        }
+        let cuerpo = self.consultar("/estado").await.ok()?;
+        cuerpo
+            .get("modelo_defecto")
+            .and_then(Value::as_str)
+            .map(str::to_string)
+    }
+
+    /// El catálogo del servicio (D60/D61). El servicio lo guarda una hora, así
+    /// que preguntar a menudo no cuesta nada ni gasta crédito.
+    pub async fn catalogo(&self) -> Result<Vec<ModeloCatalogo>, String> {
+        let cuerpo = self.consultar("/models").await?;
+        let datos = cuerpo
+            .get("data")
+            .cloned()
+            .ok_or("el catálogo no trae «data»")?;
+        serde_json::from_value(datos).map_err(|e| format!("catálogo ilegible: {e}"))
+    }
+
+    /// Lo que costó una operación según el servicio (D62): suma lo anotado en
+    /// cada llamada con esa `X-Operacion`. `None` si no hay llamadas.
+    pub async fn coste(&self, operacion: &str) -> Result<Option<f64>, String> {
+        let cuerpo = self
+            .consultar(&format!("/uso/resumen?operacion={}", codificar(operacion)))
+            .await?;
+        let llamadas = cuerpo
+            .pointer("/totales/llamadas")
+            .and_then(Value::as_i64)
+            .unwrap_or(0);
+        if llamadas == 0 {
+            return Ok(None);
+        }
+        Ok(cuerpo.pointer("/totales/coste").and_then(Value::as_f64))
+    }
+
+    /// Un `GET` al servicio con la clave de la aplicación, que no sale de aquí.
+    async fn consultar(&self, ruta: &str) -> Result<Value, String> {
+        let respuesta = self
+            .http
+            .get(format!("{}{ruta}", self.base))
+            .bearer_auth(&self.clave)
+            .timeout(ESPERA_CONSULTA)
+            .send()
+            .await
+            .map_err(|e| format!("no se pudo llamar al servicio: {}", causas(&e)))?;
+        let estado = respuesta.status();
+        let cuerpo: Value = respuesta
+            .json()
+            .await
+            .map_err(|e| format!("respuesta ilegible: {e}"))?;
+        if !estado.is_success() {
+            let mensaje = cuerpo
+                .pointer("/error/message")
+                .and_then(Value::as_str)
+                .unwrap_or("sin detalle");
+            return Err(format!("el servicio respondió {estado}: {mensaje}"));
+        }
+        Ok(cuerpo)
+    }
+
     /// El envío, igual para todo lo que se le pide al servicio: mismo sobre de
     /// error y mismo sitio donde viene el texto de la respuesta.
     async fn completar(
@@ -472,6 +637,18 @@ impl Llm {
         operacion: &str,
         espera: Duration,
     ) -> Result<String, String> {
+        self.completar_detalle(peticion, operacion, espera)
+            .await
+            .map(|(texto, _)| texto)
+    }
+
+    /// Como `completar`, y además el modelo que sirvió la respuesta.
+    async fn completar_detalle(
+        &self,
+        peticion: Value,
+        operacion: &str,
+        espera: Duration,
+    ) -> Result<(String, Option<String>), String> {
         let respuesta = self
             .http
             .post(format!("{}/chat/completions", self.base))
@@ -515,10 +692,14 @@ impl Llm {
         {
             return Err("el modelo cortó la respuesta por longitud".into());
         }
+        let servido = cuerpo
+            .get("model")
+            .and_then(Value::as_str)
+            .map(str::to_string);
         cuerpo
             .pointer("/choices/0/message/content")
             .and_then(Value::as_str)
-            .map(str::to_string)
+            .map(|t| (t.to_string(), servido))
             .ok_or_else(|| "la respuesta no trae contenido".to_string())
     }
 
@@ -604,59 +785,11 @@ impl Llm {
         notas: &[NotaFuente],
         instruccion: &str,
         proyecto: Option<&Proyecto>,
+        modelo: Option<&str>,
     ) -> Value {
-        let mut material = String::new();
-        let mut recortadas = 0usize;
-        for (i, n) in notas.iter().enumerate() {
-            let cabecera = if n.etiquetas.is_empty() {
-                format!("### Nota {} — {} ({})\n", i + 1, n.titulo, n.creada_en)
-            } else {
-                format!(
-                    "### Nota {} — {} ({}) · etiquetas: {}\n",
-                    i + 1,
-                    n.titulo,
-                    n.creada_en,
-                    n.etiquetas.join(", ")
-                )
-            };
-            // Se recorta por nota, no por el final: con veinte notas largas, un
-            // corte global dejaría fuera las últimas enteras.
-            let sitio = MAXIMO_DOCUMENTO
-                .saturating_sub(material.chars().count() + cabecera.chars().count());
-            let por_nota = (MAXIMO_DOCUMENTO / notas.len().max(1)).min(sitio);
-            let contenido: String = n.contenido.chars().take(por_nota).collect();
-            if contenido.chars().count() < n.contenido.chars().count() {
-                recortadas += 1;
-            }
-            material.push_str(&cabecera);
-            material.push_str(&contenido);
-            material.push_str("\n\n");
-        }
-        if recortadas > 0 {
-            material.push_str(&format!(
-                "(Aviso: {recortadas} nota(s) se han recortado por longitud; dilo en «Dudas por resolver».)\n"
-            ));
-        }
-
-        let encargo = match instruccion.trim() {
-            "" => String::new(),
-            i => format!(
-                "Instrucción del usuario para este documento, por encima de todo lo demás: {i}\n\n"
-            ),
-        };
-
-        let contexto = match proyecto {
-            None => String::new(),
-            Some(p) if p.descripcion.trim().is_empty() => {
-                format!("Todas las notas son del proyecto «{}».\n\n", p.nombre)
-            }
-            Some(p) => format!(
-                "Todas las notas son del proyecto «{}»: {}\n\n",
-                p.nombre,
-                p.descripcion.trim()
-            ),
-        };
-
+        let material = material_de(notas, "dilo en «Dudas por resolver»");
+        let encargo = encargo_de(instruccion);
+        let contexto = contexto_de(proyecto);
         let mut cuerpo = json!({
             "messages": [
                 {
@@ -710,11 +843,218 @@ impl Llm {
             }
         });
 
-        if let Some(modelo) = &self.modelo_documento {
-            cuerpo["model"] = json!(modelo);
+        if let Some(m) = modelo.or(self.modelo_documento.as_deref()) {
+            cuerpo["model"] = json!(m);
         }
         cuerpo
     }
+
+    /// El cuerpo de la petición de un rol (D57/D58): markdown libre, sin
+    /// `json_schema`, para que valga cualquier modelo del catálogo.
+    fn peticion_rol(
+        &self,
+        rol: &RolPedido<'_>,
+        notas: &[NotaFuente],
+        instruccion: &str,
+        proyecto: Option<&Proyecto>,
+        modelo: Option<&str>,
+    ) -> Value {
+        let material = material_de(notas, "dilo en «Hallazgos»");
+        let encargo = encargo_de(instruccion);
+        let contexto = contexto_de(proyecto);
+        let sistema = format!(
+            "Eres el rol «{nombre}» ({icono}) de un equipo que analiza notas personales dictadas \
+             sobre un proyecto o una idea. Tu enfoque: {enfoque}\n\n\
+             Lee todas las notas y analízalas desde ese enfoque y solo desde ese: otros roles \
+             cubren lo demás. Devuelve solo markdown, sin ningún encabezado con almohadillas, con \
+             exactamente estas cuatro partes y en este orden:\n\
+             **Veredicto:** una o dos frases con tu conclusión.\n\
+             **Hallazgos** y debajo una lista con guiones de 3 a 6 puntos; cada uno es una idea \
+             concreta que se apoya en lo que dicen las notas.\n\
+             **Recomendaciones** y debajo una lista numerada de 2 a 5 acciones concretas.\n\
+             **Preguntas abiertas** y debajo una lista con guiones de 1 a 3 preguntas cerradas \
+             que habría que contestar.\n\n\
+             Reglas: no inventes datos que las notas no den; si te falta información para tu \
+             enfoque, dilo en Hallazgos. Una cifra que no salga de las notas va marcada como \
+             orden de magnitud. Español, tono directo, sin preámbulos ni cortesías y sin hablar \
+             de ti mismo ni del proceso.",
+            nombre = rol.nombre,
+            icono = rol.icono,
+            enfoque = rol.enfoque.trim(),
+        );
+        let mut cuerpo = json!({
+            "messages": [
+                { "role": "system", "content": sistema },
+                {
+                    "role": "user",
+                    "content": format!("{encargo}{contexto}Notas dictadas, de la más antigua a la más reciente:\n\n{material}")
+                }
+            ],
+            "max_tokens": MAXIMO_TOKENS_INFORME,
+            "temperature": 0.4
+        });
+        if let Some(m) = modelo.or(self.modelo_documento.as_deref()) {
+            cuerpo["model"] = json!(m);
+        }
+        cuerpo
+    }
+
+    /// El cuerpo de la síntesis (D57): notas y análisis de cada rol; escribe
+    /// solo la cabecera del informe. Lo de cada rol lo añade el backend.
+    fn peticion_sintesis(
+        &self,
+        notas: &[NotaFuente],
+        instruccion: &str,
+        proyecto: Option<&Proyecto>,
+        analisis: &[AnalisisHecho<'_>],
+        modelo: Option<&str>,
+    ) -> Value {
+        let material = material_de(notas, "dilo en «Preguntas abiertas»");
+        let encargo = encargo_de(instruccion);
+        let contexto = contexto_de(proyecto);
+        let mut roles = String::new();
+        for a in analisis {
+            roles.push_str(&format!(
+                "### {} {}\n\n{}\n\n",
+                a.icono,
+                a.nombre,
+                a.texto.trim()
+            ));
+        }
+        let tensiones = if analisis.len() == 1 {
+            "Como solo hay un rol, en «Tensiones entre roles» escribe una sola línea que diga que \
+             con un rol no hay tensiones que comparar."
+        } else {
+            "En «Tensiones entre roles», cada punto va como `**Rol A ↔ Rol B:** en qué chocan y \
+             qué propones`; si no chocan en nada importante, una línea que lo diga."
+        };
+        let sistema = format!(
+            "Coordinas un equipo de analistas que ha revisado las mismas notas desde enfoques \
+             distintos. Recibes las notas y el análisis de cada rol, y escribes la cabecera de un \
+             informe único. Devuelve solo markdown con esta estructura exacta:\n\
+             `# ` y el título: una frase corta y concreta sobre de qué va el informe, sin comillas \
+             ni punto final.\n\
+             `## Resumen ejecutivo`: un párrafo de cinco a ocho líneas para alguien que no ha leído \
+             nada: qué es, qué concluyen los roles y cuál es el mayor riesgo.\n\
+             `## Conclusiones clave`: lista numerada de 3 a 6 conclusiones en las que coinciden \
+             varios roles, cada una empezando por la idea en negrita.\n\
+             `## Tensiones entre roles`: {tensiones}\n\
+             `## Plan de acción`: lista numerada de 3 a 7 acciones ordenadas por prioridad; cada una \
+             empieza por **Alta**, **Media** o **Baja** seguida de una raya.\n\
+             `## Preguntas abiertas`: lista con guiones de las preguntas más importantes que \
+             quedan, sin repetirlas.\n\n\
+             Reglas: no copies el análisis de cada rol, que va entero detrás; sintetiza y cruza. \
+             No inventes nada que no esté en las notas o en los análisis. No escribas ninguna otra \
+             sección: el resto del informe lo añade la aplicación. Español, tono directo, sin \
+             preámbulos ni cortesías."
+        );
+        let mut cuerpo = json!({
+            "messages": [
+                { "role": "system", "content": sistema },
+                {
+                    "role": "user",
+                    "content": format!("{encargo}{contexto}Notas dictadas, de la más antigua a la más reciente:\n\n{material}\n\nAnálisis de cada rol:\n\n{roles}")
+                }
+            ],
+            "max_tokens": MAXIMO_TOKENS_INFORME,
+            "temperature": 0.3
+        });
+        if let Some(m) = modelo.or(self.modelo_documento.as_deref()) {
+            cuerpo["model"] = json!(m);
+        }
+        cuerpo
+    }
+}
+
+/// Las notas en el formato que lee el modelo, recortadas por nota si no caben
+/// (con veinte notas largas, un corte global dejaría fuera las últimas).
+/// `aviso` dice dónde tiene que contar el modelo que hubo recorte.
+fn material_de(notas: &[NotaFuente], aviso: &str) -> String {
+    let mut material = String::new();
+    let mut recortadas = 0usize;
+    for (i, n) in notas.iter().enumerate() {
+        let cabecera = if n.etiquetas.is_empty() {
+            format!("### Nota {} — {} ({})\n", i + 1, n.titulo, n.creada_en)
+        } else {
+            format!(
+                "### Nota {} — {} ({}) · etiquetas: {}\n",
+                i + 1,
+                n.titulo,
+                n.creada_en,
+                n.etiquetas.join(", ")
+            )
+        };
+        let sitio =
+            MAXIMO_DOCUMENTO.saturating_sub(material.chars().count() + cabecera.chars().count());
+        let por_nota = (MAXIMO_DOCUMENTO / notas.len().max(1)).min(sitio);
+        let contenido: String = n.contenido.chars().take(por_nota).collect();
+        if contenido.chars().count() < n.contenido.chars().count() {
+            recortadas += 1;
+        }
+        material.push_str(&cabecera);
+        material.push_str(&contenido);
+        material.push_str("\n\n");
+    }
+    if recortadas > 0 {
+        material.push_str(&format!(
+            "(Aviso: {recortadas} nota(s) se han recortado por longitud; {aviso}.)\n"
+        ));
+    }
+    material
+}
+
+/// La instrucción del usuario, si la hay, por delante de todo lo demás.
+fn encargo_de(instruccion: &str) -> String {
+    match instruccion.trim() {
+        "" => String::new(),
+        i => format!(
+            "Instrucción del usuario para este documento, por encima de todo lo demás: {i}\n\n"
+        ),
+    }
+}
+
+/// El proyecto como contexto para el modelo (D21/D53).
+fn contexto_de(proyecto: Option<&Proyecto>) -> String {
+    match proyecto {
+        None => String::new(),
+        Some(p) if p.descripcion.trim().is_empty() => {
+            format!("Todas las notas son del proyecto «{}».\n\n", p.nombre)
+        }
+        Some(p) => format!(
+            "Todas las notas son del proyecto «{}»: {}\n\n",
+            p.nombre,
+            p.descripcion.trim()
+        ),
+    }
+}
+
+/// Un rol va bajo un `###` en el informe: cualquier título que se le escape
+/// al modelo baja a cuarto nivel para no romper la estructura.
+fn bajar_titulos(texto: &str) -> String {
+    texto
+        .lines()
+        .map(|l| {
+            let almohadillas = l.chars().take_while(|c| *c == '#').count();
+            if (1..4).contains(&almohadillas) && l[almohadillas..].starts_with(' ') {
+                format!("####{}", &l[almohadillas..])
+            } else {
+                l.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Lo justo para meter un valor en la query string sin traer otra dependencia.
+fn codificar(v: &str) -> String {
+    v.bytes()
+        .map(|b| match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                (b as char).to_string()
+            }
+            _ => format!("%{b:02X}"),
+        })
+        .collect()
 }
 
 /// `reqwest::Error` no enseña por si solo por que fallo la conexion: el motivo
@@ -750,7 +1090,7 @@ const ETIQUETAS_INUTILES: [&str; 10] = [
 /// Quita comillas y punto final, en cualquier orden y cuantas veces hagan
 /// falta: el modelo devuelve «Título». y una sola pasada deja el cierre
 /// colgando.
-fn recortar_adornos(texto: &str) -> String {
+pub fn recortar_adornos(texto: &str) -> String {
     let mut t = texto.trim();
     loop {
         let antes = t;
