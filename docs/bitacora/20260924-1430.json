@@ -1,0 +1,29 @@
+{
+  "fecha": "2026-09-24T14:30:00+02:00",
+  "titulo": "Cabecera de una sola línea con menú (F27)",
+  "objetivo": "Llevar a la app el menú del mock 21: una sola barra arriba y todo lo demás en un menú desplegable, con el título de lo elegido y sus cifras al principio.",
+  "prompts": [
+    { "texto": "Uno desplegable, dos sí, adelante con el desarrollo.", "nota": "Respuestas a las dos preguntas del plan del menú: desplegable desde arriba y sin lupa en Entrevistas." }
+  ],
+  "cambios": [
+    "docs/index.html (mock 21, build PR-B1-20260924-031): barra única de 56 px con menú, título en dos pisos, estado, lupa y tema; menú con Ir a, Este proyecto y General que se cierra al elegir, al tocar fuera, con Escape y con Atrás; lupa de Notas y Proyectos con tira de filtro; cifras en la primera fila de cada pantalla; subcarpetas solo si hay; ✕ en la selección; aviso de grabación sin subir en el botón del menú",
+    "docs/sw.js: caché del build nuevo",
+    "CLAUDE.md y docs/planificacion/plan-menu.md v2"
+  ],
+  "sha": "990b705",
+  "sha_completo": "990b705d02e34effb57b6463f11d544f9ebe673f",
+  "run": 35999410668,
+  "mock": "mocks/021-menu.html",
+  "build": "PR-B1-20260924-031",
+  "pagina": "index.html",
+  "fly": null,
+  "pendiente": [
+    "Probar en el móvil, sobre todo Atrás con el menú abierto y la app instalada.",
+    "Ver si cambiar de sección con dos toques molesta (plan B de D76)."
+  ],
+  "enlaces": [
+    { "texto": "PR #57", "url": "https://github.com/npiobject-labs/prueba/pull/57" },
+    { "texto": "Plan del menú", "url": "https://github.com/npiobject-labs/prueba/blob/main/docs/planificacion/plan-menu.md" }
+  ],
+  "notas": "Continúa la sesión de las 14:03 (informes y mock 21). Probado con Chromium a 390 y 412 px contra el backend local con datos de ejemplo: 94 comprobaciones del menú, más las regresiones de los informes (38) y de los plegables y el botón ＋. Los botones que pasaron al menú conservan sus ids, así que sus manejadores no cambiaron."
+}
