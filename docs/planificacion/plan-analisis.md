@@ -1,6 +1,6 @@
 # Plan: análisis de notas con varios roles (informe único)
 
-Fecha: 2026-09-24 · Estado: v1, **mock de diseño** (`docs/mocks/020-analisis.html`, build `PR-B1-20260924-028`); sin desarrollar · Continúa D11/D12 (documentos) y `plan-subproyectos.md` (hasta D53) · Fuente de verdad: este fichero.
+Fecha: 2026-09-24 · Estado: v2, **F25 y F26 hechas** (mock de diseño: `docs/mocks/020-analisis.html`, build `PR-B1-20260924-028`; backend en el PR #53; app: build `PR-B1-20260924-030`) · Continúa D11/D12 (documentos) y `plan-subproyectos.md` (hasta D53) · Fuente de verdad: este fichero.
 
 ## 1. Qué se pide (en palabras del usuario)
 
@@ -101,9 +101,19 @@ Atajos: `?v=hoja`, `progreso`, `informe`, `fallo`, `ajustes`, `modelo`, `rol`, `
 | F25 | Backend: migración 4, `app/src/analisis.rs` (roles de serie, prompts y composición del informe), `/roles`, `/modelos`, informe en `/documentos` con roles en paralelo, síntesis, reintento, coste con `X-Operacion`, y verificación en `deploy.yml`. El encargo de hoy no cambia; la app actual sigue funcionando. |
 | F26 | App: hoja de Generar con Encargo/Análisis, roles, modelo y coste; selector de modelo; roles en Ajustes; progreso; informe formateado con copiar, descargar y PDF; lista de documentos. Pruebas con Chromium a 390 px contra el backend local, como F24. |
 
-## 8. Preguntas al usuario
+## 8. Preguntas al usuario (contestadas: sí a las cuatro)
 
 1. ¿Te valen los **nueve roles de serie** (D55) o cambias alguno?
 2. ¿El modelo de Ajustes vale **también para los encargos** de siempre, o solo para los informes (D60)?
 3. ¿**0,25 $** como umbral del aviso amarillo de coste (D62)?
 4. ¿**Tope de 8 roles** por informe (D56)?
+
+## 9. Cómo quedó (2026-09-24)
+
+- **Verificado en Fly** con el servicio real (paso «Verificar informes» de `deploy.yml`, run `35995275511`): `/modelos` trae 458 modelos y el de por defecto es `google/gemini-2.5-flash-lite`; los cinco recomendados del código están en el catálogo; un informe de dos roles salió en unos 7 s y costó 0,00068 $. **El supuesto de D62 se confirma**: la clave de la aplicación lee su coste por operación.
+- **Cambio sobre la sección 4**: la síntesis se guarda en la columna nueva `sintesis` y el informe compuesto en `texto` al terminar, en lugar de componerlo al leer. Así la lista y la edición a mano no recomponen nada, y reintentar un rol vuelve a componer y sobrescribe.
+- **`generacion`**: cada regeneración sube el contador y usa la operación `informe-<id>-<generacion>`, así que el coste de la ficha es el de esa generación con sus reintentos, no la suma de todas.
+- **«Duplicar como propio»** rellena la hoja de un rol nuevo con los datos del de serie (nombre «X (mío)»), y no se guarda hasta pulsar Guardar.
+- **Encargo con modelo**: el backend exige que el modelo dé salida estructurada (400 si no), y la app lo avisa y bloquea Generar antes de llamar.
+- **Pruebas**: backend con 17 tests, `clippy` y `fmt` limpios; migración sobre una base creada con el binario de `main`; 70 comprobaciones con `curl` contra un servicio de modelos simulado (concurrencia de 4 como mucho, reintento de solo lo fallido, reinicio a mitad); app con 38 comprobaciones en Chromium a 390×844 contra el backend local, más la prueba de regresión del botón ＋ y los plegables de la entrevista.
+
