@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="build" content="PR-B1-20260924-028">
+  <meta name="theme-color" content="#0b6e7a">
+  <title>Notas · mock 20 · Análisis con roles</title>
+  <style>
+    :root { --bg:#f6f7f8; --panel:#fff; --txt:#1a1a1a; --mut:#666; --line:#e3e5e8; --acc:#0b6e7a; --acc2:#e6f3f4; --danger:#b3261e; --ok:#1e7d3a; --mock:#fff4d6; --mockTxt:#6b4e00; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#111417; --panel:#1b1f24; --txt:#ececec; --mut:#9aa0a6; --line:#2a3036; --acc:#4fb3bf; --acc2:#16333a; --danger:#f28b82; --ok:#7fd49a; --mock:#3a3010; --mockTxt:#f2d27a; } }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--txt); }
+    .hidden { display:none !important; }
+    .bandaMock { background:var(--mock); color:var(--mockTxt); font-size:.8rem; padding:.35rem 1rem; display:flex; gap:.5rem; align-items:center; justify-content:space-between; }
+    .bandaMock button { border:1px solid currentColor; background:transparent; color:inherit; border-radius:999px; font:inherit; padding:.1rem .6rem; cursor:pointer; white-space:nowrap; }
+    header { position:sticky; top:0; background:var(--panel); border-bottom:1px solid var(--line); padding:.75rem 1rem; z-index:2; }
+    header h1 { font-size:1.1rem; margin:0; display:flex; justify-content:space-between; align-items:center; gap:.4rem; }
+    main { max-width:40rem; margin:0 auto; padding:1rem 1rem 7rem; }
+    input, textarea, select { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; width:100%; }
+    textarea { min-height:4.5rem; resize:vertical; line-height:1.5; }
+    .fila { display:flex; gap:.5rem; align-items:center; }
+    .icono { border:0; background:transparent; color:var(--mut); font-size:1.3rem; cursor:pointer; padding:.2rem .4rem; border-radius:8px; }
+    .chips { display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.5rem; }
+    .chip { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:999px; padding:.25rem .7rem; font:inherit; font-size:.85rem; white-space:nowrap; }
+    .chip.et { background:var(--acc2); border-color:transparent; color:var(--acc); font-size:.75rem; padding:.15rem .55rem; }
+    .nota, .doc { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-bottom:.75rem; cursor:pointer; position:relative; }
+    .nota { padding-left:3.2rem; border-color:var(--acc); }
+    .nota h2, .doc h2 { font-size:1rem; margin:0 0 .25rem; }
+    .nota time, .doc time { color:var(--mut); font-size:.8rem; }
+    .nota p { margin:.4rem 0 0; color:var(--mut); font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .nota .marca-sel { position:absolute; left:1rem; top:50%; transform:translateY(-50%); width:1.5rem; height:1.5rem; border-radius:6px; background:var(--acc); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1rem; }
+    .btn { border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:8px; padding:.6rem 1rem; font:inherit; cursor:pointer; }
+    .btn.pri { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
+    .btn.peligro { color:var(--danger); border-color:var(--danger); }
+    .btn.peligro.solido { background:var(--danger); color:#fff; font-weight:600; }
+    button:disabled { opacity:.5; cursor:default; }
+    .acciones { display:flex; gap:.5rem; margin-top:.75rem; }
+    .acciones .btn { flex:1; }
+    .aviso { font-size:.8rem; color:var(--mut); margin:.5rem 0 0; line-height:1.4; }
+    .etq { display:block; font-size:.85rem; color:var(--mut); margin:.9rem 0 .35rem; }
+    .barraSel { position:fixed; left:0; right:0; bottom:0; background:var(--panel); border-top:1px solid var(--line); padding:.6rem 1rem calc(.6rem + env(safe-area-inset-bottom)); z-index:3; }
+    .barraSel .cuenta { color:var(--mut); font-size:.85rem; margin-bottom:.45rem; }
+    .barraSel .acciones { margin-top:0; }
+    .barraSel .btn { padding:.6rem .4rem; }
+    .velo { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:flex-end; justify-content:center; z-index:5; }
+    .hoja { background:var(--panel); color:var(--txt); width:100%; max-width:40rem; max-height:92vh; overflow:auto; border-radius:16px 16px 0 0; padding:1.25rem 1rem calc(1.25rem + env(safe-area-inset-bottom)); }
+    .hoja h3 { margin:0 0 .35rem; font-size:1.05rem; }
+    .hoja > p { margin:0 0 .5rem; color:var(--mut); font-size:.9rem; }
+    .detalle h2 { margin:.5rem 0 .2rem; }
+    .barraDet { display:flex; justify-content:space-between; gap:.5rem; }
+    .toast { position:fixed; left:50%; bottom:6.5rem; transform:translateX(-50%); background:var(--txt); color:var(--bg); padding:.5rem .9rem; border-radius:999px; font-size:.85rem; z-index:9; opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; }
+    .toast.ver { opacity:.92; }
+    .info ul { padding-left:1.1rem; margin:.25rem 0 .5rem; }
+    .info li { margin:.35rem 0; line-height:1.45; font-size:.9rem; }
+    .info b { color:var(--acc); }
+    .sup { font-size:.72rem; color:var(--mockTxt); background:var(--mock); border-radius:4px; padding:0 .3rem; }
+    .marca { display:inline-block; border-radius:999px; padding:.1rem .55rem; font-size:.75rem; border:1px solid var(--line); color:var(--mut); }
+    .marca.inf { background:var(--acc2); color:var(--acc); border-color:transparent; }
+
+    /* ---- Nuevo en este mock ---- */
+    /* Encargo o Análisis: dos opciones que se excluyen, como un interruptor */
+    .segm { display:flex; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:.2rem; gap:.2rem; margin:.6rem 0 .2rem; }
+    .segm button { flex:1; border:0; background:transparent; color:var(--mut); font:inherit; font-size:.95rem; padding:.5rem; border-radius:8px; cursor:pointer; }
+    .segm button.on { background:var(--acc); color:#fff; font-weight:600; }
+    /* Rejilla de roles: tarjetas que se marcan */
+    .roles { display:grid; grid-template-columns:1fr 1fr; gap:.5rem; }
+    .rol { position:relative; text-align:left; border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:12px; padding:.6rem .7rem .6rem .7rem; font:inherit; cursor:pointer; min-height:4.6rem; }
+    .rol b { display:block; font-size:.95rem; margin-bottom:.15rem; padding-right:1.4rem; }
+    .rol small { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; color:var(--mut); font-size:.75rem; line-height:1.3; }
+    .rol::after { content:''; position:absolute; top:.55rem; right:.55rem; width:1.1rem; height:1.1rem; border-radius:50%; border:2px solid var(--line); }
+    .rol.on { border-color:var(--acc); background:var(--acc2); }
+    .rol.on::after { content:'✓'; background:var(--acc); border-color:var(--acc); color:#fff; font-size:.7rem; line-height:1.1rem; text-align:center; font-weight:700; }
+    .rol.nuevo { border-style:dashed; border-color:var(--acc); color:var(--acc); display:flex; align-items:center; justify-content:center; font-weight:600; }
+    .rol.nuevo::after { display:none; }
+    .rol .propio { font-size:.65rem; color:var(--acc); font-weight:600; letter-spacing:.03em; }
+    .rolesCab { display:flex; justify-content:space-between; align-items:baseline; }
+    .rolesCab .enlaces button { border:0; background:transparent; color:var(--acc); font:inherit; font-size:.8rem; cursor:pointer; padding:0 0 0 .6rem; }
+    /* Botón que abre el selector de modelo */
+    .modeloBtn { display:flex; align-items:center; gap:.6rem; width:100%; text-align:left; border:1px solid var(--line); background:var(--bg); color:var(--txt); border-radius:10px; padding:.6rem .75rem; font:inherit; cursor:pointer; }
+    .modeloBtn > span:first-child { font-size:1.2rem; }
+    .modeloBtn > span:nth-child(2) { flex:1; min-width:0; }
+    .modeloBtn b { display:block; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .modeloBtn small { color:var(--mut); font-size:.75rem; }
+    .modeloBtn i { font-style:normal; color:var(--mut); }
+    .coste { margin-top:.6rem; background:var(--acc2); color:var(--acc); border-radius:10px; padding:.55rem .75rem; font-size:.85rem; line-height:1.4; }
+    .coste.caro { background:var(--mock); color:var(--mockTxt); }
+    /* Selector de modelo */
+    .listaModelos { display:flex; flex-direction:column; gap:.35rem; margin-top:.35rem; }
+    .modelo { display:flex; gap:.5rem; align-items:flex-start; text-align:left; border:1px solid var(--line); background:var(--panel); color:var(--txt); border-radius:10px; padding:.55rem .7rem; font:inherit; cursor:pointer; width:100%; }
+    .modelo > span:first-child { flex:1; min-width:0; }
+    .modelo b { font-size:.92rem; }
+    .modelo code { display:block; color:var(--mut); font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .modelo small { display:block; color:var(--mut); font-size:.75rem; margin-top:.1rem; }
+    .modelo .tick { color:var(--acc); font-weight:700; visibility:hidden; }
+    .modelo.on { border-color:var(--acc); }
+    .modelo.on .tick { visibility:visible; }
+    .grupo { font-size:.75rem; color:var(--mut); text-transform:uppercase; letter-spacing:.06em; margin:.8rem 0 .1rem; }
+    /* Progreso del informe, rol a rol */
+    .progreso { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:.85rem 1rem; margin-top:.75rem; }
+    .progreso .paso { display:flex; align-items:center; gap:.6rem; padding:.35rem 0; font-size:.95rem; }
+    .progreso .paso .est { width:1.4rem; text-align:center; }
+    .progreso .paso small { margin-left:auto; color:var(--mut); font-size:.78rem; }
+    .progreso .paso.ok small { color:var(--ok); }
+    .progreso .paso.mal small { color:var(--danger); }
+    .progreso .sep { border-top:1px dashed var(--line); margin:.35rem 0; }
+    .avance { height:6px; background:var(--line); border-radius:3px; margin:.6rem 0 .2rem; overflow:hidden; }
+    .avance i { display:block; height:100%; width:0; background:var(--acc); border-radius:3px; transition:width .4s; }
+    @keyframes late { 50% { opacity:.3; } }
+    .trabajando .est { animation:late 1.1s infinite; }
+    .ficha { color:var(--mut); font-size:.82rem; margin-top:.35rem; }
+    .alerta { background:var(--mock); color:var(--mockTxt); border-radius:10px; padding:.6rem .75rem; margin-top:.75rem; font-size:.88rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+    .alerta span { flex:1 1 12rem; }
+    .alerta .btn { padding:.3rem .8rem; }
+    /* Informe renderizado */
+    .md { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:1rem 1.1rem; margin-top:.75rem; line-height:1.6; font-size:.95rem; overflow-wrap:anywhere; }
+    .md h1 { font-size:1.2rem; margin:0 0 .6rem; line-height:1.3; }
+    /* El título ya está encima; en el markdown se queda para copiar y descargar. */
+    .md > h1:first-child { display:none; }
+    .md > h1:first-child + h2 { margin-top:0; padding-top:0; border-top:0; }
+    .md h2 { font-size:1.05rem; margin:1.3rem 0 .4rem; padding-top:.8rem; border-top:1px solid var(--line); }
+    .md h3 { font-size:.98rem; margin:1rem 0 .3rem; color:var(--acc); }
+    .md p { margin:.4rem 0; }
+    .md ul, .md ol { margin:.3rem 0 .5rem; padding-left:1.3rem; }
+    .md li { margin:.2rem 0; }
+    .md strong { font-weight:650; }
+    #dTexto { min-height:55vh; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.85rem; margin-top:.75rem; }
+    /* Ajustes */
+    .ajustes h3 { font-size:.8rem; color:var(--mut); text-transform:uppercase; letter-spacing:.06em; margin:1.4rem 0 .5rem; }
+    .lineaRol { display:flex; align-items:center; gap:.6rem; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:.55rem .75rem; margin-bottom:.4rem; cursor:pointer; }
+    .lineaRol .ic { font-size:1.2rem; width:1.6rem; text-align:center; }
+    .lineaRol > span:nth-child(2) { flex:1; min-width:0; }
+    .lineaRol b { font-size:.93rem; }
+    .lineaRol small { display:block; color:var(--mut); font-size:.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .lineaRol i { font-style:normal; color:var(--mut); }
+    .gris { opacity:.55; }
+    @media print {
+      header, .bandaMock, .barraDet, .acciones, .segm, #dRoles, .ficha, .alerta, .toast, #docs, .barraSel { display:none !important; }
+      body { background:#fff; color:#000; }
+      main { padding:0; max-width:none; }
+      .md { border:0; padding:0; }
+    }
+  </style>
+</head>
+<body>
+<div class="bandaMock"><span>Mock 20 · análisis con roles · datos de ejemplo, nada se guarda</span><button type="button" id="infoBtn">Qué cambia</button></div>
+<header>
+  <h1><span id="cab">Elegir</span><span class="fila"><button class="icono" type="button" id="selBtn" title="Seleccionar">☑</button><button class="icono" type="button" id="docsBtn" title="Documentos">📄</button><button class="icono" type="button" id="ajustesBtn" title="Ajustes">⚙</button></span></h1>
+</header>
+
+<main>
+  <!-- Modo selección: como hoy; Generar abre la hoja nueva -->
+  <section id="lista">
+    <div class="fila" style="margin-bottom:.75rem">
+      <input type="search" placeholder="Buscar en título y contenido…" autocomplete="off">
+    </div>
+    <div id="notas"></div>
+  </section>
+
+  <!-- Documentos: encargos e informes juntos -->
+  <section id="docs" class="hidden">
+    <div id="listaDocs"></div>
+  </section>
+
+  <!-- Un documento o un informe: progreso, lectura y edición -->
+  <section id="documento" class="hidden detalle">
+    <div class="barraDet"><button class="btn" id="volverDoc" type="button">← Volver</button><button class="btn" id="copiarArriba" type="button" title="Copiar el informe en markdown">📋 Copiar</button></div>
+    <h2 id="dTitulo"></h2>
+    <div class="ficha" id="dFicha"></div>
+    <div class="chips" id="dRoles"></div>
+    <div id="dProgreso" class="progreso hidden"></div>
+    <div id="dAlerta" class="alerta hidden"></div>
+    <div id="dCuerpo" class="hidden">
+      <div class="segm" id="dModo" style="margin-top:.9rem"><button type="button" data-m="leer" class="on">Leer</button><button type="button" data-m="editar">Editar</button></div>
+      <article id="dMd" class="md"></article>
+      <textarea id="dTexto" class="hidden" spellcheck="false"></textarea>
+      <div class="acciones">
+        <button class="btn pri" id="dCopiar" type="button">📋 Copiar</button>
+        <button class="btn" id="dCompartir" type="button">Compartir</button>
+        <button class="btn" id="dDescargar" type="button">⬇ .md</button>
+      </div>
+      <div class="acciones">
+        <button class="btn" id="dPdf" type="button">🖨 PDF</button>
+        <button class="btn" id="dGuardar" type="button" disabled>Guardar</button>
+        <button class="btn" id="dRegenerar" type="button">Regenerar</button>
+        <button class="btn peligro" id="dBorrar" type="button">Borrar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ajustes: solo lo nuevo en color; lo de siempre, apagado -->
+  <section id="ajustes" class="hidden ajustes">
+    <button class="btn" id="volverAjustes" type="button">← Volver</button>
+    <h3>IA</h3>
+    <label class="etq" style="margin-top:0">Modelo para documentos e informes</label>
+    <button class="modeloBtn" id="aModelo" type="button"></button>
+    <p class="aviso">Titular y etiquetar notas sigue con el modelo barato del servidor: esto solo cambia lo que redacta. En la hoja de Generar se puede cambiar para un informe concreto.</p>
+    <h3>Roles de análisis</h3>
+    <div id="aRoles"></div>
+    <button class="btn" id="aNuevoRol" type="button" style="width:100%;border-style:dashed;border-color:var(--acc);color:var(--acc);font-weight:600">＋ Nuevo rol</button>
+    <p class="aviso">Los roles propios se guardan en el servidor, así que salen en todos tus dispositivos. Los de serie no se editan, pero se pueden duplicar para ajustarlos.</p>
+    <div class="gris">
+      <h3>Sin cambios</h3>
+      <p class="aviso">Backend, token de acceso, instalar, versión y copia de seguridad siguen igual.</p>
+    </div>
+  </section>
+</main>
+
+<div class="barraSel" id="barraSel">
+  <div class="cuenta" id="cuenta"></div>
+  <div class="acciones">
+    <button class="btn" type="button">Ninguna</button>
+    <button class="btn" type="button">Mover</button>
+    <button class="btn" type="button">Cancelar</button>
+    <button class="btn pri" id="generarSel" type="button">Generar</button>
+  </div>
+</div>
+
+<!-- Hoja de Generar: Encargo (lo de hoy) o Análisis con roles -->
+<div id="hojaGen" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="gTitulo">
+  <div class="hoja">
+    <h3 id="gTitulo">Generar</h3>
+    <p id="gResumen"></p>
+    <div class="segm" id="gModo"><button type="button" data-m="encargo">📄 Encargo</button><button type="button" data-m="analisis">🔎 Análisis</button></div>
+    <div id="gEncargo">
+      <p class="aviso">El documento de siempre: Contexto, Objetivo, Requisitos, Decisiones, Criterios de aceptación y Dudas, listo para un agente de programación.</p>
+    </div>
+    <div id="gAnalisis">
+      <div class="rolesCab"><label class="etq">Roles <span id="gCuantos"></span></label><span class="enlaces"><button type="button" id="gTodos">Todos</button><button type="button" id="gNinguno">Ninguno</button></span></div>
+      <div class="roles" id="gRoles"></div>
+      <p class="aviso">Cada rol lee todas las notas por su cuenta; al final, una última pasada lo junta en un informe único.</p>
+    </div>
+    <label class="etq">Modelo</label>
+    <button class="modeloBtn" id="gModelo" type="button"></button>
+    <div class="coste" id="gCoste"></div>
+    <label class="etq" for="gInstr">Instrucción (opcional)</label>
+    <textarea id="gInstr" placeholder="Por ejemplo: piensa en un club de 300 socios y lanzamiento en marzo…"></textarea>
+    <div class="acciones">
+      <button class="btn" id="gNo" type="button">Cancelar</button>
+      <button class="btn pri" id="gSi" type="button">Generar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Selector de modelo: el catálogo del servicio, con precio y contexto -->
+<div id="hojaModelo" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="mTitulo">
+  <div class="hoja">
+    <h3 id="mTitulo">Modelo</h3>
+    <p id="mAviso"></p>
+    <input id="mBuscar" type="search" placeholder="Buscar modelo o proveedor…" autocomplete="off">
+    <div id="mLista"></div>
+    <p class="aviso">Precios en dólares por millón de tokens (entrada / salida). <span class="sup">EJEMPLO</span> La lista real sale del catálogo de OpenRouter a través del servicio, con caché de una hora.</p>
+    <div class="acciones"><button class="btn" id="mNo" type="button">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- Crear, editar o ver un rol -->
+<div id="hojaRol" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="rTitulo">
+  <div class="hoja">
+    <h3 id="rTitulo">Nuevo rol</h3>
+    <div class="fila" style="align-items:flex-end">
+      <div style="width:4.5rem"><label class="etq" for="rIcono">Icono</label><input id="rIcono" maxlength="2" placeholder="🧪" style="text-align:center;font-size:1.2rem;padding:.45rem"></div>
+      <div style="flex:1"><label class="etq" for="rNombre">Nombre</label><input id="rNombre" maxlength="30" placeholder="Por ejemplo: Accesibilidad"></div>
+    </div>
+    <label class="etq" for="rEnfoque">Qué mira este rol</label>
+    <textarea id="rEnfoque" maxlength="600" style="min-height:7rem" placeholder="Por ejemplo: revisa si cumple la norma europea de accesibilidad (EN 301 549): contraste, tamaño de toque, lector de pantalla y alternativas al audio."></textarea>
+    <p class="aviso" id="rAviso">Escríbelo como un encargo: qué debe buscar y qué debe proponer. La app le añade la estructura común (veredicto, hallazgos, recomendaciones, preguntas).</p>
+    <div class="acciones">
+      <button class="btn" id="rNo" type="button">Cancelar</button>
+      <button class="btn pri" id="rSi" type="button">Guardar</button>
+    </div>
+    <div class="acciones" id="rMas">
+      <button class="btn" id="rDuplicar" type="button">Duplicar como propio</button>
+      <button class="btn peligro" id="rBorrar" type="button">Borrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirmar" class="velo hidden" role="dialog" aria-modal="true">
+  <div class="hoja">
+    <h3 id="cTitulo"></h3>
+    <p id="cTexto"></p>
+    <div class="acciones">
+      <button class="btn" id="cNo" type="button">Cancelar</button>
+      <button class="btn peligro solido" id="cSi" type="button">Borrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="hojaInfo" class="velo hidden" role="dialog" aria-modal="true">
+  <div class="hoja info">
+    <h3>Qué propone el mock 20</h3>
+    <ul>
+      <li><b>Generar</b> pregunta qué quieres: <i>📄 Encargo</i> (el documento de hoy, sin cambios) o <i>🔎 Análisis</i>, un informe único hecho por varios roles.</li>
+      <li><b>Nueve roles de serie:</b> Crítico, Analítico, Económico, Marketing, Usabilidad, Técnico, Legal y privacidad, Producto y Usuario final. Se eligen uno o varios; la app recuerda la última elección. Tope de 8 por informe. <span class="sup">SUPUESTO</span></li>
+      <li><b>Roles propios:</b> nombre, icono y «qué mira este rol». Se crean desde la hoja o desde Ajustes, se guardan en el servidor y un rol de serie se puede duplicar para ajustarlo.</li>
+      <li><b>Cómo se hace:</b> una llamada por rol, todas a la vez, y una última que escribe resumen ejecutivo, conclusiones, <i>tensiones entre roles</i>, plan de acción y preguntas. Lo de cada rol entra tal cual; notas de origen y ficha las pone el backend.</li>
+      <li><b>Modelo:</b> uno por defecto en ⚙ Ajustes para documentos e informes, y en la hoja se puede cambiar solo para ese informe. La lista sale del catálogo de OpenRouter con precio y contexto; arriba, unos pocos recomendados.</li>
+      <li><b>Coste antes de generar:</b> la hoja estima llamadas y dólares con el precio del modelo; por encima de 0,25 $ se avisa en amarillo. <span class="sup">SUPUESTO</span> Al terminar, la ficha dice lo que costó de verdad.</li>
+      <li><b>Progreso rol a rol</b> mientras se genera (sigue aunque cierres la app). Si un rol falla, el informe sale con los demás y «Reintentar» rehace solo ese.</li>
+      <li><b>El informe</b> se lee formateado (o se edita en markdown) y tiene 📋 Copiar arriba y abajo, Compartir, ⬇ .md y 🖨 PDF. Queda en Documentos con sus roles; «Regenerar» vuelve a abrir la hoja con lo mismo elegido.</li>
+    </ul>
+    <p class="aviso">Decisiones, supuestos y planes B en <code>docs/planificacion/plan-analisis.md</code>. Atajos: <code>?v=hoja</code>, <code>progreso</code>, <code>informe</code>, <code>fallo</code>, <code>ajustes</code>, <code>modelo</code>, <code>rol</code>, <code>docs</code>.</p>
+    <div class="acciones"><button class="btn pri" id="infoNo" type="button">Entendido</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const H = 3600e3, ahora = Date.now();
+  const fmt = t => new Date(t).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const plural = (n, s, pl) => `${n} ${n === 1 ? s : (pl || s + 's')}`;
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function aviso(t) { const e = $('toast'); e.textContent = t; e.classList.add('ver'); clearTimeout(aviso.t); aviso.t = setTimeout(() => e.classList.remove('ver'), 2200); }
+
+  // --- Datos de ejemplo (inventados) ---
+  const NOTAS = [
+    [120, 'Reservas de pista desde el móvil', 'Hoy los socios reservan por WhatsApp con el conserje y se pisan las reservas. Quiero que reserven desde el móvil y vean las pistas libres de la semana.', ['reservas', 'app']],
+    [100, 'Pagos y bonos de partidas', 'Pagar con tarjeta al reservar o descontar de un bono de 10 partidas. La pasarela cobra comisión por pago, mirar cuál.', ['pagos']],
+    [80, 'Buscar pareja para jugar', 'Que un socio pueda publicar «me falta uno para el jueves a las 19» y se apunte alguien de su nivel.', ['comunidad']],
+    [60, 'Avisos y lista de espera', 'Si alguien cancela, avisar al primero de la lista de espera y darle diez minutos para confirmar.', ['reservas', 'avisos']],
+    [40, 'Panel para el club', 'El club quiere ver ocupación por franjas, ingresos del mes y bloquear pistas para clases y torneos.', ['gestion']],
+    [20, 'Lanzamiento con socios', 'Probar en marzo con 40 socios. ¿Cobrar 3 € al mes al socio o una cuota al club? No lo tengo claro.', ['negocio']],
+  ].map(([h, titulo, contenido, etiquetas], i) => ({ id: 'n' + i, fecha: ahora - h * H, titulo, contenido, etiquetas }));
+  const caracteres = NOTAS.reduce((s, n) => s + n.contenido.length + n.titulo.length, 0) * 10; // como si fueran notas dictadas largas
+
+  const ROLES = [
+    { id: 'critico', icono: '🧐', nombre: 'Crítico', enfoque: 'Abogado del diablo: puntos débiles, supuestos sin probar y qué puede salir mal.',
+      md: `**Veredicto:** la idea resuelve un dolor real (reservas que se pisan), pero da por hecho que los socios dejarán WhatsApp sin que nadie los empuje.
+
+**Hallazgos**
+- No hay nada sobre qué pasa si el conserje sigue aceptando reservas por WhatsApp: dos canales abiertos repiten el problema actual.
+- «Buscar pareja» depende de que haya muchos socios activos a la vez; con 40 en la prueba puede quedarse vacío y dar sensación de app muerta.
+- Diez minutos para confirmar la lista de espera es poco si el aviso llega de noche.
+
+**Recomendaciones**
+1. Fijar una fecha a partir de la cual el club solo acepta reservas desde la app.
+2. Dejar «Buscar pareja» para después de la prueba, cuando haya masa crítica.
+
+**Preguntas abiertas**
+- ¿Quién decide en el club y está dispuesto a cortar el canal de WhatsApp?` },
+    { id: 'analitico', icono: '📊', nombre: 'Analítico', enfoque: 'Estructura el material: huecos, contradicciones entre notas y datos que faltan.',
+      md: `**Veredicto:** las notas cubren bien reservas y pagos; faltan datos de partida para dimensionar nada.
+
+**Hallazgos**
+- Cinco bloques claros: reservas, pagos, comunidad, avisos y gestión del club.
+- Falta el número de pistas, de socios y de reservas por semana: sin eso no se puede estimar ni coste ni ocupación.
+- La nota 6 abre dos modelos de cobro que cambian quién es el cliente (el socio o el club).
+
+**Recomendaciones**
+1. Pedir al club tres cifras: pistas, socios activos y reservas semanales.
+2. Decidir el cliente antes de diseñar pagos.
+
+**Preguntas abiertas**
+- ¿Las clases y torneos se reservan con las mismas reglas que un partido?` },
+    { id: 'economico', icono: '💶', nombre: 'Económico', enfoque: 'Costes, ingresos, modelo de negocio y viabilidad, en órdenes de magnitud.',
+      md: `**Veredicto:** viable si cobra el club; cobrando 3 € al socio, la comisión de la pasarela y la baja adopción se comen el margen.
+
+**Hallazgos**
+- Con 300 socios y un 30 % de uso, 3 €/mes serían unos 270 € al mes, antes de comisiones.
+- Una cuota fija al club (por ejemplo, 60–90 € al mes por pista) da ingresos previsibles y un solo cliente al que convencer.
+- Los bonos adelantan caja al club: es el mejor argumento de venta.
+
+**Recomendaciones**
+1. Modelo de cobro al club, con prueba gratuita de tres meses.
+2. Elegir pasarela por comisión fija baja: los pagos serán pequeños y frecuentes.
+
+**Preguntas abiertas**
+- ¿Cuánto le cuesta hoy al club el tiempo del conserje en reservas?` },
+    { id: 'marketing', icono: '📣', nombre: 'Marketing', enfoque: 'Público, propuesta de valor, posicionamiento, canales y competencia.',
+      md: `**Veredicto:** la propuesta es clara para el socio («reserva en diez segundos y encuentra pareja»), pero quien paga es el club y a él hay que venderle otra cosa.
+
+**Hallazgos**
+- Hay aplicaciones grandes de reservas de pádel; el hueco está en clubes pequeños que quieren su propia app, sin comisiones por reserva.
+- El mensaje al club es ahorro de tiempo del conserje, cero reservas pisadas y cobro por adelantado con bonos.
+- El boca a boca entre socios es el canal natural: una partida siempre implica a cuatro personas.
+
+**Recomendaciones**
+1. Dos mensajes distintos: al club (dinero y orden) y al socio (rapidez y pareja).
+2. Invitar a los otros tres jugadores al reservar: cada reserva trae usuarios.
+
+**Preguntas abiertas**
+- ¿El club quiere su marca en la app o le vale una genérica?` },
+    { id: 'usabilidad', icono: '🧭', nombre: 'Usabilidad', enfoque: 'Recorrido del usuario, fricciones, accesibilidad y uso real en el móvil.',
+      md: `**Veredicto:** el recorrido clave (ver libre → reservar → pagar) cabe en tres toques; el riesgo está en registrarse y en los avisos.
+
+**Hallazgos**
+- Pedir cuenta y tarjeta antes de ver las pistas libres hará que muchos lo dejen.
+- La lista de espera necesita notificaciones fiables; si el aviso se pierde, la pista queda vacía.
+- Socios mayores: letra grande, contraste y poder reservar sin teclear.
+
+**Recomendaciones**
+1. Enseñar la ocupación sin registrarse y pedir los datos solo al reservar.
+2. Confirmar la lista de espera con un solo botón desde la notificación.
+
+**Preguntas abiertas**
+- ¿Hace falta versión web para el panel del club o basta el móvil?` },
+    { id: 'tecnico', icono: '🛠', nombre: 'Técnico', enfoque: 'Arquitectura, complejidad, riesgos técnicos y qué conviene no construir.',
+      md: `**Veredicto:** técnicamente sencilla salvo la concurrencia de reservas y los pagos, que no conviene hacer a mano.
+
+**Hallazgos**
+- Dos personas reservando la misma pista a la vez: hace falta bloqueo en la base, no en la app.
+- Los pagos y bonos con una pasarela que ya gestione suscripciones ahorran semanas.
+- Las notificaciones de la lista de espera son lo más delicado en móvil.
+
+**Recomendaciones**
+1. Una PWA con backend propio y reservas con restricción única por pista y franja.
+2. Delegar pagos y bonos en la pasarela.` },
+    { id: 'legal', icono: '⚖️', nombre: 'Legal y privacidad', enfoque: 'Protección de datos, consentimiento, pagos y condiciones de uso.',
+      md: `**Veredicto:** sin riesgos raros, pero hay datos personales y pagos, así que hace falta hacerlo bien desde el principio.
+
+**Hallazgos**
+- Nombre, teléfono, nivel de juego y horarios son datos personales: hay que informar y pedir consentimiento para lo que no sea la reserva.
+- «Buscar pareja» enseña datos de un socio a otros: debe ser opcional.
+- Los datos de tarjeta deben quedarse en la pasarela.
+
+**Recomendaciones**
+1. Contrato de encargado del tratamiento con el club.
+2. «Buscar pareja» desactivado por defecto.` },
+    { id: 'producto', icono: '🎯', nombre: 'Producto', enfoque: 'Qué entra en la primera versión, en qué orden y qué se deja fuera.',
+      md: `**Veredicto:** la primera versión es reservar y cancelar; todo lo demás se puede medir después.
+
+**Hallazgos**
+- Reservas y lista de espera resuelven el dolor actual; pagos y comunidad son mejoras.
+- El panel del club es lo que decide la venta, aunque sea básico.
+
+**Recomendaciones**
+1. V1 (marzo): reservas, cancelación, lista de espera y panel de ocupación.
+2. V2: bonos y pagos. V3: buscar pareja.` },
+    { id: 'usuario', icono: '👤', nombre: 'Usuario final', enfoque: 'Cómo lo vería quien lo va a usar: qué le convence, qué le molesta y qué no entiende.',
+      md: `**Veredicto:** «si me ahorra escribir al conserje y ver quién juega, la uso; si me pide pagar 3 € al mes, sigo con WhatsApp».
+
+**Hallazgos**
+- Lo que más valora: ver de un vistazo qué pistas quedan libres.
+- Lo que no entiende: pagar por algo que antes era gratis.
+- Lo que le molesta: registrarse con contraseña.
+
+**Recomendaciones**
+1. Entrar con el número de teléfono.
+2. Que el coste lo asuma el club.` },
+  ];
+  let propios = [
+    { id: 'p-acc', icono: '♿', nombre: 'Accesibilidad', propio: true, enfoque: 'Revisa si cumple la norma europea de accesibilidad: contraste, tamaño de toque, lector de pantalla y alternativas al audio.',
+      md: `**Veredicto:** con letra grande y buen contraste cubre lo básico; falta pensar en lector de pantalla.
+
+**Hallazgos**
+- El calendario de pistas por colores no sirve a quien no distingue colores: añadir texto «libre / ocupada».
+- Los avisos solo por notificación dejan fuera a quien no las tenga activas.
+
+**Recomendaciones**
+1. Estados con texto y color, nunca solo color.
+2. Aviso de lista de espera también por SMS o correo.` },
+  ];
+  const todosRoles = () => [...ROLES, ...propios];
+  const rolDe = id => todosRoles().find(r => r.id === id);
+
+  // Tensiones: pares de roles que suelen chocar; salen solo si están los dos.
+  const TENSIONES = [
+    ['economico', 'usuario', '**Económico ↔ Usuario final:** Económico prefiere cobrar al club; el socio no pagaría 3 € al mes. Coinciden: cobrar al club.'],
+    ['critico', 'marketing', '**Crítico ↔ Marketing:** Marketing cuenta con el boca a boca de «Buscar pareja»; Crítico avisa de que con 40 socios puede parecer vacía. Propuesta: invitar a los otros tres jugadores al reservar, que funciona con pocos socios.'],
+    ['usabilidad', 'economico', '**Usabilidad ↔ Económico:** pedir la tarjeta al registrarse asegura cobros, pero ahuyenta. Propuesta: pedirla solo al primer pago.'],
+    ['producto', 'marketing', '**Producto ↔ Marketing:** Producto deja «Buscar pareja» para la V3; Marketing la quiere como gancho. Propuesta: la invitación a los compañeros va en la V1 y el tablón, en la V3.'],
+    ['tecnico', 'producto', '**Técnico ↔ Producto:** la lista de espera con avisos es lo más delicado técnicamente y está en la V1. Propuesta: V1 con aviso y confirmación manual, sin temporizador.'],
+  ];
+
+  const MODELOS = [
+    { id: 'google/gemini-2.5-flash-lite', nombre: 'Gemini 2.5 Flash Lite', e: .10, s: .40, ctx: '1M', defecto: true },
+    { id: 'google/gemini-2.5-pro', nombre: 'Gemini 2.5 Pro', e: 1.25, s: 10, ctx: '1M', rec: 'Buen equilibrio para informes largos' },
+    { id: 'anthropic/claude-sonnet-4.5', nombre: 'Claude Sonnet 4.5', e: 3, s: 15, ctx: '1M', rec: 'El que mejor redacta; el más caro de los tres' },
+    { id: 'openai/gpt-5', nombre: 'GPT-5', e: 1.25, s: 10, ctx: '400K', rec: 'Muy bueno analizando; algo más lento' },
+    { id: 'google/gemini-2.5-flash', nombre: 'Gemini 2.5 Flash', e: .30, s: 2.50, ctx: '1M', rec: 'Barato y decente para probar roles' },
+    { id: 'openai/gpt-5-mini', nombre: 'GPT-5 mini', e: .25, s: 2, ctx: '400K' },
+    { id: 'deepseek/deepseek-chat-v3.1', nombre: 'DeepSeek V3.1', e: .27, s: 1.10, ctx: '128K' },
+    { id: 'qwen/qwen3-235b-a22b', nombre: 'Qwen3 235B', e: .13, s: .60, ctx: '128K' },
+    { id: 'meta-llama/llama-4-maverick', nombre: 'Llama 4 Maverick', e: .15, s: .60, ctx: '1M' },
+    { id: 'mistralai/mistral-medium-3.1', nombre: 'Mistral Medium 3.1', e: .40, s: 2, ctx: '128K' },
+  ];
+  const modeloDe = id => MODELOS.find(m => m.id === id);
+  const precio = m => `${m.e.toLocaleString('es-ES')} / ${m.s.toLocaleString('es-ES')} $ · ${m.ctx}`;
+
+  // --- Estado ---
+  let modeloAjustes = 'google/gemini-2.5-pro';   // ⚙ Ajustes
+  let modeloHoja = null;                          // solo para el informe que se está pidiendo
+  let modoGen = 'analisis';
+  let elegidos = new Set(['critico', 'economico', 'marketing', 'usabilidad']); // la app recordaría la última elección
+  const ENCARGO = '# Reservas de pista sin pisarse\n\n## Contexto\nLos socios reservan por WhatsApp…\n\n## Objetivo\nQue cada socio reserve desde el móvil sin que se pisen las reservas.\n\n## Requisitos\n1. Ver las pistas libres de la semana.\n2. Reservar y cancelar.\n\n## Criterios de aceptación\n1. Dos reservas de la misma pista y franja no pueden convivir.\n\n## Dudas por resolver\n- ¿Las clases bloquean pistas?';
+  let docs = [{ id: 'd0', tipo: 'encargo', titulo: 'Reservas de pista sin pisarse', fecha: ahora - 30 * H, estado: 'listo', modelo: 'google/gemini-2.5-flash-lite', roles: [], texto: ENCARGO }];
+  let doc = null, regenerando = null, simularFallo = false, vista = 'lista';
+  const MAX_ROLES = 8;
+
+  function ver(v) {
+    vista = v;
+    ['lista', 'docs', 'documento', 'ajustes'].forEach(s => $(s).classList.toggle('hidden', s !== v));
+    $('barraSel').classList.toggle('hidden', v !== 'lista');
+    $('cab').textContent = { lista: 'Elegir', docs: 'Documentos', documento: doc && doc.tipo === 'informe' ? 'Informe' : 'Documento', ajustes: 'Ajustes' }[v];
+    window.scrollTo(0, 0);
+  }
+
+  // --- Lista en modo selección (como en la captura) ---
+  function pintarLista() {
+    const l = $('notas'); l.innerHTML = '';
+    NOTAS.forEach(n => {
+      const d = document.createElement('div'); d.className = 'nota';
+      d.innerHTML = `<span class="marca-sel">✓</span><h2>${esc(n.titulo)}</h2><time>${fmt(n.fecha)}</time><div class="chips">${n.etiquetas.map(e => `<span class="chip et">${e}</span>`).join('')}</div><p>${esc(n.contenido)}</p>`;
+      l.appendChild(d);
+    });
+    $('cuenta').textContent = `${plural(NOTAS.length, 'nota')} · ${(caracteres / 1000).toLocaleString('es-ES', { maximumFractionDigits: 1 })} mil caracteres`;
+  }
+
+  // --- Hoja de Generar ---
+  const modeloActual = () => modeloDe(modeloHoja || modeloAjustes);
+  function abrirGen(desde) {
+    regenerando = desde || null;
+    if (desde) {
+      modoGen = desde.tipo === 'informe' ? 'analisis' : 'encargo';
+      if (desde.roles.length) elegidos = new Set(desde.roles);
+      modeloHoja = desde.modelo !== modeloAjustes ? desde.modelo : null;
+      $('gInstr').value = desde.instruccion || '';
+    }
+    $('gTitulo').textContent = desde ? 'Regenerar' : 'Generar con ' + plural(NOTAS.length, 'nota');
+    $('gResumen').textContent = desde ? `${desde.titulo} · puedes cambiar roles, modelo e instrucción.` : `${plural(NOTAS.length, 'nota')} de «Club de pádel» · ${(caracteres / 1000).toLocaleString('es-ES', { maximumFractionDigits: 1 })} mil caracteres`;
+    pintarGen();
+    $('hojaGen').classList.remove('hidden');
+  }
+  function pintarGen() {
+    $('gModo').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === modoGen));
+    $('gEncargo').classList.toggle('hidden', modoGen !== 'encargo');
+    $('gAnalisis').classList.toggle('hidden', modoGen !== 'analisis');
+    const g = $('gRoles'); g.innerHTML = '';
+    todosRoles().forEach(r => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'rol' + (elegidos.has(r.id) ? ' on' : '');
+      b.innerHTML = `<b>${r.icono} ${esc(r.nombre)}</b><small>${r.propio ? '<span class="propio">PROPIO · </span>' : ''}${esc(r.enfoque)}</small>`;
+      b.onclick = () => {
+        if (elegidos.has(r.id)) elegidos.delete(r.id);
+        else if (elegidos.size >= MAX_ROLES) { aviso(`Como mucho ${MAX_ROLES} roles por informe`); return; }
+        else elegidos.add(r.id);
+        pintarGen();
+      };
+      g.appendChild(b);
+    });
+    const nuevo = document.createElement('button'); nuevo.type = 'button'; nuevo.className = 'rol nuevo'; nuevo.textContent = '＋ Rol propio';
+    nuevo.onclick = () => abrirRol(null, true); g.appendChild(nuevo);
+    $('gCuantos').textContent = elegidos.size ? `· ${elegidos.size} elegido${elegidos.size === 1 ? '' : 's'}` : '';
+    const m = modeloActual();
+    $('gModelo').innerHTML = `<span>🧠</span><span><b>${m.nombre}</b><small>${modeloHoja ? 'Solo para este informe' : 'El de Ajustes'} · ${precio(m)}</small></span><i>›</i>`;
+    pintarCoste();
+  }
+  // Estimación: ~3,6 caracteres por token; cada rol escribe ~1.200 tokens y la síntesis ~1.500.
+  function estimar(nRoles, m) {
+    const notas = caracteres / 3.6, sistema = 500, porRol = 1200, sintesis = 1500;
+    const entrada = nRoles * (notas + sistema) + (notas + sistema + nRoles * porRol);
+    const salida = nRoles * porRol + sintesis;
+    return (entrada * m.e + salida * m.s) / 1e6;
+  }
+  function pintarCoste() {
+    const m = modeloActual(), c = $('gCoste');
+    if (modoGen === 'encargo') { c.className = 'coste'; c.textContent = `1 llamada · ≈ ${fmtDolar(estimar(0, m) + (caracteres / 3.6) * m.e / 1e6)} · menos de un minuto`; $('gSi').disabled = false; return; }
+    const n = elegidos.size;
+    $('gSi').disabled = n === 0;
+    if (!n) { c.className = 'coste'; c.textContent = 'Elige al menos un rol.'; return; }
+    const coste = estimar(n, m);
+    c.className = 'coste' + (coste > 0.25 ? ' caro' : '');
+    c.innerHTML = `${n + 1} llamadas (${plural(n, 'rol', 'roles')} + síntesis) · <b>≈ ${fmtDolar(coste)}</b> · ${n > 4 ? '2–3' : '1–2'} min${coste > 0.25 ? '<br>Es un informe caro para este modelo: revisa roles o prueba uno más barato.' : ''}`;
+  }
+  const fmtDolar = v => (v < 0.01 ? '< 0,01' : v.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + ' $';
+  $('gModo').onclick = ev => { const b = ev.target.closest('button'); if (!b) return; modoGen = b.dataset.m; pintarGen(); };
+  $('gTodos').onclick = () => { elegidos = new Set(todosRoles().slice(0, MAX_ROLES).map(r => r.id)); if (todosRoles().length > MAX_ROLES) aviso(`Los ${MAX_ROLES} primeros: es el tope`); pintarGen(); };
+  $('gNinguno').onclick = () => { elegidos.clear(); pintarGen(); };
+  $('gModelo').onclick = () => abrirModelo('hoja');
+  $('gNo').onclick = () => { $('hojaGen').classList.add('hidden'); modeloHoja = null; };
+  $('generarSel').onclick = () => abrirGen(null);
+  $('gSi').onclick = () => {
+    const m = modeloActual();
+    const d = regenerando || { id: 'd' + Date.now() };
+    Object.assign(d, {
+      tipo: modoGen === 'analisis' ? 'informe' : 'encargo',
+      titulo: modoGen === 'analisis' ? 'Reservas del club de pádel: análisis' : 'Reservas de pista sin pisarse',
+      fecha: Date.now(), modelo: m.id, instruccion: $('gInstr').value.trim(),
+      roles: modoGen === 'analisis' ? todosRoles().filter(r => elegidos.has(r.id)).map(r => r.id) : [],
+      estado: 'pendiente', pasos: {}, sintesis: 'espera', texto: '', coste: null,
+    });
+    if (!regenerando) docs.unshift(d);
+    $('hojaGen').classList.add('hidden'); modeloHoja = null;
+    abrirDoc(d); simular(d);
+  };
+
+  // --- Simulación del servidor: los roles van a la vez; luego la síntesis ---
+  function simular(d, soloFallidos) {
+    const lista = d.tipo === 'informe' ? d.roles : ['encargo'];
+    const aHacer = soloFallidos ? lista.filter(id => d.pasos[id] === 'mal') : lista;
+    aHacer.forEach((id, i) => {
+      d.pasos[id] = 'trabajando';
+      const t = 900 + Math.random() * 2200 + i * 250;
+      setTimeout(() => {
+        d.pasos[id] = (simularFallo && !soloFallidos && i === 1) ? 'mal' : 'ok';
+        if (aHacer.every(x => d.pasos[x] !== 'trabajando')) terminar(d);
+        refrescar(d);
+      }, t);
+    });
+    d.sintesis = 'espera'; d.estado = 'pendiente'; refrescar(d);
+  }
+  function terminar(d) {
+    const hechos = (d.tipo === 'informe' ? d.roles : ['encargo']).filter(id => d.pasos[id] === 'ok');
+    if (!hechos.length) { d.estado = 'fallido'; refrescar(d); return; }
+    if (d.tipo !== 'informe') { d.estado = 'listo'; d.texto = ENCARGO; d.coste = 0.002; refrescar(d); return; }
+    d.sintesis = 'trabajando'; refrescar(d);
+    setTimeout(() => { d.sintesis = 'ok'; d.estado = 'listo'; d.texto = componer(d); d.coste = estimar(hechos.length, modeloDe(d.modelo)) * 0.9; refrescar(d); }, 1400);
+  }
+  const refrescar = d => { if (doc === d && vista === 'documento') pintarDoc(); };
+
+  // --- El informe: la síntesis escribe lo de arriba; el resto lo compone el backend ---
+  function componer(d) {
+    const rs = d.roles.filter(id => d.pasos[id] === 'ok').map(rolDe);
+    const ids = new Set(rs.map(r => r.id));
+    const tens = TENSIONES.filter(([a, b]) => ids.has(a) && ids.has(b)).map(t => '- ' + t[2]);
+    const m = modeloDe(d.modelo);
+    return [
+      `# ${d.titulo}`, '',
+      '## Resumen ejecutivo', '',
+      `La app resuelve un problema real del club (reservas por WhatsApp que se pisan) y es sencilla de construir. ${rs.length > 1 ? 'Los roles coinciden' : 'El análisis concluye'} en que la primera versión debe limitarse a reservar, cancelar y avisar, y en que quien paga debe ser el club, no el socio. El mayor riesgo no es técnico sino de adopción: si el club no deja de aceptar reservas por WhatsApp, la app convivirá con el problema que quiere quitar.`, '',
+      '## Conclusiones clave', '',
+      '1. **Cobrar al club**, con prueba gratuita: el socio no pagaría y el club ahorra tiempo y cobra por adelantado con bonos.',
+      '2. **V1 corta:** reservas, cancelación, lista de espera y panel de ocupación. Pagos después.',
+      '3. **Cortar WhatsApp en una fecha** acordada con el club: sin eso no hay adopción.',
+      '4. **Entrar sin fricción:** ver la ocupación sin cuenta y registrarse con el teléfono.', '',
+      '## Tensiones entre roles', '',
+      ...(tens.length ? tens : ['- Los roles elegidos no chocan en nada importante.']), '',
+      '## Plan de acción', '',
+      '1. **Alta** — Pedir al club pistas, socios activos y reservas por semana.',
+      '2. **Alta** — Acordar con el club la fecha de corte de WhatsApp y el modelo de cobro.',
+      '3. **Media** — Prototipo de reserva en tres toques y probarlo con 5 socios.',
+      '4. **Baja** — Elegir pasarela para la V2.', '',
+      '## Preguntas abiertas', '',
+      '- ¿Quién decide en el club y está dispuesto a cortar el canal de WhatsApp?',
+      '- ¿Clases y torneos siguen las mismas reglas que un partido?', '',
+      '## Análisis por rol', '',
+      ...rs.flatMap(r => [`### ${r.icono} ${r.nombre}`, '', r.md || `**Veredicto:** (lo que escriba el rol «${r.nombre}» con su enfoque).`, '']),
+      '## Notas de origen', '',
+      ...NOTAS.map((n, i) => `${i + 1}. ${n.titulo} (${new Date(n.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })})`), '',
+      '## Ficha', '',
+      `- **Modelo:** ${m.nombre} (\`${m.id}\`)`,
+      `- **Roles:** ${rs.map(r => r.nombre).join(', ')}`,
+      `- **Llamadas:** ${rs.length + 1} · **Coste:** ${fmtDolar(estimar(rs.length, m) * 0.9)} (lo que anotó el servicio)`,
+      `- **Generado:** ${fmt(d.fecha)}`,
+      ...(d.instruccion ? [`- **Instrucción:** ${d.instruccion}`] : []),
+    ].join('\n');
+  }
+
+  // Markdown mínimo, sin dependencias (la PWA funciona sin red): títulos, listas, negrita, cursiva y código.
+  function md(texto) {
+    const linea = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/(^|\W)\*(.+?)\*(?=\W|$)/g, '$1<em>$2</em>').replace(/`(.+?)`/g, '<code>$1</code>');
+    const out = []; let lista = null;
+    const cerrar = () => { if (lista) { out.push(`</${lista}>`); lista = null; } };
+    texto.split('\n').forEach(l => {
+      let m;
+      if ((m = l.match(/^(#{1,3}) (.*)/))) { cerrar(); out.push(`<h${m[1].length}>${linea(m[2])}</h${m[1].length}>`); }
+      else if ((m = l.match(/^- (.*)/))) { if (lista !== 'ul') { cerrar(); out.push('<ul>'); lista = 'ul'; } out.push(`<li>${linea(m[1])}</li>`); }
+      else if ((m = l.match(/^\d+\. (.*)/))) { if (lista !== 'ol') { cerrar(); out.push('<ol>'); lista = 'ol'; } out.push(`<li>${linea(m[1])}</li>`); }
+      else if (!l.trim()) cerrar();
+      else { cerrar(); out.push(`<p>${linea(l)}</p>`); }
+    });
+    cerrar(); return out.join('');
+  }
+
+  // --- Documento / informe ---
+  let modoDoc = 'leer';
+  function abrirDoc(d) { doc = d; modoDoc = 'leer'; ver('documento'); pintarDoc(); }
+  function pintarDoc() {
+    const d = doc, m = modeloDe(d.modelo), inf = d.tipo === 'informe';
+    $('cab').textContent = inf ? 'Informe' : 'Documento';
+    $('dTitulo').textContent = d.titulo;
+    $('dFicha').textContent = [inf ? '🔎 Informe' : '📄 Encargo', fmt(d.fecha), '🧠 ' + m.nombre, plural(NOTAS.length, 'nota'), d.coste != null ? fmtDolar(d.coste) : null].filter(Boolean).join(' · ');
+    $('dRoles').innerHTML = inf ? d.roles.map(id => { const r = rolDe(id); return `<span class="chip">${r.icono} ${esc(r.nombre)}</span>`; }).join('') : '';
+    $('copiarArriba').classList.toggle('hidden', d.estado !== 'listo');
+    // Progreso rol a rol
+    const p = $('dProgreso');
+    p.classList.toggle('hidden', d.estado === 'listo');
+    if (d.estado !== 'listo') {
+      const pasos = inf ? d.roles.map(id => ({ id, r: rolDe(id) })) : [{ id: 'encargo', r: { icono: '📄', nombre: 'Encargo' } }];
+      const txt = { trabajando: ['⏳', 'leyendo las notas…'], ok: ['✓', 'hecho'], mal: ['✗', 'tiempo agotado'], espera: ['·', 'en espera'] };
+      const hechos = pasos.filter(x => d.pasos[x.id] === 'ok' || d.pasos[x.id] === 'mal').length + (d.sintesis === 'ok' ? 1 : 0);
+      const total = pasos.length + (inf ? 1 : 0);
+      p.innerHTML = pasos.map(x => { const e = d.pasos[x.id] || 'espera'; return `<div class="paso ${e === 'ok' ? 'ok' : e === 'mal' ? 'mal' : e === 'trabajando' ? 'trabajando' : ''}"><span class="est">${txt[e][0]}</span>${x.r.icono} ${esc(x.r.nombre)}<small>${txt[e][1]}</small></div>`; }).join('')
+        + (inf ? `<div class="sep"></div><div class="paso ${d.sintesis === 'trabajando' ? 'trabajando' : ''}"><span class="est">${{ espera: '·', trabajando: '⏳', ok: '✓' }[d.sintesis]}</span>🧩 Síntesis: informe único<small>${{ espera: 'cuando acaben los roles', trabajando: 'redactando…', ok: 'hecho' }[d.sintesis]}</small></div>` : '')
+        + `<div class="avance"><i style="width:${Math.round(100 * hechos / total)}%"></i></div><p class="aviso">${d.estado === 'fallido' ? 'No salió ningún rol. Reintentar o cambiar de modelo.' : 'Puedes salir: sigue en el servidor y la app pregunta cada 3 s.'}</p>`;
+    }
+    // Roles que fallaron: el informe sale igual, con aviso y reintento solo de esos
+    const malos = inf ? d.roles.filter(id => d.pasos[id] === 'mal') : [];
+    const a = $('dAlerta');
+    a.classList.toggle('hidden', !(d.estado === 'listo' && malos.length));
+    if (d.estado === 'listo' && malos.length) {
+      a.innerHTML = `<span>⚠️ ${malos.map(id => rolDe(id).nombre).join(', ')} no respondió (tiempo agotado). El informe se hizo con ${plural(d.roles.length - malos.length, 'rol', 'roles')}.</span><button class="btn" type="button">Reintentar ${malos.length === 1 ? rolDe(malos[0]).nombre : 'esos'}</button>`;
+      a.querySelector('button').onclick = () => { simular(d, true); pintarDoc(); };
+    }
+    $('dCuerpo').classList.toggle('hidden', d.estado !== 'listo');
+    if (d.estado === 'listo') {
+      $('dModo').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === modoDoc));
+      $('dMd').classList.toggle('hidden', modoDoc !== 'leer');
+      $('dTexto').classList.toggle('hidden', modoDoc !== 'editar');
+      $('dPdf').classList.toggle('hidden', modoDoc !== 'leer');
+      $('dGuardar').classList.toggle('hidden', modoDoc !== 'editar');
+      if (modoDoc === 'leer') $('dMd').innerHTML = md(d.texto); else if ($('dTexto').value !== d.texto && !$('dTexto').dataset.sucio) $('dTexto').value = d.texto;
+    }
+  }
+  $('dModo').onclick = ev => { const b = ev.target.closest('button'); if (!b) return; modoDoc = b.dataset.m; delete $('dTexto').dataset.sucio; $('dTexto').value = doc.texto; pintarDoc(); };
+  $('dTexto').oninput = () => { $('dTexto').dataset.sucio = '1'; $('dGuardar').disabled = false; };
+  $('dGuardar').onclick = () => { doc.texto = $('dTexto').value; delete $('dTexto').dataset.sucio; $('dGuardar').disabled = true; aviso('Guardado'); };
+  async function copiar() {
+    try { await navigator.clipboard.writeText(doc.texto); aviso('Copiado en markdown'); }
+    catch { aviso('Copiado (en el mock puede fallar sin https)'); }
+  }
+  $('dCopiar').onclick = $('copiarArriba').onclick = copiar;
+  $('dCompartir').onclick = () => navigator.share ? navigator.share({ title: doc.titulo, text: doc.texto }).catch(() => {}) : aviso('Este navegador no tiene compartir');
+  $('dDescargar').onclick = () => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([doc.texto], { type: 'text/markdown' }));
+    a.download = doc.titulo.toLowerCase().normalize('NFD').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') + '.md'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  $('dPdf').onclick = () => window.print();
+  $('dRegenerar').onclick = () => abrirGen(doc);
+  $('dBorrar').onclick = () => {
+    $('cTitulo').textContent = doc.tipo === 'informe' ? '¿Borrar este informe?' : '¿Borrar este documento?';
+    $('cTexto').textContent = doc.titulo + ' · las notas no se tocan.';
+    $('confirmar').classList.remove('hidden');
+    $('cSi').onclick = () => { docs = docs.filter(x => x !== doc); $('confirmar').classList.add('hidden'); aviso('Borrado'); pintarDocs(); ver('docs'); };
+  };
+  $('cNo').onclick = () => $('confirmar').classList.add('hidden');
+  $('volverDoc').onclick = () => { pintarDocs(); ver('docs'); };
+
+  // --- Documentos ---
+  function pintarDocs() {
+    const l = $('listaDocs'); l.innerHTML = '';
+    docs.forEach(d => {
+      const e = document.createElement('div'); e.className = 'doc';
+      const inf = d.tipo === 'informe';
+      e.innerHTML = `<h2>${esc(d.titulo)}</h2><time>${fmt(d.fecha)} · ${d.estado === 'listo' ? '' : 'generando… · '}🧠 ${modeloDe(d.modelo).nombre}</time><div class="chips"><span class="marca ${inf ? 'inf' : ''}">${inf ? '🔎 Informe · ' + plural(d.roles.length, 'rol', 'roles') : '📄 Encargo'}</span>${inf ? `<span class="marca">${d.roles.map(id => rolDe(id).icono).join(' ')}</span>` : ''}</div>`;
+      e.onclick = () => abrirDoc(d); l.appendChild(e);
+    });
+  }
+  $('docsBtn').onclick = () => { pintarDocs(); ver('docs'); };
+  $('selBtn').onclick = () => ver('lista');
+
+  // --- Selector de modelo ---
+  let modoModelo = 'ajustes';
+  function abrirModelo(desde) {
+    modoModelo = desde; $('mBuscar').value = '';
+    $('mTitulo').textContent = desde === 'hoja' ? 'Modelo para este informe' : 'Modelo para documentos e informes';
+    $('mAviso').textContent = desde === 'hoja' ? 'Solo cambia este informe; el de siempre está en ⚙ Ajustes.' : 'El que usan Generar y Regenerar si no eliges otro en la hoja.';
+    pintarModelos(); $('hojaModelo').classList.remove('hidden');
+  }
+  function pintarModelos() {
+    const q = $('mBuscar').value.trim().toLowerCase();
+    const actual = modoModelo === 'hoja' ? (modeloHoja || modeloAjustes) : modeloAjustes;
+    const cabe = m => !q || (m.nombre + ' ' + m.id).toLowerCase().includes(q);
+    const boton = m => `<button type="button" class="modelo${m.id === actual ? ' on' : ''}" data-id="${m.id}"><span><b>${m.nombre}</b>${m.defecto ? ' <span class="marca">por defecto del servidor</span>' : ''}<code>${m.id}</code><small>${precio(m)}${m.rec ? ' · ' + m.rec : ''}</small></span><span class="tick">✓</span></button>`;
+    const def = MODELOS.filter(m => m.defecto && cabe(m)), rec = MODELOS.filter(m => m.rec && cabe(m)), resto = MODELOS.filter(m => !m.rec && !m.defecto && cabe(m));
+    $('mLista').innerHTML = (def.length ? `<div class="listaModelos" style="margin-top:.6rem">${def.map(boton).join('')}</div>` : '')
+      + (rec.length ? `<div class="grupo">Recomendados para informes</div><div class="listaModelos">${rec.map(boton).join('')}</div>` : '')
+      + (resto.length ? `<div class="grupo">Todos · 324 en el catálogo (aquí, 10 de ejemplo)</div><div class="listaModelos">${resto.map(boton).join('')}</div>` : '')
+      + (!def.length && !rec.length && !resto.length ? '<p class="aviso">Ningún modelo coincide.</p>' : '');
+    $('mLista').querySelectorAll('.modelo').forEach(b => b.onclick = () => {
+      if (modoModelo === 'hoja') modeloHoja = b.dataset.id === modeloAjustes ? null : b.dataset.id;
+      else modeloAjustes = b.dataset.id;
+      $('hojaModelo').classList.add('hidden');
+      if (modoModelo === 'hoja') pintarGen(); else { pintarAjustes(); aviso('Modelo guardado'); }
+    });
+  }
+  $('mBuscar').oninput = pintarModelos;
+  $('mNo').onclick = () => $('hojaModelo').classList.add('hidden');
+
+  // --- Roles: crear, editar, ver y duplicar ---
+  let editandoRol = null, rolDesdeHoja = false;
+  function abrirRol(r, desdeHoja) {
+    editandoRol = r; rolDesdeHoja = !!desdeHoja;
+    const deSerie = r && !r.propio;
+    $('rTitulo').textContent = !r ? 'Nuevo rol' : deSerie ? 'Rol de serie' : 'Editar rol';
+    $('rIcono').value = r ? r.icono : ''; $('rNombre').value = r ? r.nombre : ''; $('rEnfoque').value = r ? r.enfoque : '';
+    ['rIcono', 'rNombre', 'rEnfoque'].forEach(id => { $(id).readOnly = !!deSerie; });
+    $('rSi').classList.toggle('hidden', !!deSerie);
+    $('rNo').textContent = deSerie ? 'Cerrar' : 'Cancelar';
+    $('rAviso').textContent = deSerie ? 'Los roles de serie mejoran con cada versión de la app; para ajustar uno, duplícalo.' : 'Escríbelo como un encargo: qué debe buscar y qué debe proponer. La app le añade la estructura común (veredicto, hallazgos, recomendaciones, preguntas).';
+    $('rMas').classList.toggle('hidden', !r);
+    $('rDuplicar').classList.toggle('hidden', !deSerie);
+    $('rBorrar').classList.toggle('hidden', !r || deSerie);
+    $('hojaRol').classList.remove('hidden');
+    if (!r) $('rNombre').focus();
+  }
+  $('rNo').onclick = () => $('hojaRol').classList.add('hidden');
+  $('rSi').onclick = () => {
+    const nombre = $('rNombre').value.trim(), enfoque = $('rEnfoque').value.trim(), icono = $('rIcono').value.trim() || '🧪';
+    if (!nombre) { $('rNombre').focus(); return; }
+    if (!enfoque) { $('rEnfoque').focus(); return; }
+    if (todosRoles().some(x => x !== editandoRol && x.nombre.toLowerCase() === nombre.toLowerCase())) { $('rAviso').textContent = 'Ya hay un rol con ese nombre.'; return; }
+    if (editandoRol) Object.assign(editandoRol, { nombre, enfoque, icono });
+    else { const r = { id: 'p' + Date.now(), nombre, enfoque, icono, propio: true, md: null }; propios.push(r); if (rolDesdeHoja && elegidos.size < MAX_ROLES) elegidos.add(r.id); }
+    $('hojaRol').classList.add('hidden'); aviso(editandoRol ? 'Rol guardado' : 'Rol creado');
+    if (!$('hojaGen').classList.contains('hidden')) pintarGen();
+    pintarAjustes();
+  };
+  $('rDuplicar').onclick = () => {
+    const r = editandoRol; const copia = { id: 'p' + Date.now(), nombre: r.nombre + ' (mío)', icono: r.icono, enfoque: r.enfoque, propio: true, md: r.md };
+    propios.push(copia); $('hojaRol').classList.add('hidden'); abrirRol(copia); pintarAjustes();
+  };
+  $('rBorrar').onclick = () => {
+    const r = editandoRol; propios = propios.filter(x => x !== r); elegidos.delete(r.id);
+    $('hojaRol').classList.add('hidden'); aviso('Rol borrado · los informes ya hechos no cambian'); pintarAjustes();
+    if (!$('hojaGen').classList.contains('hidden')) pintarGen();
+  };
+
+  // --- Ajustes ---
+  function pintarAjustes() {
+    const m = modeloDe(modeloAjustes);
+    $('aModelo').innerHTML = `<span>🧠</span><span><b>${m.nombre}</b><small>${m.id} · ${precio(m)}</small></span><i>›</i>`;
+    const z = $('aRoles'); z.innerHTML = '';
+    todosRoles().forEach(r => {
+      const f = document.createElement('div'); f.className = 'lineaRol';
+      f.innerHTML = `<span class="ic">${r.icono}</span><span><b>${esc(r.nombre)}</b>${r.propio ? ' <span class="marca inf">propio</span>' : ''}<small>${esc(r.enfoque)}</small></span><i>${r.propio ? '✎' : '›'}</i>`;
+      f.onclick = () => abrirRol(r); z.appendChild(f);
+    });
+  }
+  $('aModelo').onclick = () => abrirModelo('ajustes');
+  $('aNuevoRol').onclick = () => abrirRol(null);
+  $('ajustesBtn').onclick = () => { pintarAjustes(); ver('ajustes'); };
+  $('volverAjustes').onclick = () => ver('lista');
+
+  document.querySelectorAll('.velo').forEach(v => v.onclick = ev => { if (ev.target === v) v.classList.add('hidden'); });
+  $('infoBtn').onclick = () => $('hojaInfo').classList.remove('hidden');
+  $('infoNo').onclick = () => $('hojaInfo').classList.add('hidden');
+
+  // ?v=hoja|progreso|informe|fallo|ajustes|modelo|rol|docs abre directamente esa pantalla (para las capturas).
+  const inicio = new URLSearchParams(location.search).get('v');
+  pintarLista(); ver('lista');
+  if (inicio === 'hoja') abrirGen(null);
+  if (inicio === 'progreso' || inicio === 'fallo') { simularFallo = inicio === 'fallo'; abrirGen(null); $('gSi').click(); }
+  if (inicio === 'informe') {
+    const d = { id: 'd1', tipo: 'informe', titulo: 'Reservas del club de pádel: análisis', fecha: ahora - H / 2, modelo: modeloAjustes, instruccion: '', roles: [...elegidos], pasos: {}, sintesis: 'ok', estado: 'listo' };
+    d.roles.forEach(id => { d.pasos[id] = 'ok'; }); d.texto = componer(d); d.coste = estimar(d.roles.length, modeloDe(d.modelo)) * 0.9;
+    docs.unshift(d); abrirDoc(d);
+  }
+  if (inicio === 'ajustes') { pintarAjustes(); ver('ajustes'); }
+  if (inicio === 'modelo') { abrirGen(null); abrirModelo('hoja'); }
+  if (inicio === 'rol') { abrirGen(null); abrirRol(null, true); }
+  if (inicio === 'docs') { const d = { id: 'd2', tipo: 'informe', titulo: 'Reservas del club de pádel: análisis', fecha: ahora - 2 * H, modelo: 'anthropic/claude-sonnet-4.5', roles: ['critico', 'economico', 'marketing', 'usabilidad', 'p-acc'], pasos: {}, sintesis: 'ok', estado: 'listo' }; d.roles.forEach(id => { d.pasos[id] = 'ok'; }); d.texto = componer(d); d.coste = estimar(d.roles.length, modeloDe(d.modelo)) * 0.9; docs.unshift(d); pintarDocs(); ver('docs'); }
+</script>
+</body>
+</html>
