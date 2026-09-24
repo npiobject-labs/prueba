@@ -31,7 +31,7 @@ CREATE INDEX proyectos_padre ON proyectos(padre_id);
 PRAGMA user_version = 3;
 ```
 
-- **Unicidad por padre sin reconstruir la tabla**: `nombre_clave` es `UNIQUE` a nivel de columna y SQLite no deja quitarlo sin copiar la tabla. En las subcarpetas se guarda `nombre_clave = '<padre_id>/<clave>'`; los principales siguen con la clave a secas. El `UNIQUE` global pasa a significar «único dentro del padre» y el id del padre (ulid) no cambia al renombrarlo. Mover una subcarpeta recalcula su clave.
+- **Unicidad por padre sin reconstruir la tabla**: `nombre_clave` es `UNIQUE` a nivel de columna y SQLite no deja quitarlo sin copiar la tabla. En las subcarpetas se guarda `nombre_clave = '<padre_id>/<clave>'`; los principales siguen con la clave a secas. El `UNIQUE` global pasa a significar «único dentro del padre» y el id del padre (ulid) no cambia al renombrarlo. Mover una subcarpeta recalcula su clave. Al sacarla a principal (a mano o por D51) puede chocar con un proyecto que ya se llame igual: a mano, 409; al borrar el padre, la subcarpeta se renombra «Diseño (App de notas)» para que el borrado no falle.
 - Sin `ON DELETE` en `padre_id`: borrar lo resuelve el handler en una transacción (D51), igual que hoy hace con notas y documentos.
 - `notas`, `documentos` y `entrevistas` no cambian.
 
