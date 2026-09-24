@@ -1,0 +1,28 @@
+{
+  "fecha": "2026-09-24T14:34:00+02:00",
+  "titulo": "Cierre: menú de una línea probado en el móvil",
+  "objetivo": "Cerrar la sesión tras la prueba del usuario en el móvil.",
+  "prompts": [
+    { "texto": "Probado en el móvil y funciona, cierra sesión." }
+  ],
+  "cambios": [
+    "Sin cambios de código: resumen de cierre y esta entrada."
+  ],
+  "sha": "80f4d5a",
+  "sha_completo": "80f4d5a5a663533d7db14cda15fb46b8294a2674",
+  "run": 35999573676,
+  "mock": "mocks/021-menu.html",
+  "build": "PR-B1-20260924-031",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Probar un informe con roles con notas reales y un modelo bueno elegido en Ajustes.",
+    "Vigilar si cambiar de sección con dos toques molesta (plan B de D76)."
+  ],
+  "enlaces": [
+    { "texto": "PR #57 (menú)", "url": "https://github.com/npiobject-labs/prueba/pull/57" },
+    { "texto": "PR #55 (informes en la app)", "url": "https://github.com/npiobject-labs/prueba/pull/55" },
+    { "texto": "PR #53 (informes en el backend)", "url": "https://github.com/npiobject-labs/prueba/pull/53" }
+  ],
+  "notas": "Cierra la sesión larga del 24 de septiembre (entradas de las 12:43, 13:28, 14:03 y 14:30). El usuario confirmó en el móvil el menú de una línea; los informes con roles no se han confirmado aún con datos reales."
+}
