@@ -1,3 +1,4 @@
+mod analisis;
 mod entrevistas;
 mod llm;
 
@@ -127,6 +128,7 @@ fn abrir_db() -> Connection {
         Err(e) => eprintln!("no se pudieron revisar los documentos pendientes: {e}"),
     }
     entrevistas::recuperar(&con);
+    analisis::recuperar(&con);
     println!("base de datos en {ruta}");
     con
 }
@@ -212,6 +214,44 @@ fn migrar(con: &Connection) {
         )
         .expect("no se pudo migrar el esquema a la version 3 (subcarpetas)");
         println!("esquema migrado a la version 3: subcarpetas");
+    }
+    if version < 4 {
+        // Informes con roles (D54-D67): un documento puede ser un encargo (lo
+        // de siempre) o un informe; cada rol guarda su copia y su resultado,
+        // para reintentar solo lo que falle. `generacion` separa el coste de
+        // cada vez que se regenera.
+        con.execute_batch(
+            "BEGIN;
+             ALTER TABLE documentos ADD COLUMN tipo TEXT NOT NULL DEFAULT 'encargo';
+             ALTER TABLE documentos ADD COLUMN modelo TEXT;
+             ALTER TABLE documentos ADD COLUMN coste REAL;
+             ALTER TABLE documentos ADD COLUMN sintesis TEXT NOT NULL DEFAULT '';
+             ALTER TABLE documentos ADD COLUMN generacion INTEGER NOT NULL DEFAULT 0;
+             CREATE TABLE IF NOT EXISTS documento_roles (
+               documento_id TEXT NOT NULL REFERENCES documentos(id) ON DELETE CASCADE,
+               rol_id       TEXT NOT NULL,
+               orden        INTEGER NOT NULL,
+               nombre       TEXT NOT NULL,
+               icono        TEXT NOT NULL,
+               enfoque      TEXT NOT NULL,
+               estado       TEXT NOT NULL DEFAULT 'espera',
+               texto        TEXT,
+               error        TEXT,
+               PRIMARY KEY (documento_id, rol_id)
+             );
+             CREATE TABLE IF NOT EXISTS roles (
+               id           TEXT PRIMARY KEY,
+               nombre       TEXT NOT NULL,
+               nombre_clave TEXT NOT NULL UNIQUE,
+               icono        TEXT NOT NULL,
+               enfoque      TEXT NOT NULL,
+               creado_en    TEXT NOT NULL
+             );
+             PRAGMA user_version = 4;
+             COMMIT;",
+        )
+        .expect("no se pudo migrar el esquema a la version 4 (informes)");
+        println!("esquema migrado a la version 4: informes con roles");
     }
 }
 
@@ -407,6 +447,24 @@ struct Documento {
     /// Proyecto comun de sus notas, si lo tenian (D21).
     proyecto: Option<ProyectoRef>,
     notas: Vec<NotaDeDocumento>,
+    /// `encargo` (D11) o `informe` (D54).
+    tipo: String,
+    /// El modelo pedido; `null` es el del servidor (D60).
+    modelo: Option<String>,
+    /// Dolares que costo la ultima generacion de un informe (D62).
+    coste: Option<f64>,
+    /// Los roles de un informe con su estado (D63); vacio en un encargo.
+    roles: Vec<RolDeDocumento>,
+}
+
+/// Un rol dentro de un informe: `espera`, `trabajando`, `hecho` o `fallido`.
+#[derive(Serialize)]
+struct RolDeDocumento {
+    id: String,
+    nombre: String,
+    icono: String,
+    estado: String,
+    error: Option<String>,
 }
 
 /// Una nota vista desde su documento. `existe` es false si se borro despues:
@@ -432,6 +490,23 @@ struct NuevoDocumento {
     notas: Vec<String>,
     #[serde(default)]
     instruccion: String,
+    /// `encargo` (por defecto) o `informe` (D54).
+    tipo: Option<String>,
+    /// Ids de los roles de un informe, de 1 a 8 (D55/D56).
+    #[serde(default)]
+    roles: Vec<String>,
+    /// Modelo del catalogo; vacio o ausente, el del servidor (D60).
+    modelo: Option<String>,
+}
+
+/// `encargo` o `informe`; cualquier otra cosa es un 400.
+fn tipo_valido(t: Option<&str>) -> Respuesta<Option<&'static str>> {
+    match t.map(str::trim) {
+        None | Some("") => Ok(None),
+        Some("encargo") => Ok(Some("encargo")),
+        Some("informe") => Ok(Some("informe")),
+        Some(otro) => error(StatusCode::BAD_REQUEST, format!("tipo desconocido: {otro}")),
+    }
 }
 
 #[derive(Deserialize)]
@@ -442,6 +517,13 @@ struct TextoEditado {
 #[derive(Deserialize, Default)]
 struct Regeneracion {
     instruccion: Option<String>,
+    /// Ausente: el mismo tipo. Se puede pasar de encargo a informe y al reves.
+    tipo: Option<String>,
+    /// Ausente: los mismos roles (su copia). Una lista: esos roles.
+    roles: Option<Vec<String>>,
+    /// Ausente: el mismo modelo. `null` o vacio: el del servidor.
+    #[serde(default, deserialize_with = "presente")]
+    modelo: Option<Option<String>>,
 }
 
 #[derive(Deserialize, Default)]
@@ -1288,7 +1370,8 @@ fn leer_documento(con: &Connection, id: &str) -> rusqlite::Result<Option<Documen
     let doc = con
         .prepare_cached(
             "SELECT d.id, d.titulo, d.instruccion, d.texto, d.estado, d.error, d.editado,
-                    d.creado_en, d.actualizado_en, p.id, p.nombre, pp.id, pp.nombre
+                    d.creado_en, d.actualizado_en, p.id, p.nombre, pp.id, pp.nombre,
+                    d.tipo, d.modelo, d.coste
              FROM documentos d LEFT JOIN proyectos p ON p.id = d.proyecto_id
              LEFT JOIN proyectos pp ON pp.id = p.padre_id WHERE d.id = ?1",
         )?
@@ -1305,6 +1388,10 @@ fn leer_documento(con: &Connection, id: &str) -> rusqlite::Result<Option<Documen
                 actualizado_en: f.get(8)?,
                 proyecto: proyecto_de_fila(f, 9)?,
                 notas: vec![],
+                tipo: f.get(13)?,
+                modelo: f.get(14)?,
+                coste: f.get(15)?,
+                roles: vec![],
             })
         })
         .optional()?;
@@ -1324,6 +1411,21 @@ fn leer_documento(con: &Connection, id: &str) -> rusqlite::Result<Option<Documen
                         titulo: f.get(1)?,
                         creada_en: f.get(2)?,
                         existe: f.get::<_, i64>(3)? != 0,
+                    })
+                })?
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+            d.roles = con
+                .prepare_cached(
+                    "SELECT rol_id, nombre, icono, estado, error FROM documento_roles
+                     WHERE documento_id = ?1 ORDER BY orden",
+                )?
+                .query_map([id], |f| {
+                    Ok(RolDeDocumento {
+                        id: f.get(0)?,
+                        nombre: f.get(1)?,
+                        icono: f.get(2)?,
+                        estado: f.get(3)?,
+                        error: f.get(4)?,
                     })
                 })?
                 .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -1369,9 +1471,17 @@ async fn crear_documento(
         .chars()
         .take(500)
         .collect::<String>();
+    let tipo = tipo_valido(nuevo.tipo.as_deref())?.unwrap_or("encargo");
+    // El catalogo se consulta antes de tomar el candado: es una llamada a red.
+    let modelo = analisis::modelo_valido(nuevo.modelo, tipo == "encargo").await?;
 
     let id = {
         let con = db.lock().unwrap();
+        let roles = if tipo == "informe" {
+            analisis::roles_pedidos(&con, &nuevo.roles)?
+        } else {
+            vec![]
+        };
         // Las notas entran en el documento de la mas antigua a la mas reciente:
         // asi el modelo lee la historia en el orden en que se dicto.
         let mut fuentes: Vec<(String, String, String)> = Vec::with_capacity(ids.len());
@@ -1443,13 +1553,14 @@ async fn crear_documento(
         let crear = || -> rusqlite::Result<String> {
             let tx = con.unchecked_transaction()?;
             let id: String = tx.query_row(
-                "INSERT INTO documentos (id, titulo, instruccion, texto, estado, editado, creado_en, actualizado_en, proyecto_id)
+                "INSERT INTO documentos (id, titulo, instruccion, texto, estado, editado, creado_en, actualizado_en, proyecto_id, tipo, modelo)
                  VALUES (lower(hex(randomblob(8))), ?1, ?2, '', 'pendiente', 0,
-                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), ?3)
+                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), ?3, ?4, ?5)
                  RETURNING id",
-                params![titulo_provisional(&fuentes), instruccion, proyecto],
+                params![titulo_provisional(&fuentes), instruccion, proyecto, tipo, modelo],
                 |f| f.get(0),
             )?;
+            insertar_roles(&tx, &id, &roles)?;
             {
                 let mut ins = tx.prepare(
                     "INSERT INTO documento_notas (documento_id, nota_id, orden, titulo, creada_en)
@@ -1470,7 +1581,11 @@ async fn crear_documento(
 
     // Redactar puede tardar un minuto largo: se contesta ya y el movil pregunta
     // luego por el documento. Si se cierra la pestaña, sigue generandose (D11).
-    lanzar_generacion(db.clone(), id.clone());
+    if tipo == "informe" {
+        analisis::lanzar_informe(db.clone(), id.clone());
+    } else {
+        lanzar_generacion(db.clone(), id.clone());
+    }
 
     let con = db.lock().unwrap();
     match leer_documento(&con, &id) {
@@ -1481,6 +1596,29 @@ async fn crear_documento(
         ),
         Err(e) => interno(e),
     }
+}
+
+/// Los roles de un informe, cada uno con su copia y en espera (D59/D63).
+fn insertar_roles(
+    tx: &rusqlite::Transaction,
+    id: &str,
+    roles: &[analisis::RolCopia],
+) -> rusqlite::Result<()> {
+    let mut ins = tx.prepare(
+        "INSERT INTO documento_roles (documento_id, rol_id, orden, nombre, icono, enfoque, estado)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'espera')",
+    )?;
+    for (orden, r) in roles.iter().enumerate() {
+        ins.execute(params![
+            id,
+            r.id,
+            orden as i64,
+            r.nombre,
+            r.icono,
+            r.enfoque
+        ])?;
+    }
+    Ok(())
 }
 
 /// Titulo mientras el modelo no devuelve el suyo: el de la primera nota y
@@ -1573,7 +1711,8 @@ async fn editar_documento(
 }
 
 /// Vuelve a pedirselo al modelo con las mismas notas. Sirve tanto para un
-/// documento fallido como para uno que no gusto, cambiando la instruccion.
+/// documento fallido como para uno que no gusto: se puede cambiar la
+/// instruccion, el tipo, los roles y el modelo (D66).
 async fn regenerar_documento(
     State(db): State<Db>,
     Path(id): Path<String>,
@@ -1582,10 +1721,11 @@ async fn regenerar_documento(
     if ia().is_none() {
         return error(StatusCode::SERVICE_UNAVAILABLE, "no hay IA configurada");
     }
-    let instruccion = cuerpo
-        .and_then(|Json(r)| r.instruccion)
+    let r = cuerpo.map(|Json(r)| r).unwrap_or_default();
+    let instruccion = r
+        .instruccion
         .map(|i| i.trim().chars().take(500).collect::<String>());
-    {
+    let (tipo, modelo) = {
         let con = db.lock().unwrap();
         let existe = match leer_documento(&con, &id) {
             Ok(Some(d)) => d,
@@ -1595,25 +1735,73 @@ async fn regenerar_documento(
         if existe.estado == "pendiente" {
             return error(StatusCode::CONFLICT, "ese documento ya se esta generando");
         }
-        let sql = match &instruccion {
-            Some(_) => {
-                "UPDATE documentos SET estado = 'pendiente', error = NULL, instruccion = ?2,
-                        actualizado_en = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?1"
-            }
-            None => {
-                "UPDATE documentos SET estado = 'pendiente', error = NULL,
-                     actualizado_en = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?1"
-            }
+        let tipo = match tipo_valido(r.tipo.as_deref())? {
+            Some(t) => t,
+            None if existe.tipo == "informe" => "informe",
+            None => "encargo",
         };
-        let res = match &instruccion {
-            Some(i) => con.execute(sql, params![id, i]),
-            None => con.execute(sql, params![id]),
+        let modelo = match r.modelo {
+            None => existe.modelo,
+            Some(m) => m,
         };
-        if let Err(e) = res {
+        (tipo, modelo)
+    };
+    let modelo = analisis::modelo_valido(modelo, tipo == "encargo").await?;
+    {
+        let con = db.lock().unwrap();
+        let roles_nuevos = match (&r.roles, tipo) {
+            (Some(ids), "informe") => Some(analisis::roles_pedidos(&con, ids)?),
+            _ => None,
+        };
+        if tipo == "informe" && roles_nuevos.is_none() {
+            let hay: i64 = match con.query_row(
+                "SELECT COUNT(*) FROM documento_roles WHERE documento_id = ?1",
+                [&id],
+                |f| f.get(0),
+            ) {
+                Ok(n) => n,
+                Err(e) => return interno(e),
+            };
+            if hay == 0 {
+                return error(StatusCode::BAD_REQUEST, "elige al menos un rol");
+            }
+        }
+        let preparar = || -> rusqlite::Result<()> {
+            let tx = con.unchecked_transaction()?;
+            tx.execute(
+                "UPDATE documentos SET estado = 'pendiente', error = NULL, tipo = ?2, modelo = ?3,
+                        instruccion = COALESCE(?4, instruccion), coste = NULL, sintesis = '',
+                        generacion = generacion + 1,
+                        actualizado_en = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?1",
+                params![id, tipo, modelo, instruccion],
+            )?;
+            match (&roles_nuevos, tipo) {
+                (Some(roles), _) => {
+                    tx.execute("DELETE FROM documento_roles WHERE documento_id = ?1", [&id])?;
+                    insertar_roles(&tx, &id, roles)?;
+                }
+                (None, "informe") => {
+                    tx.execute(
+                        "UPDATE documento_roles SET estado = 'espera', texto = NULL, error = NULL
+                         WHERE documento_id = ?1",
+                        [&id],
+                    )?;
+                }
+                (None, _) => {
+                    tx.execute("DELETE FROM documento_roles WHERE documento_id = ?1", [&id])?;
+                }
+            }
+            tx.commit()
+        };
+        if let Err(e) = preparar() {
             return interno(e);
         }
     }
-    lanzar_generacion(db.clone(), id.clone());
+    if tipo == "informe" {
+        analisis::lanzar_informe(db.clone(), id.clone());
+    } else {
+        lanzar_generacion(db.clone(), id.clone());
+    }
     let con = db.lock().unwrap();
     match leer_documento(&con, &id) {
         Ok(Some(d)) => Ok(Json(d)),
@@ -1648,64 +1836,88 @@ fn lanzar_generacion(db: Db, id: String) {
     });
 }
 
+/// Lo que el modelo necesita de un documento: instruccion, notas (de la mas
+/// antigua a la mas reciente, con sus etiquetas), proyecto y modelo pedido.
+struct FuentesDocumento {
+    instruccion: String,
+    notas: Vec<llm::NotaFuente>,
+    proyecto: Option<llm::Proyecto>,
+    modelo: Option<String>,
+}
+
+/// Las notas borradas despues de crear el documento ya no entran.
+fn fuentes_de_documento(con: &Connection, id: &str) -> Result<FuentesDocumento, String> {
+    let proyecto: Option<llm::Proyecto> = con
+        .query_row(
+            &format!(
+                "SELECT {CONTEXTO_NOMBRE}, {CONTEXTO_DESCRIPCION} FROM documentos d
+                 JOIN proyectos p ON p.id = d.proyecto_id
+                 LEFT JOIN proyectos pp ON pp.id = p.padre_id WHERE d.id = ?1"
+            ),
+            [id],
+            |f| {
+                Ok(llm::Proyecto {
+                    nombre: f.get(0)?,
+                    descripcion: f.get(1)?,
+                })
+            },
+        )
+        .optional()
+        .unwrap_or(None);
+    let (instruccion, modelo): (String, Option<String>) = con
+        .query_row(
+            "SELECT instruccion, modelo FROM documentos WHERE id = ?1",
+            [id],
+            |f| Ok((f.get(0)?, f.get(1)?)),
+        )
+        .map_err(|_| "el documento ya no esta".to_string())?;
+    let notas: Vec<llm::NotaFuente> = con
+        .prepare_cached(
+            "SELECT n.id, n.titulo, n.creada_en, n.contenido FROM documento_notas dn
+             JOIN notas n ON n.id = dn.nota_id WHERE dn.documento_id = ?1 ORDER BY dn.orden",
+        )
+        .and_then(|mut st| {
+            st.query_map([id], |f| {
+                Ok((
+                    f.get::<_, String>(0)?,
+                    llm::NotaFuente {
+                        titulo: f.get(1)?,
+                        creada_en: f.get(2)?,
+                        contenido: f.get(3)?,
+                        etiquetas: vec![],
+                    },
+                ))
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()
+        })
+        .map_err(|e| format!("no se pudieron leer las notas: {e}"))?
+        .into_iter()
+        .map(|(nota_id, mut n)| {
+            n.etiquetas = etiquetas_de(con, &nota_id).unwrap_or_default();
+            n
+        })
+        .collect();
+    Ok(FuentesDocumento {
+        instruccion,
+        notas,
+        proyecto,
+        modelo,
+    })
+}
+
 async fn generar_documento(db: &Db, id: &str) -> Result<(), String> {
     let ia = ia().ok_or("no hay IA configurada")?;
 
     // Se lee todo y se suelta el candado antes de salir a la red: el modelo
     // puede tardar un minuto y la app tiene que seguir respondiendo.
-    let (instruccion, fuentes, proyecto) = {
+    let FuentesDocumento {
+        instruccion,
+        notas: fuentes,
+        proyecto,
+        modelo,
+    } = {
         let con = db.lock().unwrap();
-        let proyecto: Option<llm::Proyecto> = con
-            .query_row(
-                &format!(
-                    "SELECT {CONTEXTO_NOMBRE}, {CONTEXTO_DESCRIPCION} FROM documentos d
-                     JOIN proyectos p ON p.id = d.proyecto_id
-                     LEFT JOIN proyectos pp ON pp.id = p.padre_id WHERE d.id = ?1"
-                ),
-                [id],
-                |f| {
-                    Ok(llm::Proyecto {
-                        nombre: f.get(0)?,
-                        descripcion: f.get(1)?,
-                    })
-                },
-            )
-            .optional()
-            .unwrap_or(None);
-        let instruccion: String = con
-            .query_row(
-                "SELECT instruccion FROM documentos WHERE id = ?1",
-                [id],
-                |f| f.get(0),
-            )
-            .map_err(|_| "el documento ya no esta".to_string())?;
-        let notas: Vec<llm::NotaFuente> = con
-            .prepare_cached(
-                "SELECT n.id, n.titulo, n.creada_en, n.contenido FROM documento_notas dn
-                 JOIN notas n ON n.id = dn.nota_id WHERE dn.documento_id = ?1 ORDER BY dn.orden",
-            )
-            .and_then(|mut st| {
-                st.query_map([id], |f| {
-                    Ok((
-                        f.get::<_, String>(0)?,
-                        llm::NotaFuente {
-                            titulo: f.get(1)?,
-                            creada_en: f.get(2)?,
-                            contenido: f.get(3)?,
-                            etiquetas: vec![],
-                        },
-                    ))
-                })?
-                .collect::<rusqlite::Result<Vec<_>>>()
-            })
-            .map_err(|e| format!("no se pudieron leer las notas: {e}"))?
-            .into_iter()
-            .map(|(nota_id, mut n)| {
-                n.etiquetas = etiquetas_de(&con, &nota_id).unwrap_or_default();
-                n
-            })
-            .collect();
-        (instruccion, notas, proyecto)
+        fuentes_de_documento(&con, id)?
     };
 
     if fuentes.is_empty() {
@@ -1714,7 +1926,7 @@ async fn generar_documento(db: &Db, id: &str) -> Result<(), String> {
     }
 
     let documento = ia
-        .documentar(&fuentes, &instruccion, proyecto.as_ref())
+        .documentar(&fuentes, &instruccion, proyecto.as_ref(), modelo.as_deref())
         .await?;
     // La seccion de notas de origen la escribe la aplicacion, no el modelo:
     // asi es fiel a lo que habia y no depende de lo que el modelo recuerde.
@@ -1958,6 +2170,16 @@ async fn main() {
                 .delete(borrar_documento),
         )
         .route("/documentos/{id}/regenerar", post(regenerar_documento))
+        .route("/documentos/{id}/reintentar", post(analisis::reintentar))
+        .route(
+            "/roles",
+            get(analisis::listar_roles).post(analisis::crear_rol),
+        )
+        .route(
+            "/roles/{id}",
+            axum::routing::put(analisis::editar_rol).delete(analisis::borrar_rol),
+        )
+        .route("/modelos", get(analisis::listar_modelos))
         .route(
             "/entrevistas",
             get(entrevistas::listar)

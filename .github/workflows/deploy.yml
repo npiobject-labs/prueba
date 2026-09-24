@@ -120,6 +120,7 @@ jobs:
           LLM_MODELO: ${{ vars.LLM_MODELO }}
           LLM_MODELO_DOCUMENTO: ${{ vars.LLM_MODELO_DOCUMENTO }}
           LLM_MODELO_AUDIO: ${{ vars.LLM_MODELO_AUDIO }}
+          LLM_RECOMENDADOS: ${{ vars.LLM_RECOMENDADOS }}
         run: |
           if [ -n "${LLM_API_KEY}" ]; then
             flyctl secrets set "LLM_API_KEY=${LLM_API_KEY}" --app "${FLY_APP}" --stage
@@ -156,6 +157,14 @@ jobs:
             echo "Modelo de audio: ${LLM_MODELO_AUDIO}"
           else
             flyctl secrets unset LLM_MODELO_AUDIO --app "${FLY_APP}" --stage 2>/dev/null || true
+          fi
+          # Modelos que la app enseña arriba del selector (D60), ids separados
+          # por comas; sin la variable valen los del codigo.
+          if [ -n "${LLM_RECOMENDADOS}" ]; then
+            flyctl secrets set "LLM_RECOMENDADOS=${LLM_RECOMENDADOS}" --app "${FLY_APP}" --stage
+            echo "Modelos recomendados: ${LLM_RECOMENDADOS}"
+          else
+            flyctl secrets unset LLM_RECOMENDADOS --app "${FLY_APP}" --stage 2>/dev/null || true
           fi
 
       - name: Fijar BUILD_ID con el SHA del commit
@@ -450,6 +459,84 @@ jobs:
       # y borrado siempre; con clave de IA, ademas, transcribir una voz
       # sintetica de verdad (Fly -> ffmpeg -> servicio -> modelo con audio),
       # resumir y guardar como nota. Sin clave, transcribir tiene que dar 503.
+      # Informes con roles (D54-D67): roles de serie y propios, catalogo de
+      # modelos y, con clave de IA, un informe de dos roles con el modelo por
+      # defecto, que tiene que acabar con su estructura entera.
+      - name: Verificar informes
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+          TOKEN_API: ${{ secrets.TOKEN_API }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          base="https://${FLY_APP}.fly.dev"
+          auth="Authorization: Bearer ${TOKEN_API}"
+          json='Content-Type: application/json'
+          marca="${GITHUB_SHA:0:7}-${GITHUB_RUN_ATTEMPT}"
+          rid=""; n1=""; n2=""; doc=""
+          trap 'for x in "${n1}" "${n2}"; do [ -z "${x}" ] || curl -sS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/notas/${x}" || true; done; [ -z "${doc}" ] || curl -sS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/documentos/${doc}" || true; [ -z "${rid}" ] || curl -sS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/roles/${rid}" || true' EXIT
+
+          roles="$(curl -fsS --max-time 20 -H "${auth}" "${base}/roles")"
+          [ "$(jq '[.[] | select(.propio == false)] | length' <<< "${roles}")" = 9 ] \
+            || { echo "::error::GET /roles no trae los 9 roles de serie: ${roles}"; exit 1; }
+          rid="$(curl -fsS --max-time 20 -X POST "${base}/roles" -H "${json}" -H "${auth}" \
+            -d "{\"nombre\":\"Verificación ${marca}\",\"icono\":\"🧪\",\"enfoque\":\"Mira si el texto se entiende a la primera.\"}" | jq -r .id)"
+          [ -n "${rid}" ] && [ "${rid}" != null ] || { echo "::error::POST /roles no devolvio id"; exit 1; }
+          codigo="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' -X POST "${base}/roles" -H "${json}" -H "${auth}" \
+            -d '{"nombre":"CRITICO","enfoque":"x"}')"
+          [ "${codigo}" = "409" ] || { echo "::error::un rol con nombre de serie devolvio ${codigo}, se esperaba 409"; exit 1; }
+          codigo="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' -X DELETE -H "${auth}" "${base}/roles/critico")"
+          [ "${codigo}" = "400" ] || { echo "::error::borrar un rol de serie devolvio ${codigo}, se esperaba 400"; exit 1; }
+          echo "OK: roles de serie y propios"
+
+          if [ -z "${LLM_API_KEY}" ]; then
+            codigo="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' -H "${auth}" "${base}/modelos")"
+            [ "${codigo}" = "503" ] || { echo "::error::sin clave de IA, /modelos devolvio ${codigo}, se esperaba 503"; exit 1; }
+            echo "OK: sin clave de IA, /modelos lo dice"
+            exit 0
+          fi
+          modelos="$(curl -fsS --max-time 30 -H "${auth}" "${base}/modelos")"
+          defecto="$(jq -r .defecto <<< "${modelos}")"
+          [ "$(jq '.modelos | length' <<< "${modelos}")" -gt 0 ] && [ "${defecto}" != null ] \
+            || { echo "::error::/modelos sin catalogo o sin modelo por defecto"; exit 1; }
+          echo "OK: /modelos trae $(jq '.modelos | length' <<< "${modelos}") modelos; por defecto ${defecto}"
+          echo "Recomendados presentes en el catalogo: $(jq -r '[.modelos[] | select(.recomendado != null) | .id] | join(", ")' <<< "${modelos}")"
+          codigo="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' -X POST "${base}/documentos" -H "${json}" -H "${auth}" \
+            -d '{"notas":["x"],"tipo":"informe","roles":["critico"],"modelo":"no/existe"}')"
+          [ "${codigo}" = "400" ] || { echo "::error::un modelo inexistente devolvio ${codigo}, se esperaba 400"; exit 1; }
+
+          n1="$(curl -fsS --max-time 30 -X POST "${base}/notas" -H "${json}" -H "${auth}" \
+            -d "{\"contenido\":\"inf-${marca}: quiero que los socios del club reserven pista desde el movil.\"}" | jq -r .id)"
+          n2="$(curl -fsS --max-time 30 -X POST "${base}/notas" -H "${json}" -H "${auth}" \
+            -d "{\"contenido\":\"inf-${marca}: cobrar tres euros al mes al socio o una cuota al club.\"}" | jq -r .id)"
+          doc="$(curl -fsS --max-time 30 -X POST "${base}/documentos" -H "${json}" -H "${auth}" \
+            -d "{\"notas\":[\"${n1}\",\"${n2}\"],\"tipo\":\"informe\",\"roles\":[\"critico\",\"${rid}\"]}" | jq -r .id)"
+          [ -n "${doc}" ] && [ "${doc}" != null ] || { echo "::error::POST /documentos (informe) no devolvio id"; exit 1; }
+          # Dos roles a la vez y la sintesis: hasta cuatro minutos.
+          estado="pendiente"
+          for intento in $(seq 1 48); do
+            sleep 5
+            actual="$(curl -fsS --max-time 20 -H "${auth}" "${base}/documentos/${doc}")"
+            estado="$(jq -r .estado <<< "${actual}")"
+            echo "Intento ${intento}/48: ${estado} · roles $(jq -r '[.roles[].estado] | join(",")' <<< "${actual}")"
+            [ "${estado}" = "pendiente" ] || break
+          done
+          [ "${estado}" = "listo" ] || { echo "::error::el informe acabo en '${estado}': $(jq -r .error <<< "${actual}")"; exit 1; }
+          [ "$(jq '[.roles[] | select(.estado == "hecho")] | length' <<< "${actual}")" = 2 ] \
+            || { echo "::error::no respondieron los dos roles: $(jq -c .roles <<< "${actual}")"; exit 1; }
+          for seccion in "## Resumen ejecutivo" "## Tensiones entre roles" "## Análisis por rol" "### 🧐 Crítico" "### 🧪 Verificación ${marca}" "## Notas de origen" "## Ficha"; do
+            jq -r .texto <<< "${actual}" | grep -qF -- "${seccion}" \
+              || { echo "::error::el informe no trae «${seccion}»"; exit 1; }
+          done
+          # D62 [SUPUESTO]: la clave de la aplicacion lee su coste por operacion.
+          if [ "$(jq -r .coste <<< "${actual}")" = null ]; then
+            echo "AVISO: el informe no trae coste; revisar /v1/uso/resumen con la clave de la aplicacion." >> "$GITHUB_STEP_SUMMARY"
+            echo "AVISO: el informe no trae coste"
+          else
+            echo "Coste del informe: $(jq -r .coste <<< "${actual}") $"
+          fi
+          echo "OK: informe de dos roles con su estructura: $(jq -r .titulo <<< "${actual}")"
+
       - name: Verificar /entrevistas
         if: steps.fly.outputs.configurado == 'true'
         env:
