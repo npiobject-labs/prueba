@@ -24,8 +24,9 @@ use serde_json::json;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 use crate::{
-    completar_con_ia, error, ia, interno, leer_nota, llm, proyecto_de_fila, proyecto_valido,
-    sql_proyecto, Db, ProyectoRef, Respuesta,
+    completar_con_ia, error, es_solo, ia, interno, leer_nota, llm, proyecto_de_fila,
+    proyecto_valido, sql_proyecto, Db, ProyectoRef, Respuesta, CONTEXTO_DESCRIPCION,
+    CONTEXTO_NOMBRE,
 };
 
 /// Una hora de audio a 32 kbps son unos 14 MB; el tope deja sitio de sobra
@@ -126,9 +127,10 @@ pub struct Entrevista {
 
 const SQL_ENTREVISTA: &str = "SELECT e.id, e.titulo, e.con_quien, e.creada_en, e.duracion_s,
     e.audio IS NOT NULL, e.audio_bytes, e.audio_tipo, e.estado, e.trozos_total, e.trozos_hechos,
-    e.error, e.estado_resumen, e.error_resumen, p.id, p.nombre,
+    e.error, e.estado_resumen, e.error_resumen, p.id, p.nombre, pp.id, pp.nombre,
     e.transcripcion, e.resumen_ejecutivo, e.resumen
-    FROM entrevistas e LEFT JOIN proyectos p ON p.id = e.proyecto_id";
+    FROM entrevistas e LEFT JOIN proyectos p ON p.id = e.proyecto_id
+    LEFT JOIN proyectos pp ON pp.id = p.padre_id";
 
 fn fila(f: &rusqlite::Row, textos: bool) -> rusqlite::Result<Entrevista> {
     Ok(Entrevista {
@@ -147,9 +149,9 @@ fn fila(f: &rusqlite::Row, textos: bool) -> rusqlite::Result<Entrevista> {
         estado_resumen: f.get(12)?,
         error_resumen: f.get(13)?,
         proyecto: proyecto_de_fila(f, 14)?,
-        transcripcion: if textos { Some(f.get(16)?) } else { None },
-        resumen_ejecutivo: if textos { Some(f.get(17)?) } else { None },
-        resumen: if textos { Some(f.get(18)?) } else { None },
+        transcripcion: if textos { Some(f.get(18)?) } else { None },
+        resumen_ejecutivo: if textos { Some(f.get(19)?) } else { None },
+        resumen: if textos { Some(f.get(20)?) } else { None },
     })
 }
 
@@ -170,6 +172,8 @@ fn existe_o_404(con: &Connection, id: &str) -> Respuesta<Entrevista> {
 #[derive(Deserialize, Default)]
 pub struct FiltroEntrevistas {
     proyecto: Option<String>,
+    /// `solo=1`: sin las de sus subcarpetas (D53).
+    solo: Option<String>,
     /// `textos=1` trae transcripción y resúmenes: solo lo usa la exportación.
     textos: Option<String>,
 }
@@ -181,7 +185,13 @@ pub async fn listar(
     let con = db.lock().unwrap();
     let mut sql = format!("{SQL_ENTREVISTA} WHERE 1=1");
     let mut args: Vec<String> = vec![];
-    sql_proyecto(&mut sql, &mut args, "e.proyecto_id", f.proyecto.as_deref());
+    sql_proyecto(
+        &mut sql,
+        &mut args,
+        "e.proyecto_id",
+        f.proyecto.as_deref(),
+        es_solo(f.solo.as_deref()),
+    );
     sql.push_str(" ORDER BY e.creada_en DESC LIMIT 500");
     let textos = f.textos.as_deref() == Some("1");
     let lista = con.prepare(&sql).and_then(|mut st| {
@@ -741,8 +751,11 @@ async fn transcribir_tarea(db: &Db, id: &str) -> Result<(), String> {
     let datos = {
         let con = db.lock().unwrap();
         con.query_row(
-            "SELECT e.audio, e.con_quien, p.nombre, p.descripcion, e.trozos_hechos
-             FROM entrevistas e LEFT JOIN proyectos p ON p.id = e.proyecto_id WHERE e.id = ?1",
+            &format!(
+                "SELECT e.audio, e.con_quien, {CONTEXTO_NOMBRE}, {CONTEXTO_DESCRIPCION}, e.trozos_hechos
+                 FROM entrevistas e LEFT JOIN proyectos p ON p.id = e.proyecto_id
+                 LEFT JOIN proyectos pp ON pp.id = p.padre_id WHERE e.id = ?1"
+            ),
             [id],
             |f| {
                 Ok(DatosTranscripcion {
@@ -1036,8 +1049,11 @@ async fn resumir_tarea(db: &Db, id: &str) -> Result<(), String> {
     let (transcripcion, con_quien, duracion, proyecto) = {
         let con = db.lock().unwrap();
         con.query_row(
-            "SELECT e.transcripcion, e.con_quien, e.duracion_s, p.nombre, p.descripcion
-             FROM entrevistas e LEFT JOIN proyectos p ON p.id = e.proyecto_id WHERE e.id = ?1",
+            &format!(
+                "SELECT e.transcripcion, e.con_quien, e.duracion_s, {CONTEXTO_NOMBRE}, {CONTEXTO_DESCRIPCION}
+                 FROM entrevistas e LEFT JOIN proyectos p ON p.id = e.proyecto_id
+                 LEFT JOIN proyectos pp ON pp.id = p.padre_id WHERE e.id = ?1"
+            ),
             [id],
             |f| {
                 Ok((

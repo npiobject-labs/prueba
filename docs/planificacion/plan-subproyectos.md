@@ -1,10 +1,14 @@
 # Plan: subcarpetas (subproyectos) dentro de los proyectos
 
-Fecha: 2026-09-24 · Estado: v1, **solo mock** (mock 19: `docs/mocks/019-subproyectos.html`, build `PR-B1-20260924-025`); sin desarrollar · Continúa `plan-proyectos.md` (D14 a D26, que dejó los subproyectos fuera en D26) y `plan-entrevista.md` (hasta D42) · Fuente de verdad: este fichero.
+Fecha: 2026-09-24 · Estado: v2, **F23 y F24 hechas** (mock de diseño: `docs/mocks/019-subproyectos.html`, build `PR-B1-20260924-025`; app: mock 19, build `PR-B1-20260924-026`) · Continúa `plan-proyectos.md` (D14 a D26, que dejó los subproyectos fuera en D26) y `plan-entrevista.md` (hasta D42) · Fuente de verdad: este fichero.
 
 ## 1. Qué se pide (en palabras del usuario)
 
 > Quiero modificar la parte de proyectos en notas de forma que se puedan añadir subcarpetas a cada una de las carpetas del proyecto, o dicho de otra forma subproyectos a cada uno de los proyectos, que sería lo mismo, de forma que luego cada nota se pueda asignar a la carpeta padre o a cualquiera de sus hijos. Hazme un mock para ver cómo quedaría, no desarrolles.
+
+> (Después de ver el mock) Uno sí, dos sí, tres sí, cuatro subcarpeta, adelante con el desarrollo.
+
+Las cuatro preguntas de la sección 7 quedan contestadas: un nivel, el padre enseña también lo de sus subcarpetas, el borrado como D51 y, en la interfaz, «subcarpeta».
 
 ## 2. Decisiones y supuestos
 
@@ -62,18 +66,24 @@ PRAGMA user_version = 3;
 
 Atajos para abrir una pantalla directamente: `?v=lista`, `sub`, `detalle`, `mover`, `hoja`, `editor`, `buscar`.
 
-## 6. Fases (si se aprueba)
+## 6. Fases
 
 | Fase | Entregable |
 |---|---|
-| F23 | Backend: migración 3, `padre` en `/proyectos`, filtros con hijos y `solo=1`, borrar y archivar según D51/D52, verificación en `deploy.yml`. Compatible con la app actual (sin subcarpetas, nada cambia). |
-| F24 | App: tira de carpetas, migas en la cabecera, tarjetas con chips, hoja del proyecto con «Dentro de», árbol en Mover y en el editor, exportación. Pruebas con Chromium a 390 px, como F15. |
+| F23 ✅ | Backend: migración 3, `padre` en `/proyectos`, filtros con hijos y `solo=1`, borrar y archivar según D51/D52, verificación en `deploy.yml`. Compatible con la app actual (sin subcarpetas, nada cambia). |
+| F24 ✅ | App: tira de carpetas, migas en la cabecera, tarjetas con chips, hoja del proyecto con «Dentro de», árbol en Mover y en el editor, exportación. Pruebas con Chromium a 390 px, como F15. |
 
-## 7. Preguntas al usuario
-
-Todas tienen respuesta supuesta (sección 2); con silencio, se sigue con ella.
+## 7. Preguntas al usuario (contestadas: sí a las tres primeras, «subcarpeta» en la cuarta)
 
 1. ¿Basta con un nivel (D43)?
 2. ¿Al entrar en el padre, ver también las notas de sus subcarpetas (D45)?
 3. ¿Borrar un proyecto con subcarpetas las deja como proyectos principales (D51)?
 4. ¿En la interfaz, «subcarpeta» o «subproyecto»? El mock usa «subcarpeta» porque es más corta a 390 px y casa con los iconos 📁/📂.
+
+## 8. Cómo quedó (2026-09-24)
+
+- **Migración 3**: probada creando la base con el binario de `main` (versión 2, con un proyecto y notas) y arrancando el nuevo encima: `user_version` pasa a 3, todo queda como proyecto principal y un segundo arranque no vuelve a migrar.
+- **`nombre_clave`**: la clave de siempre distingue ñ de n («Diseño» y «DISENO» son nombres distintos); no se ha tocado.
+- **Documentos**: con notas de subcarpetas hermanas el documento queda en el padre; con notas de una sola subcarpeta, en ella; mezclando proyectos, sin proyecto. Al modelo le llega «Padre › Subcarpeta» y las dos descripciones, igual que en la transcripción y el resumen de entrevistas.
+- **App**: la tira se recarga con cada lista sin filtro (no en cada tecla del buscador), así que sus cifras siguen a lo que se crea y se mueve. En el modo selección no hay tira ni migas. «Mover» en la selección solo dice «Ahora está en…» si todas las notas comparten sitio. El proyecto activo guarda también su padre en `notas-proyecto`, así que al recargar dentro de una subcarpeta salen las migas.
+- **Pruebas**: 50 comprobaciones con Chromium a 390×844 contra el backend real en local (proyectos, tira, migas, «Sin subcarpeta», crear subcarpeta y el aviso del nombre repetido, editor, detalle, «Mover a…» y «Crear y mover», selección, búsqueda, hoja del proyecto, mover una subcarpeta con «Dentro de», borrar padre y subcarpeta, entrevistas, recarga y exportación); sin desbordes. El único error de consola es el 409 que la prueba provoca a propósito. En el backend, además, 40 comprobaciones con `curl` y el paso nuevo «Verificar subcarpetas» de `deploy.yml` ejecutado contra el binario local.

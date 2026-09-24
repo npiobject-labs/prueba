@@ -200,6 +200,19 @@ fn migrar(con: &Connection) {
         .expect("no se pudo migrar el esquema a la version 2 (entrevistas)");
         println!("esquema migrado a la version 2: entrevistas");
     }
+    if version < 3 {
+        // Subcarpetas (D43-D53): un proyecto puede colgar de otro, un solo
+        // nivel. Sin ON DELETE: borrar lo resuelve `borrar_proyecto` (D51).
+        con.execute_batch(
+            "BEGIN;
+             ALTER TABLE proyectos ADD COLUMN padre_id TEXT REFERENCES proyectos(id);
+             CREATE INDEX IF NOT EXISTS proyectos_padre ON proyectos(padre_id);
+             PRAGMA user_version = 3;
+             COMMIT;",
+        )
+        .expect("no se pudo migrar el esquema a la version 3 (subcarpetas)");
+        println!("esquema migrado a la version 3: subcarpetas");
+    }
 }
 
 /// Nombre de proyecto comparable (D17): minusculas, sin acentos y con los
@@ -219,6 +232,17 @@ fn clave(s: &str) -> String {
             c => c,
         })
         .collect()
+}
+
+/// `nombre_clave` guardado (D48): la clave a secas en un proyecto principal y
+/// con el id del padre delante en una subcarpeta. Asi el `UNIQUE` de la
+/// columna, que SQLite no deja quitar sin copiar la tabla, pasa a significar
+/// «unico dentro de su padre» y renombrar el padre no obliga a tocar nada.
+fn clave_en(nombre: &str, padre: Option<&str>) -> String {
+    match padre {
+        Some(p) => format!("{p}/{}", clave(nombre)),
+        None => clave(nombre),
+    }
 }
 
 // Texto libre -> consulta FTS5: cada palabra entre comillas (sin sintaxis especial) y con
@@ -286,8 +310,17 @@ struct MoverNotas {
 }
 
 /// Referencia corta a un proyecto, la que viaja dentro de notas y documentos.
+/// Si es una subcarpeta, `padre` dice de que proyecto cuelga (D46).
 #[derive(Serialize)]
 struct ProyectoRef {
+    id: String,
+    nombre: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    padre: Option<PadreRef>,
+}
+
+#[derive(Serialize)]
+struct PadreRef {
     id: String,
     nombre: String,
 }
@@ -307,6 +340,12 @@ struct Proyecto {
     entrevistas: i64,
     /// Lo más reciente del proyecto, nota o entrevista (orden por actividad).
     ultima_nota: Option<String>,
+    /// En un proyecto principal, `notas`, `entrevistas` y `ultima_nota` suman
+    /// las de sus subcarpetas (D45); `notas_propias` son las que cuelgan de el.
+    notas_propias: i64,
+    subcarpetas: i64,
+    /// Proyecto del que cuelga, si es una subcarpeta.
+    padre: Option<PadreRef>,
 }
 
 #[derive(Deserialize)]
@@ -314,6 +353,9 @@ struct NuevoProyecto {
     nombre: String,
     #[serde(default)]
     descripcion: String,
+    /// Proyecto del que cuelga (D47); sin el, proyecto principal.
+    #[serde(default)]
+    padre: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -321,6 +363,15 @@ struct CambioProyecto {
     nombre: Option<String>,
     descripcion: Option<String>,
     archivado: Option<bool>,
+    /// Ausente: no se toca. `null`: pasa a proyecto principal. Un id: pasa a
+    /// colgar de ese proyecto (D47).
+    #[serde(default, deserialize_with = "presente")]
+    padre: Option<Option<String>>,
+}
+
+/// Distingue un campo ausente (`None`) de uno que llega a `null` (`Some(None)`).
+fn presente<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<Option<String>>, D::Error> {
+    Ok(Some(Option::deserialize(d)?))
 }
 
 #[derive(Deserialize, Default)]
@@ -333,6 +384,8 @@ struct FiltroProyectos {
 #[derive(Deserialize, Default)]
 struct SoloProyecto {
     proyecto: Option<String>,
+    /// `solo=1`: sin las subcarpetas del proyecto (D45, «Sin subcarpeta»).
+    solo: Option<String>,
 }
 
 /// Tope de notas por documento (D11). Veinte notas dictadas dan de sobra para
@@ -398,7 +451,9 @@ struct Filtro {
     desde: Option<String>,
     hasta: Option<String>,
     /// Id de proyecto o `ninguno` (D15/D16). Sin el, todas las notas (D23).
+    /// Un proyecto trae tambien lo de sus subcarpetas salvo con `solo=1` (D45).
     proyecto: Option<String>,
+    solo: Option<String>,
 }
 
 type Respuesta<T> = Result<T, (StatusCode, Json<serde_json::Value>)>;
@@ -413,29 +468,63 @@ fn filtro_proyecto(p: Option<&str>) -> Option<Option<String>> {
     }
 }
 
-/// Anade al SQL la condicion de proyecto sobre la columna dada.
-fn sql_proyecto(sql: &mut String, args: &mut Vec<String>, columna: &str, p: Option<&str>) {
+/// `solo=1` (o `true`) en la consulta.
+fn es_solo(s: Option<&str>) -> bool {
+    matches!(s, Some("1") | Some("true"))
+}
+
+/// Anade al SQL la condicion de proyecto sobre la columna dada. Un proyecto
+/// incluye sus subcarpetas (D45) salvo con `solo`.
+fn sql_proyecto(
+    sql: &mut String,
+    args: &mut Vec<String>,
+    columna: &str,
+    p: Option<&str>,
+    solo: bool,
+) {
     match filtro_proyecto(p) {
         None => {}
         Some(None) => sql.push_str(&format!(" AND {columna} IS NULL")),
         Some(Some(id)) => {
             args.push(id);
-            sql.push_str(&format!(" AND {columna} = ?{}", args.len()));
+            let n = args.len();
+            if solo {
+                sql.push_str(&format!(" AND {columna} = ?{n}"));
+            } else {
+                sql.push_str(&format!(
+                    " AND {columna} IN (SELECT id FROM proyectos WHERE id = ?{n} OR padre_id = ?{n})"
+                ));
+            }
         }
     }
 }
 
+/// Lee `p.id, p.nombre, pp.id, pp.nombre` a partir de la columna `i`: el
+/// proyecto y, si es una subcarpeta, su padre (`LEFT JOIN proyectos pp`).
 fn proyecto_de_fila(f: &rusqlite::Row, i: usize) -> rusqlite::Result<Option<ProyectoRef>> {
+    let padre = match (
+        f.get::<_, Option<String>>(i + 2)?,
+        f.get::<_, Option<String>>(i + 3)?,
+    ) {
+        (Some(id), Some(nombre)) => Some(PadreRef { id, nombre }),
+        _ => None,
+    };
     Ok(
         match (
             f.get::<_, Option<String>>(i)?,
             f.get::<_, Option<String>>(i + 1)?,
         ) {
-            (Some(id), Some(nombre)) => Some(ProyectoRef { id, nombre }),
+            (Some(id), Some(nombre)) => Some(ProyectoRef { id, nombre, padre }),
             _ => None,
         },
     )
 }
+
+/// Nombre y descripcion del proyecto para el modelo (D53): en una subcarpeta,
+/// «Padre › Subcarpeta» y las dos descripciones. Van con `p` y `pp`.
+const CONTEXTO_NOMBRE: &str =
+    "CASE WHEN pp.id IS NULL THEN p.nombre ELSE pp.nombre || ' › ' || p.nombre END";
+const CONTEXTO_DESCRIPCION: &str = "TRIM(COALESCE(pp.descripcion, '') || ' ' || p.descripcion)";
 
 /// Comprueba el proyecto que manda el cliente: vacio o `null` es «Sin
 /// proyecto»; un id que no existe es un 400, no una nota perdida.
@@ -499,8 +588,9 @@ fn etiquetas_de(con: &Connection, id: &str) -> rusqlite::Result<Vec<String>> {
 fn leer_nota(con: &Connection, id: &str) -> rusqlite::Result<Option<Nota>> {
     let fila = con
         .prepare_cached(
-            "SELECT n.id, n.titulo, n.contenido, n.creada_en, n.pendiente_ia, p.id, p.nombre
-             FROM notas n LEFT JOIN proyectos p ON p.id = n.proyecto_id WHERE n.id = ?1",
+            "SELECT n.id, n.titulo, n.contenido, n.creada_en, n.pendiente_ia, p.id, p.nombre, pp.id, pp.nombre
+             FROM notas n LEFT JOIN proyectos p ON p.id = n.proyecto_id
+             LEFT JOIN proyectos pp ON pp.id = p.padre_id WHERE n.id = ?1",
         )?
         .query_row([id], |f| {
             Ok(Nota {
@@ -621,7 +711,13 @@ async fn listar_notas(State(db): State<Db>, Query(f): Query<Filtro>) -> Respuest
         args.push(h.to_string());
         sql.push_str(&format!(" AND n.creada_en <= ?{}", args.len()));
     }
-    sql_proyecto(&mut sql, &mut args, "n.proyecto_id", f.proyecto.as_deref());
+    sql_proyecto(
+        &mut sql,
+        &mut args,
+        "n.proyecto_id",
+        f.proyecto.as_deref(),
+        es_solo(f.solo.as_deref()),
+    );
     sql.push_str(" ORDER BY n.creada_en DESC LIMIT 500");
 
     let ids: Vec<String> = match con.prepare(&sql).and_then(|mut s| {
@@ -777,13 +873,33 @@ async fn mover_notas(
 // Proyectos (D14-D19): contenedores de notas que nombra el usuario.
 // ---------------------------------------------------------------------------
 
-const SQL_PROYECTO: &str =
+/// Ids de un proyecto y de sus subcarpetas, para las cifras que suman (D45).
+/// En una subcarpeta es solo ella: no hay mas niveles (D43).
+macro_rules! familia {
+    () => {
+        "(SELECT h.id FROM proyectos h WHERE h.id = p.id OR h.padre_id = p.id)"
+    };
+}
+
+const SQL_PROYECTO: &str = concat!(
     "SELECT p.id, p.nombre, p.descripcion, p.archivado, p.creado_en, p.actualizado_en,
+       (SELECT COUNT(*) FROM notas n WHERE n.proyecto_id IN ",
+    familia!(),
+    "),
+       (SELECT MAX(c) FROM (SELECT MAX(n.creada_en) AS c FROM notas n WHERE n.proyecto_id IN ",
+    familia!(),
+    "
+          UNION ALL SELECT MAX(e.creada_en) FROM entrevistas e WHERE e.proyecto_id IN ",
+    familia!(),
+    ")),
+       (SELECT COUNT(*) FROM entrevistas e WHERE e.proyecto_id IN ",
+    familia!(),
+    "),
        (SELECT COUNT(*) FROM notas n WHERE n.proyecto_id = p.id),
-       (SELECT MAX(c) FROM (SELECT MAX(n.creada_en) AS c FROM notas n WHERE n.proyecto_id = p.id
-          UNION ALL SELECT MAX(e.creada_en) FROM entrevistas e WHERE e.proyecto_id = p.id)),
-       (SELECT COUNT(*) FROM entrevistas e WHERE e.proyecto_id = p.id)
-     FROM proyectos p";
+       (SELECT COUNT(*) FROM proyectos h WHERE h.padre_id = p.id),
+       pp.id, pp.nombre
+     FROM proyectos p LEFT JOIN proyectos pp ON pp.id = p.padre_id"
+);
 
 fn fila_proyecto(f: &rusqlite::Row) -> rusqlite::Result<Proyecto> {
     Ok(Proyecto {
@@ -796,6 +912,15 @@ fn fila_proyecto(f: &rusqlite::Row) -> rusqlite::Result<Proyecto> {
         notas: f.get(6)?,
         ultima_nota: f.get(7)?,
         entrevistas: f.get(8)?,
+        notas_propias: f.get(9)?,
+        subcarpetas: f.get(10)?,
+        padre: match (
+            f.get::<_, Option<String>>(11)?,
+            f.get::<_, Option<String>>(12)?,
+        ) {
+            (Some(id), Some(nombre)) => Some(PadreRef { id, nombre }),
+            _ => None,
+        },
     })
 }
 
@@ -819,8 +944,47 @@ fn descripcion_valida(d: &str) -> String {
     d.trim().chars().take(300).collect()
 }
 
+/// El padre que pide el cliente: vacio es «proyecto principal»; si no, tiene
+/// que existir y ser principal, porque solo hay un nivel (D43). Devuelve su id
+/// y si esta archivado, que la subcarpeta hereda (D52).
+fn padre_valido(con: &Connection, padre: Option<String>) -> Respuesta<Option<(String, bool)>> {
+    let Some(id) = padre
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+    else {
+        return Ok(None);
+    };
+    match con
+        .query_row(
+            "SELECT padre_id IS NOT NULL, archivado FROM proyectos WHERE id = ?1",
+            [&id],
+            |f| Ok((f.get::<_, bool>(0)?, f.get::<_, i64>(1)? != 0)),
+        )
+        .optional()
+    {
+        Ok(Some((true, _))) => error(
+            StatusCode::BAD_REQUEST,
+            "una subcarpeta no puede tener subcarpetas",
+        ),
+        Ok(Some((false, archivado))) => Ok(Some((id, archivado))),
+        Ok(None) => error(StatusCode::BAD_REQUEST, "el proyecto padre no existe"),
+        Err(e) => interno(e),
+    }
+}
+
+fn nombre_repetido<T>(padre: Option<&str>) -> Respuesta<T> {
+    match padre {
+        Some(_) => error(
+            StatusCode::CONFLICT,
+            "ya hay una subcarpeta con ese nombre en ese proyecto",
+        ),
+        None => error(StatusCode::CONFLICT, "ya hay un proyecto con ese nombre"),
+    }
+}
+
 /// Lista de proyectos (D18). Son decenas: se leen todos con sus cifras y se
-/// filtran y ordenan aqui, sin indice de texto.
+/// filtran y ordenan aqui, sin indice de texto. Las subcarpetas van como filas
+/// propias con su `padre`; agruparlas es cosa de la app (D49).
 async fn listar_proyectos(
     State(db): State<Db>,
     Query(f): Query<FiltroProyectos>,
@@ -894,6 +1058,9 @@ async fn listar_proyectos(
                     notas: n,
                     entrevistas,
                     ultima_nota: ultima,
+                    notas_propias: n,
+                    subcarpetas: 0,
+                    padre: None,
                 },
             ),
             Ok(_) => {}
@@ -912,18 +1079,25 @@ async fn crear_proyecto(
         Err(m) => return error(StatusCode::BAD_REQUEST, m),
     };
     let con = db.lock().unwrap();
+    let padre = padre_valido(&con, nuevo.padre)?;
+    let padre_id = padre.as_ref().map(|(id, _)| id.as_str());
+    let archivado = padre.as_ref().is_some_and(|(_, a)| *a);
     let id: String = match con.query_row(
-        "INSERT INTO proyectos (id, nombre, nombre_clave, descripcion, archivado, creado_en, actualizado_en)
-         VALUES (lower(hex(randomblob(8))), ?1, ?2, ?3, 0,
-                 strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        "INSERT INTO proyectos (id, nombre, nombre_clave, descripcion, archivado, creado_en, actualizado_en, padre_id)
+         VALUES (lower(hex(randomblob(8))), ?1, ?2, ?3, ?4,
+                 strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), ?5)
          RETURNING id",
-        params![nombre, clave(&nombre), descripcion_valida(&nuevo.descripcion)],
+        params![
+            nombre,
+            clave_en(&nombre, padre_id),
+            descripcion_valida(&nuevo.descripcion),
+            archivado as i64,
+            padre_id
+        ],
         |f| f.get(0),
     ) {
         Ok(id) => id,
-        Err(e) if es_duplicado(&e) => {
-            return error(StatusCode::CONFLICT, "ya hay un proyecto con ese nombre")
-        }
+        Err(e) if es_duplicado(&e) => return nombre_repetido(padre_id),
         Err(e) => return interno(e),
     };
     match leer_proyecto(&con, &id) {
@@ -945,7 +1119,9 @@ async fn ver_proyecto(State(db): State<Db>, Path(id): Path<String>) -> Respuesta
     }
 }
 
-/// Renombrar, describir, archivar o desarchivar (D17/D19).
+/// Renombrar, describir, archivar, desarchivar (D17/D19) y cambiar de padre
+/// (D47). Archivar es de proyectos principales y arrastra a sus subcarpetas
+/// (D52).
 async fn editar_proyecto(
     State(db): State<Db>,
     Path(id): Path<String>,
@@ -956,17 +1132,58 @@ async fn editar_proyecto(
         Err(m) => return error(StatusCode::BAD_REQUEST, m),
     };
     let con = db.lock().unwrap();
-    match leer_proyecto(&con, &id) {
-        Ok(Some(_)) => {}
+    let actual = match leer_proyecto(&con, &id) {
+        Ok(Some(p)) => p,
         Ok(None) => return error(StatusCode::NOT_FOUND, "proyecto no encontrado"),
         Err(e) => return interno(e),
+    };
+    // Padre final: el que llega o el que tenia. Con subcarpetas no puede ir
+    // dentro de otro (D43), y nunca dentro de si mismo.
+    let cambia_clave = nombre.is_some() || c.padre.is_some();
+    let (padre_id, archivado_padre): (Option<String>, Option<bool>) = match c.padre {
+        None => (actual.padre.as_ref().map(|p| p.id.clone()), None),
+        Some(nuevo) => match padre_valido(&con, nuevo)? {
+            None => (None, None),
+            Some((p, _)) if p == id => {
+                return error(
+                    StatusCode::BAD_REQUEST,
+                    "un proyecto no puede ir dentro de si mismo",
+                )
+            }
+            Some(_) if actual.subcarpetas > 0 => {
+                return error(
+                    StatusCode::BAD_REQUEST,
+                    "tiene subcarpetas: no puede ir dentro de otro proyecto",
+                )
+            }
+            Some((p, a)) => (Some(p), Some(a)),
+        },
+    };
+    if c.archivado.is_some() && padre_id.is_some() {
+        return error(
+            StatusCode::BAD_REQUEST,
+            "una subcarpeta se archiva con su proyecto",
+        );
     }
+    let nombre_final = nombre.clone().unwrap_or_else(|| actual.nombre.clone());
     let aplicar = || -> rusqlite::Result<()> {
         let tx = con.unchecked_transaction()?;
-        if let Some(n) = &nombre {
+        if cambia_clave {
             tx.execute(
-                "UPDATE proyectos SET nombre = ?1, nombre_clave = ?2 WHERE id = ?3",
-                params![n, clave(n), id],
+                "UPDATE proyectos SET nombre = ?1, nombre_clave = ?2, padre_id = ?3 WHERE id = ?4",
+                params![
+                    nombre_final,
+                    clave_en(&nombre_final, padre_id.as_deref()),
+                    padre_id,
+                    id
+                ],
+            )?;
+        }
+        // Al entrar en un proyecto, la subcarpeta toma su estado (D52).
+        if let Some(a) = archivado_padre {
+            tx.execute(
+                "UPDATE proyectos SET archivado = ?1 WHERE id = ?2",
+                params![a as i64, id],
             )?;
         }
         if let Some(d) = &c.descripcion {
@@ -977,7 +1194,7 @@ async fn editar_proyecto(
         }
         if let Some(a) = c.archivado {
             tx.execute(
-                "UPDATE proyectos SET archivado = ?1 WHERE id = ?2",
+                "UPDATE proyectos SET archivado = ?1 WHERE id = ?2 OR padre_id = ?2",
                 params![a as i64, id],
             )?;
         }
@@ -989,9 +1206,7 @@ async fn editar_proyecto(
     };
     match aplicar() {
         Ok(()) => {}
-        Err(e) if es_duplicado(&e) => {
-            return error(StatusCode::CONFLICT, "ya hay un proyecto con ese nombre")
-        }
+        Err(e) if es_duplicado(&e) => return nombre_repetido(padre_id.as_deref()),
         Err(e) => return interno(e),
     }
     match leer_proyecto(&con, &id) {
@@ -1001,20 +1216,59 @@ async fn editar_proyecto(
     }
 }
 
-/// Borrar un proyecto nunca borra notas ni documentos (D19): se quedan en
-/// «Sin proyecto». Se hace explicito, sin fiarlo todo a la clave ajena.
+/// Borrar un proyecto nunca borra notas, documentos ni entrevistas (D19,
+/// D51). De una subcarpeta, todo sube a su padre. De un proyecto principal,
+/// lo suyo va a «Sin proyecto» y sus subcarpetas pasan a principales con lo
+/// que tengan; si una choca de nombre con otro principal, se le añade el del
+/// padre entre parentesis para que el borrado no falle.
 async fn borrar_proyecto(State(db): State<Db>, Path(id): Path<String>) -> Respuesta<StatusCode> {
     let con = db.lock().unwrap();
     let borrar = || -> rusqlite::Result<usize> {
         let tx = con.unchecked_transaction()?;
-        tx.execute(
-            "UPDATE notas SET proyecto_id = NULL WHERE proyecto_id = ?1",
-            [&id],
-        )?;
-        tx.execute(
-            "UPDATE documentos SET proyecto_id = NULL WHERE proyecto_id = ?1",
-            [&id],
-        )?;
+        let Some((nombre, padre)): Option<(String, Option<String>)> = tx
+            .query_row(
+                "SELECT nombre, padre_id FROM proyectos WHERE id = ?1",
+                [&id],
+                |f| Ok((f.get(0)?, f.get(1)?)),
+            )
+            .optional()?
+        else {
+            return Ok(0);
+        };
+        for tabla in ["notas", "documentos", "entrevistas"] {
+            tx.execute(
+                &format!("UPDATE {tabla} SET proyecto_id = ?1 WHERE proyecto_id = ?2"),
+                params![padre, id],
+            )?;
+        }
+        let hijas: Vec<(String, String)> = tx
+            .prepare("SELECT id, nombre FROM proyectos WHERE padre_id = ?1")?
+            .query_map([&id], |f| Ok((f.get(0)?, f.get(1)?)))?
+            .collect::<rusqlite::Result<_>>()?;
+        for (hija, nombre_hija) in hijas {
+            let mut candidato = nombre_hija.clone();
+            let mut n = 1;
+            while tx
+                .query_row(
+                    "SELECT 1 FROM proyectos WHERE nombre_clave = ?1 AND id <> ?2",
+                    params![clave(&candidato), hija],
+                    |_| Ok(()),
+                )
+                .optional()?
+                .is_some()
+            {
+                n += 1;
+                candidato = if n == 2 {
+                    format!("{nombre_hija} ({nombre})")
+                } else {
+                    format!("{nombre_hija} ({nombre}) {n}")
+                };
+            }
+            tx.execute(
+                "UPDATE proyectos SET padre_id = NULL, nombre = ?1, nombre_clave = ?2 WHERE id = ?3",
+                params![candidato, clave(&candidato), hija],
+            )?;
+        }
         let n = tx.execute("DELETE FROM proyectos WHERE id = ?1", [&id])?;
         tx.commit()?;
         Ok(n)
@@ -1034,8 +1288,9 @@ fn leer_documento(con: &Connection, id: &str) -> rusqlite::Result<Option<Documen
     let doc = con
         .prepare_cached(
             "SELECT d.id, d.titulo, d.instruccion, d.texto, d.estado, d.error, d.editado,
-                    d.creado_en, d.actualizado_en, p.id, p.nombre
-             FROM documentos d LEFT JOIN proyectos p ON p.id = d.proyecto_id WHERE d.id = ?1",
+                    d.creado_en, d.actualizado_en, p.id, p.nombre, pp.id, pp.nombre
+             FROM documentos d LEFT JOIN proyectos p ON p.id = d.proyecto_id
+             LEFT JOIN proyectos pp ON pp.id = p.padre_id WHERE d.id = ?1",
         )?
         .query_row([id], |f| {
             Ok(Documento {
@@ -1154,10 +1409,33 @@ async fn crear_documento(
             }
         }
         fuentes.sort_by(|a, b| a.2.cmp(&b.2));
-        // El documento es del proyecto solo si todas sus notas lo son (D21).
+        // El documento es del proyecto solo si todas sus notas lo son (D21);
+        // si son de subcarpetas distintas del mismo proyecto, del padre (D53).
         let proyecto: Option<String> = match proyectos.first() {
             Some(Some(p)) if proyectos.iter().all(|x| x.as_deref() == Some(p.as_str())) => {
                 Some(p.clone())
+            }
+            Some(Some(_)) if proyectos.iter().all(Option::is_some) => {
+                let mut raices: Vec<Option<String>> = Vec::with_capacity(proyectos.len());
+                for p in proyectos.iter().flatten() {
+                    match con
+                        .query_row(
+                            "SELECT COALESCE(padre_id, id) FROM proyectos WHERE id = ?1",
+                            [p],
+                            |f| f.get::<_, String>(0),
+                        )
+                        .optional()
+                    {
+                        Ok(r) => raices.push(r),
+                        Err(e) => return interno(e),
+                    }
+                }
+                match raices.first() {
+                    Some(Some(r)) if raices.iter().all(|x| x.as_deref() == Some(r.as_str())) => {
+                        Some(r.clone())
+                    }
+                    _ => None,
+                }
             }
             _ => None,
         };
@@ -1230,7 +1508,13 @@ async fn listar_documentos(
     let con = db.lock().unwrap();
     let mut sql = String::from("SELECT id FROM documentos WHERE 1=1");
     let mut args: Vec<String> = vec![];
-    sql_proyecto(&mut sql, &mut args, "proyecto_id", f.proyecto.as_deref());
+    sql_proyecto(
+        &mut sql,
+        &mut args,
+        "proyecto_id",
+        f.proyecto.as_deref(),
+        es_solo(f.solo.as_deref()),
+    );
     sql.push_str(" ORDER BY creado_en DESC LIMIT 200");
     let ids: rusqlite::Result<Vec<String>> = con.prepare(&sql).and_then(|mut st| {
         st.query_map(rusqlite::params_from_iter(args.iter()), |f| f.get(0))?
@@ -1373,8 +1657,11 @@ async fn generar_documento(db: &Db, id: &str) -> Result<(), String> {
         let con = db.lock().unwrap();
         let proyecto: Option<llm::Proyecto> = con
             .query_row(
-                "SELECT p.nombre, p.descripcion FROM documentos d
-                 JOIN proyectos p ON p.id = d.proyecto_id WHERE d.id = ?1",
+                &format!(
+                    "SELECT {CONTEXTO_NOMBRE}, {CONTEXTO_DESCRIPCION} FROM documentos d
+                     JOIN proyectos p ON p.id = d.proyecto_id
+                     LEFT JOIN proyectos pp ON pp.id = p.padre_id WHERE d.id = ?1"
+                ),
                 [id],
                 |f| {
                     Ok(llm::Proyecto {
@@ -1480,7 +1767,13 @@ async fn listar_etiquetas(
         "SELECT e.etiqueta, COUNT(*) FROM etiquetas e JOIN notas n ON n.id = e.nota_id WHERE 1=1",
     );
     let mut args: Vec<String> = vec![];
-    sql_proyecto(&mut sql, &mut args, "n.proyecto_id", f.proyecto.as_deref());
+    sql_proyecto(
+        &mut sql,
+        &mut args,
+        "n.proyecto_id",
+        f.proyecto.as_deref(),
+        es_solo(f.solo.as_deref()),
+    );
     sql.push_str(" GROUP BY e.etiqueta ORDER BY 2 DESC, 1");
     let res: rusqlite::Result<Vec<serde_json::Value>> = con.prepare(&sql).and_then(|mut s| {
         s.query_map(rusqlite::params_from_iter(args.iter()), |f| {

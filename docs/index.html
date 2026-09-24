@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260923-024">
+  <meta name="build" content="PR-B1-20260924-026">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="icono-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Notas">
-  <title>Notas · mock 18</title>
+  <title>Notas · mock 19</title>
   <script>
     // Antes del primer pintado: si no, se ve el tema del sistema y luego salta al elegido.
     try {
@@ -119,6 +119,29 @@
     .listaMover { max-height:40vh; overflow:auto; display:flex; flex-direction:column; gap:.4rem; }
     .listaMover .btn { text-align:left; }
     .ambito { margin:.75rem 0; }
+    /* Subcarpetas (D43-D53) */
+    /* En una subcarpeta la cabecera dice de qué proyecto cuelga; lo que se recorta es el padre. */
+    header h1 .migas { border:0; background:transparent; color:var(--mut); font:inherit; font-weight:400; padding:0; margin-right:.3rem; cursor:pointer; flex:0 1 auto; min-width:2.5rem; max-width:60%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    /* Tira de carpetas bajo la cabecera del proyecto: una sola fila que se desliza. */
+    .carpetas { position:relative; display:flex; gap:.4rem; overflow-x:auto; margin:0 -1rem .75rem; padding:0 1rem .2rem; scrollbar-width:none; }
+    .carpetas::-webkit-scrollbar { display:none; }
+    .carpetas .chip { flex:0 0 auto; white-space:nowrap; }
+    .chip .n { opacity:.65; margin-left:.3rem; font-size:.75rem; }
+    .chip.nueva { border-style:dashed; color:var(--acc); background:transparent; }
+    .subs { display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.55rem; }
+    .chip.sub { background:var(--acc2); border-color:transparent; color:var(--acc); font-size:.8rem; padding:.2rem .6rem; }
+    .proy .ruta { color:var(--mut); font-size:.8rem; margin-bottom:.1rem; }
+    .listaMover .btn.hijo { margin-left:1.4rem; padding:.45rem .9rem; }
+    .subLista { border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+    .subLista .filaSub { display:flex; align-items:center; gap:.5rem; padding:.5rem .75rem; border-top:1px solid var(--line); }
+    .subLista .filaSub:first-child { border-top:0; }
+    .subLista .filaSub span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .subLista .filaSub small { color:var(--mut); white-space:nowrap; }
+    .subLista .filaSub button { border:0; background:transparent; color:var(--mut); font-size:1.1rem; cursor:pointer; padding:0 .3rem; }
+    .subLista .masSub { width:100%; border:0; border-top:1px solid var(--line); background:transparent; color:var(--acc); font:inherit; padding:.55rem .75rem; text-align:left; cursor:pointer; }
+    .subLista .masSub:first-child { border-top:0; }
+    /* Con «Dentro de» y la lista de subcarpetas, la hoja del proyecto puede no caber. */
+    .hoja { max-height:92vh; overflow:auto; }
     .barraDet { display:flex; justify-content:space-between; gap:.5rem; }
     #dAvisoCopia:empty { display:none; }
     /* Dos pantallas, dos pestañas: siempre se ve dónde se está y cómo ir a la otra. */
@@ -187,7 +210,7 @@
 </head>
 <body>
 <header>
-  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 18 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
+  <h1><span class="titulo"><button class="icono" id="proyectosBtn" type="button" title="Proyectos" aria-label="Proyectos">📁</button><button class="migas hidden" id="migas" type="button" title="Ir al proyecto"></button><span id="cab">Notas</span></span><span class="fila"><small id="estado">mock 19 · conectando…</small><button class="icono" id="temaBtn" type="button">🌗</button><button class="icono" id="seleccionarBtn" type="button" title="Seleccionar notas" aria-label="Seleccionar notas">☑</button><button class="icono" id="documentosBtn" type="button" title="Documentos" aria-label="Documentos">📄</button><button class="icono" id="ajustesBtn" type="button" title="Ajustes" aria-label="Ajustes">⚙</button></span></h1>
   <nav class="pestanas" id="pestanas" aria-label="Secciones">
     <button type="button" id="tabProy">📁 Proyectos</button>
     <button type="button" id="tabNotas">📝 <span id="tabNotasTxt">Notas</span></button>
@@ -213,6 +236,8 @@
 
 <main>
   <div id="cabProyecto" class="cabProy hidden"><span id="cpDesc"></span><span class="marca hidden" id="cpArch" style="flex:0 0 auto">archivado</span><button class="btn" id="cpEditar" type="button">Editar proyecto</button></div>
+  <!-- Subcarpetas (D45): Todo · Sin subcarpeta · cada subcarpeta · ＋ -->
+  <div id="carpetas" class="carpetas hidden" aria-label="Subcarpetas"></div>
   <section id="lista"></section>
 
   <!-- Proyectos (D14-D19): contenedores de notas que nombra el usuario -->
@@ -336,7 +361,7 @@
     <div class="acciones"><button class="btn peligro" id="entBorrarAudio" type="button">Borrar audio</button><button class="btn peligro" id="entBorrar" type="button">Borrar</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260923-024</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260924-026</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -378,8 +403,12 @@
     <h3 id="hpTitulo">Nuevo proyecto</h3>
     <label class="etq" for="hpNombre">Nombre</label>
     <input id="hpNombre" maxlength="60" autocomplete="off" placeholder="Por ejemplo: App de notas">
+    <label class="etq" for="hpPadre">Dentro de</label>
+    <select id="hpPadre"></select>
+    <p class="aviso libre" id="hpPadreAviso" style="margin:.3rem 0 0"></p>
     <label class="etq" for="hpDesc">Descripción (opcional: la IA la usa como contexto al generar documentos)</label>
     <textarea id="hpDesc" maxlength="300"></textarea>
+    <div id="hpSubsZona" class="hidden"><label class="etq">Subcarpetas</label><div class="subLista" id="hpSubs"></div></div>
     <p class="aviso libre" id="hpAviso"></p>
     <div class="acciones">
       <button class="btn" id="hpNo" type="button">Cancelar</button>
@@ -399,8 +428,9 @@
     <h3 id="hmTitulo">Mover a…</h3>
     <p class="libre" id="hmResumen"></p>
     <div id="hmLista" class="listaMover"></div>
-    <div class="fila" style="margin-top:.75rem">
-      <input id="hmNuevo" maxlength="60" autocomplete="off" placeholder="Nuevo proyecto…">
+    <input id="hmNuevo" maxlength="60" autocomplete="off" placeholder="Nuevo proyecto o subcarpeta…" style="margin-top:.75rem">
+    <div class="fila" style="margin-top:.5rem">
+      <select id="hmPadre" aria-label="Dónde se crea"></select>
       <button class="btn" id="hmCrear" type="button" style="white-space:nowrap">Crear y mover</button>
     </div>
     <p class="aviso libre" id="hmAviso"></p>
@@ -538,7 +568,7 @@
       throw e;
     } finally { clearTimeout(avisador); }
   }
-  // «mock 18 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
+  // «mock 19 · host» es rutina: en el móvil cede su sitio al nombre del proyecto.
   // Los avisos («arrancando el backend…») y los errores se siguen viendo.
   const estado = (txt, err) => { $('estado').textContent = txt; $('estado').classList.toggle('error', !!err); $('estado').dataset.rutina = !err && txt.startsWith('mock ') ? '1' : ''; };
 
@@ -554,8 +584,22 @@
   const CLAVE_PROYECTO = 'notas-proyecto', CLAVE_ORDEN = 'notas-orden-proyectos';
   let proyectoActivo = (() => { try { const p = JSON.parse(localStorage.getItem(CLAVE_PROYECTO)); return p && typeof p.nombre === 'string' ? p : null; } catch { return null; } })();
   let enTodos = false;
+  // Subcarpetas (D45): en un proyecto con subcarpetas, «Sin subcarpeta» pide
+  // solo sus notas sueltas (`solo=1`). `familia` es el proyecto principal del
+  // activo con sus subcarpetas, para la tira; se recarga con cada lista sin filtro.
+  let soloSueltas = false, familia = null;
+  // «Padre › Subcarpeta», o el nombre a secas; null es «Sin proyecto».
+  const ruta = p => !p ? 'Sin proyecto' : p.padre ? p.padre.nombre + ' › ' + p.nombre : p.nombre;
+  const raizDe = p => p && p.id ? (p.padre ? p.padre.id : p.id) : null;
+  // Lista plana de /proyectos -> cada principal seguido de sus subcarpetas.
+  function enArbol(ps) {
+    const raices = ps.filter(p => !p.padre);
+    const hijas = id => ps.filter(h => h.padre && h.padre.id === id).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    const out = raices.flatMap(r => [r, ...hijas(r.id)]);
+    return out.concat(ps.filter(p => !out.includes(p)));
+  }
   function fijarProyecto(p) {
-    proyectoActivo = p ? { id: p.id ?? null, nombre: p.nombre, descripcion: p.descripcion || '', archivado: !!p.archivado } : null;
+    proyectoActivo = p ? { id: p.id ?? null, nombre: p.nombre, descripcion: p.descripcion || '', archivado: !!p.archivado, padre: p.padre ? { id: p.padre.id, nombre: p.padre.nombre } : null } : null;
     try { p ? localStorage.setItem(CLAVE_PROYECTO, JSON.stringify(proyectoActivo)) : localStorage.removeItem(CLAVE_PROYECTO); } catch {}
   }
   // Valor del filtro `proyecto` de la API para lo que se está mirando; null = todas.
@@ -585,6 +629,8 @@
     const nombre = proyectoActivo ? proyectoActivo.nombre : 'Todas las notas';
     $('cab').textContent = { lista: modoSel ? 'Elegir' : nombre, editor: editando ? 'Editar nota' : 'Nueva nota', detalle: 'Nota', ajustes: 'Ajustes', documentos: 'Documentos', documento: 'Documento', proyectos: 'Proyectos', entrevistas: nombre, entrevista: 'Entrevista' }[v];
     if (v === 'lista') pintarCabProyecto(); else $('cabProyecto').classList.add('hidden');
+    pintarMigas();
+    pintarCarpetas(v === 'lista');
     window.scrollTo(0, 0);
   }
   // Volver «a las notas» es volver al proyecto activo; sin él, a todas si se
@@ -602,6 +648,43 @@
     $('cpEditar').classList.toggle('hidden', !(p && p.id) || modoSel);
     $('cabProyecto').classList.toggle('hidden', !texto && !(p && p.id));
   }
+  // Tira de carpetas (D45/D46): se ve en la lista de un proyecto que tiene o
+  // puede tener subcarpetas. Tocar una subcarpeta es entrar en ella.
+  function pintarCarpetas(enLista = !$('lista').classList.contains('hidden')) {
+    const t = $('carpetas'); t.innerHTML = '';
+    const p = proyectoActivo, f = familia;
+    const visible = enLista && !modoSel && !enTodos && p && p.id && f && f.raiz.id === raizDe(p);
+    t.classList.toggle('hidden', !visible);
+    if (!visible) return;
+    const chip = (texto, n, on, fn, clase = '') => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'chip ' + clase + (on ? ' on' : '');
+      b.textContent = texto;
+      if (n !== null) { const s = document.createElement('span'); s.className = 'n'; s.textContent = n; b.appendChild(s); }
+      b.onclick = fn; t.appendChild(b); return b;
+    };
+    const r = f.raiz;
+    if (f.hijas.length) {
+      chip('Todo', r.notas, p.id === r.id && !soloSueltas, () => entrarProyecto(r));
+      chip('Sin subcarpeta', r.notas_propias ?? 0, p.id === r.id && soloSueltas, () => entrarProyecto(r, true));
+      f.hijas.forEach(h => chip('📂 ' + h.nombre, h.notas, p.id === h.id, () => entrarProyecto(h)));
+    }
+    if (!r.archivado) chip('＋ Subcarpeta', null, false, () => abrirHojaProyecto(null, r), 'nueva');
+    // La activa, a la vista; sin mover la página, solo la tira.
+    const on = t.querySelector('.on');
+    if (on) t.scrollLeft = on.offsetLeft - (t.clientWidth - on.offsetWidth) / 2;
+  }
+  function pintarMigas() {
+    const aqui = (!$('lista').classList.contains('hidden') && !modoSel) || !$('entrevistas').classList.contains('hidden');
+    const con = aqui && !enTodos && proyectoActivo && proyectoActivo.padre;
+    $('migas').classList.toggle('hidden', !con);
+    if (con) $('migas').textContent = proyectoActivo.padre.nombre + ' ›';
+  }
+  $('migas').onclick = () => {
+    if (!proyectoActivo || !proyectoActivo.padre) return;
+    const enEnt = !$('entrevistas').classList.contains('hidden');
+    entrarProyecto(proyectoActivo.padre).then(() => { if (enEnt) { entrevistas = []; cargarEntrevistas(); } });
+  };
+
   // «hoy», «ayer», «hace 5 días»; más allá, la fecha.
   function hace(iso) {
     const d = new Date(iso), h = new Date();
@@ -674,7 +757,7 @@
     const l = $('lista'); l.innerHTML = '';
     const be = filtrando ? null : bloqueEntrevistas();
     if (be) l.appendChild(be);
-    if (!notas.length) { l.insertAdjacentHTML('beforeend', `<p class="vacio">${filtrando ? 'Nada coincide con el filtro.' : proyectoActivo ? 'Sin notas en este proyecto. Pulsa + para dictar la primera.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`); return; }
+    if (!notas.length) { l.insertAdjacentHTML('beforeend', `<p class="vacio">${filtrando ? 'Nada coincide con el filtro.' : soloSueltas && familia && familia.raiz.notas ? 'Ninguna nota suelta: todas están en alguna subcarpeta.' : proyectoActivo ? 'Sin notas en este proyecto. Pulsa + para dictar la primera.' : 'Sin notas. Pulsa + para crear la primera.'}</p>`); return; }
     notas.forEach(n => {
       const d = document.createElement('div'); d.className = 'nota';
       d.innerHTML = `<h2></h2><time></time><div class="chips"></div><p></p><button class="papelera" type="button" title="Borrar nota" aria-label="Borrar nota">🗑</button>`;
@@ -683,7 +766,10 @@
       d.querySelector('time').textContent = fmt(n.creada_en);
       d.querySelector('p').textContent = n.contenido;
       // Buscando en todos los proyectos (D22), cada nota dice de cuál es.
-      if (enTodos && n.proyecto) { const s = document.createElement('span'); s.className = 'chip proy'; s.textContent = '📁 ' + n.proyecto.nombre; d.querySelector('.chips').appendChild(s); }
+      // Dentro de un proyecto, las notas de sus subcarpetas dicen de cuál (D45).
+      const marcaProy = enTodos ? (n.proyecto ? '📁 ' + ruta(n.proyecto) : '')
+        : n.proyecto && proyectoActivo && proyectoActivo.id && n.proyecto.id !== proyectoActivo.id ? '📂 ' + n.proyecto.nombre : '';
+      if (marcaProy) { const s = document.createElement('span'); s.className = 'chip proy'; s.textContent = marcaProy; d.querySelector('.chips').appendChild(s); }
       n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; d.querySelector('.chips').appendChild(s); });
       // Sin IA la nota se guarda igual (D6); el distintivo dice que le falta su titulo bueno.
       if (n.pendiente_ia) { const s = document.createElement('span'); s.className = 'chip ia'; s.textContent = 'sin titular'; d.querySelector('.chips').appendChild(s); }
@@ -796,18 +882,29 @@
     if (etiquetaActiva) p.set('etiqueta', etiquetaActiva);
     if (ymd) { const r = rangoDia(ymd); p.set('desde', r.desde); p.set('hasta', r.hasta); }
     const ambito = ambitoNotas();
-    if (ambito) p.set('proyecto', ambito);
+    const solo = ambito && soloSueltas ? '&solo=1' : '';
+    if (ambito) { p.set('proyecto', ambito); if (solo) p.set('solo', '1'); }
+    // La tira de carpetas se refresca con cada lista sin filtro: así sus
+    // cifras siguen a lo que se crea y se mueve, sin pedirla en cada tecla.
+    const raiz = !enTodos ? raizDe(proyectoActivo) : null;
+    const pedirFamilia = raiz && (!familia || familia.raiz.id !== raiz || !(q || etiquetaActiva || ymd));
     const mia = ++cargaActual;
     estado('cargando…');
     try {
-      const [ns, es, ents] = await Promise.all([api('/notas?' + p), api('/etiquetas' + (ambito ? '?proyecto=' + encodeURIComponent(ambito) : '')),
-        ambito ? api('/entrevistas?proyecto=' + encodeURIComponent(ambito)).catch(() => []) : Promise.resolve([])]);
+      const [ns, es, ents, ps] = await Promise.all([api('/notas?' + p), api('/etiquetas' + (ambito ? '?proyecto=' + encodeURIComponent(ambito) + solo : '')),
+        ambito ? api('/entrevistas?proyecto=' + encodeURIComponent(ambito) + solo).catch(() => []) : Promise.resolve([]),
+        pedirFamilia ? api('/proyectos?orden=nombre&archivados=1').catch(() => null) : Promise.resolve(null)]);
       if (mia !== cargaActual) return;
       notas = ns; etiquetas = es; entsDelProyecto = ents;
+      if (ps) {
+        const r = ps.find(x => x.id === raiz);
+        familia = r ? { raiz: r, hijas: ps.filter(x => x.padre && x.padre.id === raiz).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')) } : null;
+      }
+      pintarCarpetas();
       pintarChips(); pintarLista(!!(q || etiquetaActiva || ymd));
       // Al cambiar el filtro cambia lo visible, y con ello lo que hara "Todas".
       if (modoSel) pintarSeleccion();
-      estado(`mock 18 · ${API.replace('https://', '')}`);
+      estado(`mock 19 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaActual) return;
       $('lista').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentar" type="button">Reintentar</button></p>`;
@@ -820,11 +917,15 @@
     actual = n;
     $('dTitulo').textContent = n.titulo; $('dFecha').textContent = fmt(n.creada_en); $('dContenido').textContent = n.contenido;
     const zp = $('dProyecto'); zp.innerHTML = '';
-    const bp = document.createElement('button'); bp.type = 'button'; bp.className = 'chip proy';
-    bp.textContent = '📁 ' + (n.proyecto ? n.proyecto.nombre : 'Sin proyecto');
-    bp.title = 'Ir al proyecto';
-    bp.onclick = () => entrarProyecto(n.proyecto || { id: null, nombre: 'Sin proyecto' });
-    zp.appendChild(bp);
+    // En una subcarpeta, dos chips (D46): el proyecto y la subcarpeta, cada uno a su sitio.
+    const chipProy = (texto, p) => {
+      const bp = document.createElement('button'); bp.type = 'button'; bp.className = 'chip proy';
+      bp.textContent = texto; bp.title = 'Ir al proyecto';
+      bp.onclick = () => entrarProyecto(p);
+      zp.appendChild(bp);
+    };
+    if (n.proyecto && n.proyecto.padre) { chipProy('📁 ' + n.proyecto.padre.nombre, n.proyecto.padre); chipProy('📂 ' + n.proyecto.nombre, n.proyecto); }
+    else chipProy('📁 ' + (n.proyecto ? n.proyecto.nombre : 'Sin proyecto'), n.proyecto || { id: null, nombre: 'Sin proyecto' });
     const c = $('dEtiquetas'); c.innerHTML = '';
     n.etiquetas.forEach(e => { const s = document.createElement('span'); s.className = 'chip et'; s.textContent = e; c.appendChild(s); });
     pintarReintento(n);
@@ -903,7 +1004,7 @@
         e.querySelector('h2').textContent = d.titulo;
         e.querySelector('time').textContent = fmt(d.creado_en) + ' · ' + d.notas.length + ' nota' + (d.notas.length === 1 ? '' : 's');
         const c = e.querySelector('.chips');
-        if (!filtrados && d.proyecto) { const s = document.createElement('span'); s.className = 'chip proy'; s.textContent = '📁 ' + d.proyecto.nombre; c.appendChild(s); }
+        if (d.proyecto && (!filtrados || d.proyecto.id !== proyectoActivo.id)) { const s = document.createElement('span'); s.className = 'chip proy'; s.textContent = (filtrados ? '📂 ' + d.proyecto.nombre : '📁 ' + ruta(d.proyecto)); c.appendChild(s); }
         if (d.estado !== 'listo') c.appendChild(marca(d.estado === 'pendiente' ? 'generando…' : 'falló', d.estado));
         if (d.editado) c.appendChild(marca('editado', ''));
         e.onclick = () => abrirDocumento(d);
@@ -923,7 +1024,7 @@
   function abrirDocumento(d) {
     docActual = d;
     $('gTitulo').textContent = d.titulo;
-    $('gFecha').textContent = fmt(d.creado_en) + (d.proyecto ? ' · 📁 ' + d.proyecto.nombre : '');
+    $('gFecha').textContent = fmt(d.creado_en) + (d.proyecto ? ' · 📁 ' + ruta(d.proyecto) : '');
     $('gTexto').value = d.texto;
     $('gAviso').textContent = '';
     $('gGuardar').disabled = true;
@@ -1114,22 +1215,27 @@
   };
   // Desplegable de proyecto del editor: parte del proyecto activo y se puede cambiar.
   // Se pinta al momento con lo que se sabe y se completa cuando llega la lista.
+  // Las subcarpetas van bajo su proyecto con la ruta entera (D50): cerrado,
+  // el desplegable solo enseña la opción elegida.
+  let proyectosEditor = [];
   async function llenarProyectosEditor() {
     const sel = $('eProyecto'), aqui = proyectoActivo && proyectoActivo.id ? proyectoActivo : null;
     const pintar = ps => {
+      proyectosEditor = ps;
       sel.innerHTML = '';
       [{ id: null, nombre: 'Sin proyecto' }, ...ps].forEach(p => {
         const o = document.createElement('option');
-        o.value = p.id ?? ''; o.textContent = p.nombre;
+        o.value = p.id ?? ''; o.textContent = ruta(p.id ? p : null);
         sel.appendChild(o);
       });
     };
     pintar(aqui ? [aqui] : []);
     sel.value = aqui ? aqui.id : '';
     try {
-      const ps = (await api('/proyectos?orden=nombre')).filter(p => p.id !== null && (!p.archivado || (aqui && p.id === aqui.id)));
+      const ps = (await api('/proyectos?orden=nombre')).filter(p => p.id !== null);
+      if (aqui && !ps.some(p => p.id === aqui.id)) ps.push(aqui);
       const elegido = sel.value;
-      pintar(ps);
+      pintar(enArbol(ps));
       sel.value = [...sel.options].some(o => o.value === elegido) ? elegido : '';
     } catch {}
   }
@@ -1150,8 +1256,7 @@
       await api('/notas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contenido, proyecto }) });
       // Guardada en otro proyecto: se va a verla allí, que es donde se buscará.
       if (!enTodos && (proyectoActivo ? proyectoActivo.id : undefined) !== proyecto) {
-        const o = $('eProyecto').selectedOptions[0];
-        entrarProyecto({ id: proyecto, nombre: o ? o.textContent : 'Sin proyecto' });
+        entrarProyecto(proyectosEditor.find(p => p.id === proyecto) || { id: null, nombre: 'Sin proyecto' });
       } else irALista();
     } catch (e) {
       $('avisoMic').textContent = 'No se pudo guardar (' + e.message + '). El texto sigue aquí: pulsa Guardar otra vez.';
@@ -1165,7 +1270,7 @@
   const notaComoTexto = n => [
     '# ' + n.titulo, '',
     [
-      '📁 ' + (n.proyecto ? n.proyecto.nombre : 'Sin proyecto'),
+      '📁 ' + ruta(n.proyecto),
       fmt(n.creada_en),
       n.etiquetas.length ? 'etiquetas: ' + n.etiquetas.join(', ') : ''
     ].filter(Boolean).join(' · '),
@@ -1199,12 +1304,21 @@
     $('cNota').textContent = tipo === 'entrevista' ? `${n.titulo} · se borran el audio, la transcripción y los resúmenes; las notas que guardaste de ella se quedan.`
       : tipo === 'audio' ? `${n.titulo} · ${megas(n.audio_bytes)}. Se quedan la transcripción y los resúmenes; ya no se podrá escuchar ni volver a transcribir.`
       : tipo === 'grabacion' ? `Grabación de ${reloj(n.duracion_s)} del ${fechaCorta(n.empezada)}. Solo está en este móvil: se pierde.`
-      : tipo === 'proyecto'
-      ? `${n.nombre} · ${n.notas ? `sus ${n.notas} nota${n.notas === 1 ? '' : 's'} pasan a «Sin proyecto»` : 'no tiene notas'}; no se borra ninguna.`
+      : tipo === 'proyecto' ? textoBorrarProyecto(n)
       : `${n.titulo} · ${fmt(tipo === 'documento' ? n.creado_en : n.creada_en)}` + (tipo === 'documento' ? ' · las notas no se tocan' : '');
     $('cSi').disabled = false; $('cSi').textContent = 'Borrar';
     $('confirmar').classList.remove('hidden');
     $('cNo').focus();
+  }
+  // D51: de una subcarpeta, lo suyo sube al proyecto; de un proyecto, lo suyo
+  // va a «Sin proyecto» y sus subcarpetas pasan a principales.
+  function textoBorrarProyecto(p) {
+    const propias = p.notas_propias ?? p.notas, hs = p.subcarpetas || 0;
+    const suyas = (uno, varias) => propias === 1 ? `su única nota ${uno}` : `sus ${propias} notas ${varias}`;
+    if (p.padre) return `${p.nombre} · ${propias ? suyas('sube', 'suben') + ` a «${p.padre.nombre}»` : 'no tiene notas'}; no se borra ninguna.`;
+    const subs = hs === 1 ? ' y su subcarpeta pasa a ser un proyecto principal, con sus notas'
+      : hs ? ` y sus ${hs} subcarpetas pasan a ser proyectos principales, con sus notas` : '';
+    return `${p.nombre} · ${propias ? suyas('pasa', 'pasan') + ' a «Sin proyecto»' : hs ? 'no tiene notas sueltas' : 'no tiene notas'}${subs}; no se borra ninguna.`;
   }
   const cerrarConfirmacion = () => { $('confirmar').classList.add('hidden'); aBorrar = null; };
   $('cNo').onclick = cerrarConfirmacion;
@@ -1233,6 +1347,7 @@
         const era = aBorrar.id;
         cerrarConfirmacion();
         if (proyectoActivo && proyectoActivo.id === era) fijarProyecto(null);
+        familia = null;
         cargarProyectos();
         return;
       }
@@ -1299,7 +1414,7 @@
     if (!agrupar) notas.forEach(n => bloque(n, '##'));
     else {
       const grupos = new Map();
-      notas.forEach(n => { const k = n.proyecto ? n.proyecto.nombre : ''; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(n); });
+      notas.forEach(n => { const k = n.proyecto ? ruta(n.proyecto) : ''; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(n); });
       [...grupos.keys()].sort((a, b) => a === '' ? 1 : b === '' ? -1 : a.localeCompare(b, 'es')).forEach(k => {
         const g = grupos.get(k);
         lineas.push('', '## ' + (k || 'Sin proyecto') + ` (${g.length})`);
@@ -1438,7 +1553,7 @@
       const ps = await api('/proyectos?' + p);
       if (mia !== cargaProy) return;
       pintarProyectos(ps, !!q);
-      estado(`mock 18 · ${API.replace('https://', '')}`);
+      estado(`mock 19 · ${API.replace('https://', '')}`);
     } catch (e) {
       if (mia !== cargaProy) return;
       $('listaProyectos').innerHTML = `<p class="vacio error">No se pudo hablar con el backend (${e.message}).</p><p class="vacio" style="padding-top:0"><button class="btn pri" id="reintentarProy" type="button">Reintentar</button></p>`;
@@ -1446,30 +1561,50 @@
       estado('sin conexión con ' + API, true);
     }
   }
-  function tarjetaProyecto(p) {
+  // Cada proyecto enseña sus subcarpetas como chips que entran directamente
+  // (D49). Buscando, una subcarpeta sale sola con su proyecto encima.
+  function tarjetaProyecto(p, hijas = [], conRuta = false) {
     const d = document.createElement('div'); d.className = 'doc proy';
-    d.innerHTML = '<h2></h2><time></time><p></p><button class="papelera" type="button" title="Editar proyecto" aria-label="Editar proyecto">⋯</button>';
-    d.querySelector('h2').textContent = p.nombre;
-    const ents = p.entrevistas || 0;
+    d.innerHTML = '<div class="ruta"></div><h2></h2><time></time><p></p><button class="papelera" type="button" title="Editar proyecto" aria-label="Editar proyecto">⋯</button>';
+    const r = d.querySelector('.ruta');
+    if (conRuta && p.padre) r.textContent = '📁 ' + p.padre.nombre + ' ›'; else r.remove();
+    d.querySelector('h2').textContent = (p.padre ? '📂 ' : '') + p.nombre;
+    const ents = p.entrevistas || 0, subs = p.subcarpetas || 0;
     d.querySelector('time').textContent = `${p.notas} nota${p.notas === 1 ? '' : 's'}`
+      + (subs ? ` · ${subs} subcarpeta${subs === 1 ? '' : 's'}` : '')
       + (ents ? ` · ${ents} entrevista${ents === 1 ? '' : 's'}` : '')
       + (p.ultima_nota ? ' · última ' + hace(p.ultima_nota) : '');
     const desc = d.querySelector('p');
     if (p.descripcion) desc.textContent = p.descripcion; else desc.remove();
+    if (hijas.length) {
+      const z = document.createElement('div'); z.className = 'subs';
+      hijas.forEach(h => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'chip sub';
+        b.textContent = '📂 ' + h.nombre;
+        const n = document.createElement('span'); n.className = 'n'; n.textContent = h.notas; b.appendChild(n);
+        b.onclick = ev => { ev.stopPropagation(); entrarProyecto(h); };
+        z.appendChild(b);
+      });
+      d.insertBefore(z, d.querySelector('.papelera'));
+    }
     if (p.id === null) { d.classList.add('sinProy'); d.querySelector('.papelera').remove(); }
     else d.querySelector('.papelera').onclick = ev => { ev.stopPropagation(); abrirHojaProyecto(p); };
-    if (proyectoActivo && proyectoActivo.id === p.id) d.classList.add('actual');
+    if (proyectoActivo && (proyectoActivo.id === p.id || (!conRuta && p.id && raizDe(proyectoActivo) === p.id))) d.classList.add('actual');
     d.onclick = () => entrarProyecto(p);
     return d;
   }
-  function pintarProyectos(ps, buscando) {
+  function pintarProyectos(todos, buscando) {
+    // Sin buscar, las subcarpetas van dentro de la tarjeta de su proyecto.
+    const hijasDe = id => todos.filter(h => h.padre && h.padre.id === id).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    const ps = buscando ? todos : todos.filter(p => !p.padre);
+    const tarjeta = p => tarjetaProyecto(p, buscando || !p.id ? [] : hijasDe(p.id), buscando);
     const activos = ps.filter(p => !p.archivado), arch = ps.filter(p => p.archivado);
     const l = $('listaProyectos'); l.innerHTML = '';
-    if (!activos.length) l.innerHTML = `<p class="vacio">${buscando ? 'Ningún proyecto coincide.' : 'Sin proyectos todavía. Pulsa «Nuevo proyecto» para crear el primero.'}</p>`;
-    activos.forEach(p => l.appendChild(tarjetaProyecto(p)));
+    if (!activos.length) l.innerHTML = `<p class="vacio">${buscando ? 'Ningún proyecto ni subcarpeta coincide.' : 'Sin proyectos todavía. Pulsa «Nuevo proyecto» para crear el primero.'}</p>`;
+    activos.forEach(p => l.appendChild(tarjeta(p)));
     // Archivados: plegados al final, como las etiquetas (D19).
     const a = $('listaArchivados'); a.innerHTML = '';
-    arch.forEach(p => a.appendChild(tarjetaProyecto(p)));
+    arch.forEach(p => a.appendChild(tarjeta(p)));
     const abierto = archAbiertos && arch.length > 0;
     $('archBtn').classList.toggle('hidden', !arch.length);
     $('archTxt').textContent = `Archivados · ${arch.length}`;
@@ -1492,8 +1627,10 @@
 
   // Entrar en un proyecto: filtros limpios y la lista acotada a él. Luego se
   // refresca nombre y descripción, por si cambiaron desde otro sitio.
-  async function entrarProyecto(p) {
+  async function entrarProyecto(p, sueltas = false) {
+    if (raizDe(p) !== raizDe(proyectoActivo)) familia = null;
     fijarProyecto(p);
+    soloSueltas = sueltas && !p.padre;
     modoSel = false; seleccion.clear();
     etiquetaActiva = null; enTodos = false; $('enTodos').checked = false;
     $('q').value = ''; $('fecha').value = '';
@@ -1503,7 +1640,7 @@
       const fresco = await api('/proyectos/' + encodeURIComponent(p.id));
       if (proyectoActivo && proyectoActivo.id === fresco.id) {
         fijarProyecto(fresco);
-        if (!$('lista').classList.contains('hidden')) { $('cab').textContent = modoSel ? 'Elegir' : fresco.nombre; pintarCabProyecto(); }
+        if (!$('lista').classList.contains('hidden')) { $('cab').textContent = modoSel ? 'Elegir' : fresco.nombre; pintarCabProyecto(); pintarMigas(); pintarCarpetas(); }
       }
     } catch (e) {
       // Borrado desde otro sitio: a la lista de proyectos.
@@ -1511,30 +1648,71 @@
     }
   }
 
-  let editandoProy = null;
-  function abrirHojaProyecto(p) {
+  // `padre` ({id, nombre}) abre la hoja para una subcarpeta nueva de ese proyecto.
+  let editandoProy = null, vezHoja = 0;
+  function abrirHojaProyecto(p, padre = null) {
     editandoProy = p || null;
-    $('hpTitulo').textContent = p ? 'Proyecto' : 'Nuevo proyecto';
+    const esSub = p ? !!p.padre : !!padre, dePadre = p ? p.padre : padre;
+    $('hpTitulo').textContent = p ? (esSub ? 'Subcarpeta' : 'Proyecto') : padre ? 'Nueva subcarpeta en ' + padre.nombre : 'Nuevo proyecto';
     $('hpNombre').value = p ? p.nombre : '';
+    $('hpNombre').placeholder = esSub ? 'Por ejemplo: Diseño' : 'Por ejemplo: App de notas';
     $('hpDesc').value = p ? p.descripcion || '' : '';
     $('hpSi').textContent = p ? 'Guardar' : 'Crear';
     $('hpSi').disabled = false;
     $('hpMas').classList.toggle('hidden', !p);
+    // Archivar es de proyectos principales: la subcarpeta va con el suyo (D52).
+    $('hpArchivar').classList.toggle('hidden', esSub);
     if (p) $('hpArchivar').textContent = p.archivado ? 'Desarchivar' : 'Archivar';
     $('hpAviso').textContent = ''; $('hpAviso').classList.remove('error');
+    // «Dentro de» (D47): se pinta con lo que se sabe y se completa con la lista.
+    const sel = $('hpPadre'), subs = p ? p.subcarpetas || 0 : 0;
+    const opciones = rs => {
+      sel.innerHTML = '';
+      [{ id: '', nombre: '— Ninguno (proyecto principal)' }, ...rs].forEach(r => { const o = document.createElement('option'); o.value = r.id; o.textContent = r.nombre; sel.appendChild(o); });
+      sel.value = dePadre ? dePadre.id : '';
+    };
+    opciones(dePadre ? [dePadre] : []);
+    sel.disabled = subs > 0;
+    $('hpPadreAviso').textContent = subs ? 'Tiene subcarpetas, así que no puede ir dentro de otro proyecto.'
+      : p && esSub ? 'Cámbialo para llevarla a otro proyecto, o elige «Ninguno» para sacarla a proyecto principal.' : '';
+    $('hpSubsZona').classList.toggle('hidden', !p || esSub);
+    $('hpSubs').innerHTML = '';
     $('hojaProyecto').classList.remove('hidden');
-    $('hpNombre').focus();
+    if (!p) $('hpNombre').focus();
+    const mia = ++vezHoja;
+    api('/proyectos?orden=nombre&archivados=1').then(ps => {
+      if (mia !== vezHoja || $('hojaProyecto').classList.contains('hidden')) return;
+      opciones(ps.filter(r => r.id && !r.padre && (p ? r.id !== p.id : true) && (!r.archivado || (dePadre && r.id === dePadre.id))));
+      if (p && !esSub) pintarSubcarpetas(p, ps.filter(h => h.padre && h.padre.id === p.id).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')));
+    }).catch(() => { if (p && !esSub) pintarSubcarpetas(p, []); });
+  }
+  function pintarSubcarpetas(p, hijas) {
+    const z = $('hpSubs'); z.innerHTML = '';
+    hijas.forEach(h => {
+      const f = document.createElement('div'); f.className = 'filaSub';
+      f.innerHTML = '<span></span><small></small><button type="button" title="Editar subcarpeta" aria-label="Editar subcarpeta">⋯</button>';
+      f.querySelector('span').textContent = '📂 ' + h.nombre;
+      f.querySelector('small').textContent = `${h.notas} nota${h.notas === 1 ? '' : 's'}`;
+      f.querySelector('button').onclick = () => abrirHojaProyecto(h);
+      z.appendChild(f);
+    });
+    if (p.archivado) return;
+    const mas = document.createElement('button'); mas.type = 'button'; mas.className = 'masSub'; mas.textContent = '＋ Añadir subcarpeta';
+    mas.onclick = () => abrirHojaProyecto(null, { id: p.id, nombre: p.nombre });
+    z.appendChild(mas);
   }
   const cerrarHojaProyecto = () => { $('hojaProyecto').classList.add('hidden'); editandoProy = null; };
   $('hpNo').onclick = cerrarHojaProyecto;
   $('hojaProyecto').onclick = ev => { if (ev.target === $('hojaProyecto')) cerrarHojaProyecto(); };
   const avisoHoja = (id, texto) => { $(id).textContent = texto; $(id).classList.add('error'); };
-  const errorProyecto = e => /HTTP 409/.test(e.message) ? 'Ya hay un proyecto con ese nombre.' : 'No se pudo guardar (' + e.message + ').';
+  const errorProyecto = (e, padre) => /HTTP 409/.test(e.message) ? (padre ? 'Ya hay una subcarpeta con ese nombre en ese proyecto.' : 'Ya hay un proyecto con ese nombre.')
+    : /HTTP 400/.test(e.message) && padre ? 'No se puede poner ahí: solo hay un nivel de subcarpetas.' : 'No se pudo guardar (' + e.message + ').';
   // Tras cambiar un proyecto: si es el activo se actualiza, y se repinta lo que se esté viendo.
   function proyectoCambiado(r) {
     if (proyectoActivo && proyectoActivo.id === r.id) fijarProyecto(r);
+    familia = null;
     if (!$('proyectos').classList.contains('hidden')) cargarProyectos();
-    else if (!$('lista').classList.contains('hidden')) ver('lista');
+    else if (!$('lista').classList.contains('hidden')) { ver('lista'); cargar(); }
   }
   async function guardarProyecto(cambio) {
     const p = editandoProy;
@@ -1546,10 +1724,14 @@
   }
   $('hpSi').onclick = async () => {
     const nombre = $('hpNombre').value.trim();
-    if (!nombre) { avisoHoja('hpAviso', 'El proyecto necesita un nombre.'); $('hpNombre').focus(); return; }
+    if (!nombre) { avisoHoja('hpAviso', 'Hace falta un nombre.'); $('hpNombre').focus(); return; }
+    const p = editandoProy, padre = $('hpPadre').value || null;
+    const cambio = { nombre, descripcion: $('hpDesc').value.trim() };
+    // `padre` solo viaja si cambia: así un proyecto con subcarpetas se edita sin tocarlo.
+    if (!p || (p.padre ? p.padre.id : null) !== padre) cambio.padre = padre;
     $('hpSi').disabled = true;
-    try { await guardarProyecto({ nombre, descripcion: $('hpDesc').value.trim() }); }
-    catch (e) { avisoHoja('hpAviso', errorProyecto(e)); $('hpSi').disabled = false; }
+    try { await guardarProyecto(cambio); }
+    catch (e) { avisoHoja('hpAviso', errorProyecto(e, padre)); $('hpSi').disabled = false; }
   };
   $('hpNombre').onkeydown = ev => { if (ev.key === 'Enter') $('hpSi').click(); };
   $('hpArchivar').onclick = async () => {
@@ -1562,7 +1744,7 @@
     try {
       const ns = await api('/notas?proyecto=' + encodeURIComponent(p.id));
       if (!ns.length) { $('hpAviso').classList.remove('error'); $('hpAviso').textContent = 'Este proyecto no tiene notas que exportar.'; return; }
-      descargarMd(nombreDeFichero(p.nombre, 'proyecto') + '-' + new Date().toISOString().slice(0, 10), notasComoMarkdown(ns, { titulo: p.nombre }));
+      descargarMd(nombreDeFichero(ruta(p), 'proyecto') + '-' + new Date().toISOString().slice(0, 10), notasComoMarkdown(ns, { titulo: ruta(p), agrupar: (p.subcarpetas || 0) > 0 }));
       $('hpAviso').classList.remove('error');
       $('hpAviso').textContent = `${ns.length} nota${ns.length === 1 ? '' : 's'} en el fichero.`;
     } catch (e) { avisoHoja('hpAviso', 'No se pudo exportar (' + e.message + ').'); }
@@ -1578,26 +1760,34 @@
   async function abrirMover(ids, origen) {
     if (!ids.length) return;
     aMover = { ids, origen };
-    const aqui = origen === 'detalle' ? (actual && actual.proyecto ? actual.proyecto.id : null)
-      : origen === 'entrevista' ? (entActual && entActual.proyecto ? entActual.proyecto.id : null)
-      : (!enTodos && proyectoActivo ? proyectoActivo.id : undefined);
+    // Dónde está ya. En la selección, solo si todas comparten sitio: dentro de
+    // un proyecto pueden venir de subcarpetas distintas.
+    const sitios = origen === 'detalle' ? [actual.proyecto || null] : origen === 'entrevista' ? [entActual.proyecto || null]
+      : [...seleccion.values()].map(n => n.proyecto || null);
+    const lugar = sitios.every(x => (x ? x.id : null) === (sitios[0] ? sitios[0].id : null)) ? sitios[0] : undefined;
+    const aqui = lugar === undefined ? undefined : lugar ? lugar.id : null;
     // Decir dónde está ya: el proyecto actual sale desactivado y, sin esto, parecía un fallo.
-    const donde = aqui === undefined ? '' : ` Ahora está en «${aqui === null ? 'Sin proyecto' : (origen === 'entrevista' ? entActual.proyecto.nombre : origen === 'detalle' ? actual.proyecto.nombre : proyectoActivo.nombre)}»: elige otro destino.`;
+    const donde = lugar === undefined ? '' : ` Ahora está en «${ruta(lugar)}»: elige otro destino.`;
     $('hmResumen').textContent = (origen === 'entrevista' ? 'Una entrevista.' : ids.length === 1 ? 'Una nota.' : `${ids.length} notas.`) + donde;
     $('hmAviso').textContent = ''; $('hmAviso').classList.remove('error');
     $('hmNuevo').value = '';
     const l = $('hmLista'); l.innerHTML = '<p class="vacio">cargando…</p>';
+    // «Crear y mover» crea un proyecto o una subcarpeta del sitio de ahora (D50).
+    const hp = $('hmPadre'); hp.innerHTML = '<option value="">Como proyecto nuevo</option>';
     $('hojaMover').classList.remove('hidden');
     try {
-      const ps = (await api('/proyectos?orden=nombre')).filter(p => p.id !== null);
+      const ps = enArbol((await api('/proyectos?orden=nombre')).filter(p => p.id !== null));
       l.innerHTML = '';
       [{ id: null, nombre: 'Sin proyecto' }, ...ps].forEach(p => {
-        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn';
-        b.textContent = p.id === aqui ? `✓ ${p.nombre} · ya está aquí` : (p.id === null ? '— ' : '📁 ') + p.nombre;
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (p.padre ? ' hijo' : '');
+        b.textContent = p.id === aqui ? `✓ ${p.nombre} · ya está aquí` : (p.id === null ? '— ' : p.padre ? '📂 ' : '📁 ') + p.nombre;
         b.disabled = p.id === aqui;
         b.onclick = () => moverA(p);
         l.appendChild(b);
       });
+      ps.filter(p => !p.padre).forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = 'Dentro de ' + p.nombre; hp.appendChild(o); });
+      const r = raizDe(lugar);
+      if (r && [...hp.options].some(o => o.value === r)) hp.value = r;
     } catch (e) { l.innerHTML = ''; avisoHoja('hmAviso', 'No se pudieron cargar los proyectos (' + e.message + ').'); }
   }
   const cerrarMover = () => { $('hojaMover').classList.add('hidden'); aMover = null; };
@@ -1610,28 +1800,31 @@
     try {
       if (origen === 'entrevista') {
         const f = await api('/entrevistas/' + encodeURIComponent(ids[0]) + '/mover', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proyecto: p.id }) });
-        cerrarMover(); abrirEntrevista(f); estado('entrevista movida a ' + p.nombre); return;
+        cerrarMover(); abrirEntrevista(f); estado('entrevista movida a ' + ruta(p.id ? p : null)); return;
       }
       await api('/notas/mover', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notas: ids, proyecto: p.id }) });
       cerrarMover();
       if (origen === 'detalle') abrir(await api('/notas/' + encodeURIComponent(ids[0])));
-      else { salirSeleccion(); cargar(); }
-      estado(`${ids.length === 1 ? 'nota movida' : ids.length + ' notas movidas'} a ${p.nombre}`);
+      else { familia = null; salirSeleccion(); cargar(); }
+      estado(`${ids.length === 1 ? 'nota movida' : ids.length + ' notas movidas'} a ${ruta(p.id ? p : null)}`);
     } catch (e) { avisoHoja('hmAviso', 'No se pudo mover (' + e.message + ').'); }
   }
   $('hmCrear').onclick = async () => {
     const nombre = $('hmNuevo').value.trim();
     if (!nombre) { $('hmNuevo').focus(); return; }
+    const padre = $('hmPadre').value || null;
     try {
-      const p = await api('/proyectos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre }) });
+      const p = await api('/proyectos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, padre }) });
       await moverA(p);
-    } catch (e) { avisoHoja('hmAviso', errorProyecto(e)); }
+    } catch (e) { avisoHoja('hmAviso', errorProyecto(e, padre)); }
   };
 
   // ===================== Entrevistas (D27-D42) =====================
   // Una entrevista es una grabación con lo que sale de ella: audio,
   // transcripción con hablantes y dos resúmenes. Vive en el proyecto activo.
   const ambitoEnt = () => proyectoActivo ? (proyectoActivo.id ?? 'ninguno') : null;
+  // «Sin subcarpeta» también acota las entrevistas (D53).
+  const soloEnt = () => proyectoActivo && proyectoActivo.id && soloSueltas ? '&solo=1' : '';
   const reloj = s => {
     s = Math.max(0, Math.round(s || 0));
     const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
@@ -1713,7 +1906,7 @@
   function pintarCaptura(msg) {
     const e = G.estado, c = $('captura');
     c.dataset.estado = e;
-    $('capProyecto').textContent = '📁 ' + (G.proyecto ? G.proyecto.nombre : proyectoActivo ? proyectoActivo.nombre : 'Sin proyecto');
+    $('capProyecto').textContent = '📁 ' + (G.proyecto ? G.proyecto.nombre : ruta(proyectoActivo && proyectoActivo.id ? proyectoActivo : null));
     $('capEstado').textContent = { inactiva: 'Listo para grabar', cuenta: 'Empieza en…', pidiendo: 'Pidiendo el micrófono…', grabando: 'Grabando', pausada: 'En pausa', parando: 'Guardando…', sin_permiso: 'Sin micrófono' }[e] || e;
     $('capCuenta').classList.toggle('hidden', e !== 'cuenta');
     $('capCrono').classList.toggle('hidden', e === 'cuenta' || e === 'sin_permiso');
@@ -1808,7 +2001,7 @@
     G.tipo = (G.rec.mimeType || tipo || 'audio/webm').split(';')[0];
     G.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     G.n = 0; G.trozos = []; G.acumulado = 0; G.idbFallo = false; G.escrituras = Promise.resolve();
-    G.proyecto = proyectoActivo ? { id: proyectoActivo.id ?? null, nombre: proyectoActivo.nombre } : null;
+    G.proyecto = proyectoActivo ? { id: proyectoActivo.id ?? null, nombre: proyectoActivo.id ? ruta(proyectoActivo) : proyectoActivo.nombre } : null;
     G.empezada = new Date().toISOString();
     const ficha = () => ({ id: G.id, tipo: G.tipo, proyecto: G.proyecto, empezada: G.empezada, duracion_s: Math.round(segundos()), trozos: G.n });
     G.escrituras = G.escrituras.then(() => idbFicha(ficha())).catch(() => { G.idbFallo = true; });
@@ -2053,7 +2246,7 @@
       setTimeout(() => fin(0), 4000); a.src = url;
     });
     abrirHojaGrab({ blob: f, tipo: f.type, nombre: f.name, dur, desdeFichero: true, gid: null,
-      proyecto: proyectoActivo ? { id: proyectoActivo.id ?? null, nombre: proyectoActivo.nombre } : null,
+      proyecto: proyectoActivo ? { id: proyectoActivo.id ?? null, nombre: proyectoActivo.id ? ruta(proyectoActivo) : proyectoActivo.nombre } : null,
       empezada: new Date(f.lastModified || Date.now()).toISOString() });
   };
 
@@ -2106,11 +2299,11 @@
     if (!entrevistas.length) l.innerHTML = '<p class="vacio">cargando…</p>';
     const a = ambitoEnt();
     try {
-      const lista = await api('/entrevistas' + (a ? '?proyecto=' + encodeURIComponent(a) : ''));
+      const lista = await api('/entrevistas' + (a ? '?proyecto=' + encodeURIComponent(a) + soloEnt() : ''));
       if (mia !== cargaEnt) return;
       entrevistas = lista;
       pintarEntrevistas();
-      estado(`mock 18 · ${API.replace('https://', '')}`);
+      estado(`mock 19 · ${API.replace('https://', '')}`);
       // Mientras algo se transcribe o se resume, la lista se refresca sola.
       if (lista.some(e => e.estado === 'transcribiendo' || e.estado_resumen === 'pendiente'))
         sondeoLista = setTimeout(() => { if (!$('entrevistas').classList.contains('hidden')) cargarEntrevistas(); }, 5000);
@@ -2131,6 +2324,10 @@
       const [f, t, m] = d.querySelectorAll('.meta span');
       f.textContent = fechaCorta(e.creada_en); t.textContent = reloj(e.duracion_s) + (e.con_quien ? ' · ' + e.con_quien : '');
       const [txt, cls] = marcaEnt(e); m.textContent = txt; if (cls) m.classList.add(cls);
+      // Las de una subcarpeta dicen de cuál, como las notas (D45).
+      if (e.proyecto && proyectoActivo && proyectoActivo.id && e.proyecto.id !== proyectoActivo.id) {
+        const s = document.createElement('span'); s.className = 'chip proy'; s.textContent = '📂 ' + e.proyecto.nombre; d.querySelector('.meta').appendChild(s);
+      }
       d.onclick = () => abrirEntrevista(e, true);
       l.appendChild(d);
     });
@@ -2161,8 +2358,10 @@
     if (e.con_quien) meta.push('con ' + e.con_quien);
     $('entMeta').textContent = meta.join(' · ');
     const zp = $('entProyecto'); zp.innerHTML = '';
-    zp.appendChild(boton('📁 ' + (e.proyecto ? e.proyecto.nombre : 'Sin proyecto'), 'chip proy', () => { entrarProyecto(e.proyecto || { id: null, nombre: 'Sin proyecto' }).then(cargarEntrevistas); }));
-    zp.firstChild.className = 'chip proy';
+    const irA = p => () => { entrarProyecto(p).then(cargarEntrevistas); };
+    if (e.proyecto && e.proyecto.padre) { zp.appendChild(boton('📁 ' + e.proyecto.padre.nombre, '', irA(e.proyecto.padre))); zp.appendChild(boton('📂 ' + e.proyecto.nombre, '', irA(e.proyecto))); }
+    else zp.appendChild(boton('📁 ' + ruta(e.proyecto), '', irA(e.proyecto || { id: null, nombre: 'Sin proyecto' })));
+    zp.querySelectorAll('button').forEach(b => { b.className = 'chip proy'; });
     // Audio: se baja con el token solo cuando se pide (una hora son 14 MB).
     const za = $('entAudio');
     if (audioNuevo || !e.audio || !za.querySelector('audio')) {
@@ -2261,7 +2460,7 @@
   $('entBorrar').onclick = () => entActual && pedirBorrado(entActual, 'entrevista');
   $('entBorrarAudio').onclick = () => entActual && pedirBorrado(entActual, 'audio');
   const entrevistaComoTexto = e => {
-    const l = ['# ' + e.titulo, '', ['📁 ' + (e.proyecto ? e.proyecto.nombre : 'Sin proyecto'), fmt(e.creada_en), reloj(e.duracion_s), e.con_quien ? 'con ' + e.con_quien : ''].filter(Boolean).join(' · ')];
+    const l = ['# ' + e.titulo, '', ['📁 ' + ruta(e.proyecto), fmt(e.creada_en), reloj(e.duracion_s), e.con_quien ? 'con ' + e.con_quien : ''].filter(Boolean).join(' · ')];
     if (e.resumen_ejecutivo) l.push('', '## Resumen ejecutivo', '', e.resumen_ejecutivo.trim());
     if (e.resumen) l.push('', '## Resumen amplio', '', e.resumen.trim().replace(/^## /gm, '### '));
     if (e.transcripcion) l.push('', '## Transcripción', '', e.transcripcion.trim());
