@@ -1,0 +1,28 @@
+{
+  "fecha": "2026-09-24T12:43:00+02:00",
+  "titulo": "Plegables iguales en la entrevista y un solo botón ＋",
+  "objetivo": "Que los bloques del detalle de entrevista se plieguen todos igual y que crear funcione igual en Proyectos, Notas y Entrevistas.",
+  "prompts": [
+    { "texto": "En la imagen adjunta hay varias partes: el audio, la transcripción, el resumen ejecutivo y el resumen ampliado, y quiero que en todos pongas el icono de desplegar o comprimir, que funcionen todos igual o parecido. Por otra parte, en las tres secciones de la aplicación, que son proyectos, notas y entrevista, a la hora de añadir uno nuevo quiero que todos sean de la misma forma, como lo tienes en notas: en la parte inferior derecha un botón de más con un signo más, que los tres operen de la misma forma.", "nota": "Dictado con captura del detalle de una entrevista; se quitan las muletillas." }
+  ],
+  "cambios": [
+    "docs/index.html: Audio, Transcripción, Resumen ejecutivo y Resumen amplio como details.plegable con la flecha ▾ a la derecha (helper plegable() y memoria plegEnt por entrevista)",
+    "docs/index.html: el ＋ flotante (#nueva) crea nota, proyecto o entrevista según la pestaña; fuera «＋ Nuevo proyecto» y «🎙 Nueva entrevista»",
+    "docs/sw.js: caché del build nuevo",
+    "CLAUDE.md al día"
+  ],
+  "sha": "fb0737e",
+  "sha_completo": "fb0737eaae019fb63a6982336d8455d2896ef883",
+  "run": 35988841933,
+  "mock": null,
+  "build": "PR-B1-20260924-027",
+  "pagina": "index.html",
+  "fly": null,
+  "pendiente": [
+    "Probarlo en el móvil (si no se ve, Ajustes → Buscar actualización)."
+  ],
+  "enlaces": [
+    { "texto": "PR #49", "url": "https://github.com/npiobject-labs/prueba/pull/49" }
+  ],
+  "notas": "Ajuste sobre el mock vivo, sin mock archivado nuevo. Probado con Chromium a 390×844 y la API simulada: el ＋ en las tres pestañas, los cuatro plegables y que el sondeo no reabre lo plegado."
+}
