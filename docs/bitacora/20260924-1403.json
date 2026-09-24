@@ -1,0 +1,38 @@
+{
+  "fecha": "2026-09-24T14:03:00+02:00",
+  "titulo": "Informes con roles en backend y app, y mock 21 del menú",
+  "objetivo": "Desarrollar y desplegar el análisis de notas con varios roles del mock 20, y diseñar la cabecera de una sola línea con menú.",
+  "prompts": [
+    { "texto": "Una, dos, tres y cuatro, todas sí, adelante con el desarrollo.", "nota": "Respuestas a las cuatro preguntas del plan de análisis: nueve roles de serie, modelo también para encargos, aviso a 0,25 $ y tope de 8 roles." },
+    { "texto": "Reorganiza el menú de la pantalla inicial del proyecto: todo lo que está en la primera barra, más la segunda con las tres opciones (proyectos, notas, entrevistas), más el buscador, pasen a formar parte de un menú, y en la primera línea visible solo queden el sol/la luna, un icono de buscador y el propio menú que se despliega con sus opciones. Se trata de generar espacio al principio de la pantalla, dejando una sola línea y llevando todo lo demás al menú; organízalo de la mejor forma que sepas. Una vez elegida una opción, al principio de la información tiene que aparecer lo que se ha elegido, para que quede claro qué se está haciendo, y el menú tiene que contraerse y no ocupar pantalla. Cada vez que se elige una opción del menú, en la parte de información tiene que venir primero el título de lo elegido (proyectos, notas…) y luego información adicional como el número de notas o de entrevistas. Dime qué te parece esta mejora: hazme un análisis crítico y un análisis analítico.", "nota": "Dictado con captura de la pantalla de notas de un proyecto; se quitan las muletillas." },
+    { "texto": "1, no lo sé, elige el más usable y claro. 2, arriba. 3, primero mock.", "nota": "Respuestas al análisis del menú: título en la barra, tema arriba y mock antes de desarrollar." }
+  ],
+  "cambios": [
+    "app/src/analisis.rs (nuevo): roles de serie y propios, /roles, /modelos, generación del informe de cuatro en cuatro con síntesis, composición, reintento y recuperación al arrancar",
+    "app/src/main.rs: migración 4, tipo/roles/modelo en /documentos y en regenerar, /documentos/{id}/reintentar",
+    "app/src/llm.rs: analizar_rol, sintetizar, catalogo, modelo_defecto y coste; documentar con modelo; completar devuelve el modelo servido",
+    ".github/workflows/deploy.yml: LLM_RECOMENDADOS y paso «Verificar informes»",
+    "docs/index.html (mock 20, build PR-B1-20260924-030): hoja de Generar con Encargo/Análisis, roles, modelo y coste; selector de modelo; hoja de rol; documento con ficha, progreso, reintento, Leer/Editar, Copiar arriba, .md y PDF; Ajustes con modelo y roles; api() con el mensaje del backend",
+    "docs/mocks/021-menu.html (build PR-B1-20260924-029) y docs/planificacion/plan-menu.md: cabecera de una línea con menú, D68 a D76",
+    "CLAUDE.md y docs/planificacion/plan-analisis.md v2"
+  ],
+  "sha": "bc72943",
+  "sha_completo": "bc72943d4aff0492353a22b1982e62de0fe4018b",
+  "run": 35996585809,
+  "mock": "mocks/021-menu.html",
+  "build": "PR-B1-20260924-030",
+  "pagina": "index.html",
+  "fly": "https://prueba-npiobject-labs.fly.dev/salud",
+  "pendiente": [
+    "Probar los informes en el móvil con notas reales y un modelo bueno elegido en Ajustes.",
+    "Contestar las dos preguntas de plan-menu.md y dar paso a F27 (el menú en la app)."
+  ],
+  "enlaces": [
+    { "texto": "PR #53 (backend)", "url": "https://github.com/npiobject-labs/prueba/pull/53" },
+    { "texto": "PR #54 (mock 21)", "url": "https://github.com/npiobject-labs/prueba/pull/54" },
+    { "texto": "PR #55 (app)", "url": "https://github.com/npiobject-labs/prueba/pull/55" },
+    { "texto": "Plan de análisis", "url": "https://github.com/npiobject-labs/prueba/blob/main/docs/planificacion/plan-analisis.md" },
+    { "texto": "Plan del menú", "url": "https://github.com/npiobject-labs/prueba/blob/main/docs/planificacion/plan-menu.md" }
+  ],
+  "notas": "Continúa la sesión de las 13:28 (mock 20). El backend de F25 salió en su propio PR para desplegarlo y verificarlo en Fly mientras se hacía el mock 21; el paso «Verificar informes» confirmó en el servicio real el catálogo, los recomendados y el coste por operación. Probado antes de desplegar: 17 tests, clippy y fmt limpios, migración sobre una base de main, 70 comprobaciones con curl contra un servicio de modelos simulado y 38 con Chromium a 390×844 contra el backend local. El mensaje del menú llegó a mitad del desarrollo y se contestó con un análisis medido (cabecera fija de 185 px, primera nota en el px 293)."
+}
