@@ -296,6 +296,70 @@ jobs:
             || { echo "::error::al borrar el proyecto la nota no quedo en «Sin proyecto»"; exit 1; }
           echo "OK: borrar el proyecto no borra su nota (D19)"
 
+      # F23: subcarpetas (D43-D53). Un nivel, nombre unico dentro del padre, el
+      # padre trae lo de sus subcarpetas salvo con solo=1, y borrar no pierde
+      # nada: la nota de la subcarpeta sube al padre y, al borrar el padre, la
+      # subcarpeta queda como proyecto principal.
+      - name: Verificar subcarpetas
+        if: steps.fly.outputs.configurado == 'true'
+        env:
+          FLY_APP: ${{ steps.app.outputs.app }}
+          TOKEN_API: ${{ secrets.TOKEN_API }}
+        run: |
+          base="https://${FLY_APP}.fly.dev"
+          auth="Authorization: Bearer ${TOKEN_API}"
+          json='Content-Type: application/json'
+          marca="${GITHUB_SHA:0:7}-${GITHUB_RUN_ATTEMPT}"
+          id_de() { sed -n 's/^{"id":"\([^"]*\)".*/\1/p'; }
+          pid="$(curl -fsS --max-time 20 -X POST "${base}/proyectos" -H "${json}" -H "${auth}" \
+            -d "{\"nombre\":\"Padre ${marca}\"}" | id_de)"
+          [ -n "${pid}" ] || { echo "::error::POST /proyectos no devolvio id"; exit 1; }
+          hid=""; hid2=""; nid=""; nid2=""
+          trap 'for x in "${hid}" "${hid2}" "${pid}"; do [ -z "${x}" ] || curl -sS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/proyectos/${x}" || true; done; for x in "${nid}" "${nid2}"; do [ -z "${x}" ] || curl -sS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/notas/${x}" || true; done' EXIT
+
+          sub="$(curl -fsS --max-time 20 -X POST "${base}/proyectos" -H "${json}" -H "${auth}" \
+            -d "{\"nombre\":\"Diseño ${marca}\",\"padre\":\"${pid}\"}")"
+          hid="$(printf '%s' "${sub}" | id_de)"
+          printf '%s' "${sub}" | grep -q "\"padre\":{\"id\":\"${pid}\"" \
+            || { echo "::error::la subcarpeta no trae su padre: ${sub}"; exit 1; }
+          codigo="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' -X POST "${base}/proyectos" -H "${json}" -H "${auth}" \
+            -d "{\"nombre\":\"DISEÑO ${marca}\",\"padre\":\"${pid}\"}")"
+          [ "${codigo}" = "409" ] || { echo "::error::nombre repetido en el mismo padre devolvio ${codigo}, se esperaba 409"; exit 1; }
+          hid2="$(curl -fsS --max-time 20 -X POST "${base}/proyectos" -H "${json}" -H "${auth}" \
+            -d "{\"nombre\":\"Diseño ${marca}\"}" | id_de)"
+          [ -n "${hid2}" ] || { echo "::error::el mismo nombre como proyecto principal no se pudo crear"; exit 1; }
+          codigo="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' -X POST "${base}/proyectos" -H "${json}" -H "${auth}" \
+            -d "{\"nombre\":\"Nieta ${marca}\",\"padre\":\"${hid}\"}")"
+          [ "${codigo}" = "400" ] || { echo "::error::subcarpeta de subcarpeta devolvio ${codigo}, se esperaba 400"; exit 1; }
+          echo "OK: subcarpeta con padre, nombre unico dentro del padre, un solo nivel"
+
+          nid="$(curl -fsS --max-time 30 -X POST "${base}/notas" -H "${json}" -H "${auth}" \
+            -d "{\"contenido\":\"Nota de subcarpeta ${marca}\",\"proyecto\":\"${hid}\"}" | id_de)"
+          nid2="$(curl -fsS --max-time 30 -X POST "${base}/notas" -H "${json}" -H "${auth}" \
+            -d "{\"contenido\":\"Nota del padre ${marca}\",\"proyecto\":\"${pid}\"}" | id_de)"
+          [ -n "${nid}" ] && [ -n "${nid2}" ] || { echo "::error::no se pudieron crear las notas"; exit 1; }
+          curl -fsS --max-time 20 -H "${auth}" "${base}/notas?proyecto=${pid}" | grep -q "\"id\":\"${nid}\"" \
+            || { echo "::error::el padre no trae la nota de su subcarpeta"; exit 1; }
+          if curl -fsS --max-time 20 -H "${auth}" "${base}/notas?proyecto=${pid}&solo=1" | grep -q "\"id\":\"${nid}\""; then
+            echo "::error::con solo=1 el padre sigue trayendo la nota de la subcarpeta"; exit 1
+          fi
+          curl -fsS --max-time 20 -H "${auth}" "${base}/proyectos/${pid}" | grep -q '"notas":2,.*"notas_propias":1,"subcarpetas":1' \
+            || { echo "::error::las cifras del padre no suman su subcarpeta"; exit 1; }
+          echo "OK: el padre trae lo de sus subcarpetas; solo=1 lo acota; las cifras suman"
+
+          curl -fsS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/proyectos/${hid}"
+          curl -fsS --max-time 20 -H "${auth}" "${base}/notas/${nid}" | grep -q "\"proyecto\":{\"id\":\"${pid}\"" \
+            || { echo "::error::al borrar la subcarpeta su nota no subio al padre"; exit 1; }
+          hid="$(curl -fsS --max-time 20 -X POST "${base}/proyectos" -H "${json}" -H "${auth}" \
+            -d "{\"nombre\":\"Diseño ${marca}\",\"padre\":\"${pid}\"}" | id_de)"
+          curl -fsS --max-time 20 -o /dev/null -X DELETE -H "${auth}" "${base}/proyectos/${pid}"
+          pid=""
+          curl -fsS --max-time 20 -H "${auth}" "${base}/proyectos/${hid}" | grep -q "\"nombre\":\"Diseño ${marca} (Padre ${marca})\".*\"padre\":null" \
+            || { echo "::error::al borrar el padre la subcarpeta no paso a principal con el nombre desambiguado"; exit 1; }
+          curl -fsS --max-time 20 -H "${auth}" "${base}/notas/${nid}" | grep -q '"proyecto":null' \
+            || { echo "::error::al borrar el padre su nota no quedo en «Sin proyecto»"; exit 1; }
+          echo "OK: borrar una subcarpeta sube sus notas; borrar el padre deja la subcarpeta como principal (D51)"
+
       # F2: con clave, una nota real tiene que volver titulada y etiquetada.
       # Cuesta una fraccion de centimo y es la unica forma de saber que la
       # cadena entera (Fly -> servicio -> modelo) funciona de verdad.
