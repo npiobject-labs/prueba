@@ -1,6 +1,6 @@
 # Plan: cabecera de una sola línea con menú
 
-Fecha: 2026-09-24 · Estado: v1, **mock de diseño** (`docs/mocks/021-menu.html`, build `PR-B1-20260924-029`); sin desarrollar · Continúa `plan-analisis.md` (hasta D67) · Fuente de verdad: este fichero.
+Fecha: 2026-09-24 · Estado: v2, **F27 hecha** (mock de diseño: `docs/mocks/021-menu.html`, build `PR-B1-20260924-029`; app: build `PR-B1-20260924-031`) · Continúa `plan-analisis.md` (hasta D67) · Fuente de verdad: este fichero.
 
 ## 1. Qué se pide (en palabras del usuario)
 
@@ -58,7 +58,17 @@ Atajos: `?v=menu`, `buscar`, `filtro`, `sub`, `proyectos`, `entrevistas`, `elegi
 |---|---|
 | F27 | App (sin backend): barra única, menú, lupa contextual con tira de filtro, cifras en la primera fila, tira de subcarpetas condicional y selección con la barra cambiada. Se hace después de F26 (informes en la app). Pruebas con Chromium a 390 y 412 px, incluido Atrás con el menú abierto. |
 
-## 6. Preguntas al usuario
+## 6. Preguntas al usuario (contestadas: desplegable desde arriba, y sin lupa en Entrevistas)
 
 1. ¿Menú **desplegable desde arriba** (el del mock) o **cajón lateral** (D70)?
 2. ¿Te vale que en Entrevistas no haya lupa (D71)?
+
+## 7. Cómo quedó (2026-09-24)
+
+- **Los botones de siempre, dentro del menú**: las pestañas y los iconos ☑ 📄 ⚙ y «Editar proyecto» pasaron al menú con sus mismos ids (`#tabProy`, `#tabNotas`, `#tabEnt`, `#seleccionarBtn`, `#documentosBtn`, `#ajustesBtn`, `#cpEditar`), así que sus manejadores no cambiaron; el buscador de proyectos (`#pq`, `#porden`) se movió a la lupa. Desapareció el 📁 que llevaba oculto desde F13.
+- **Cifras sin parpadeo**: la fila de cifras de la lista solo se pinta cuando la lista cargada es la del ámbito actual; al volver de una nota a la misma lista no desaparece y reaparece.
+- **Seleccionar desde otra pantalla** (por ejemplo, desde Entrevistas) va primero a la lista del proyecto y entra en la selección cuando llega.
+- **Aviso de grabación sin subir**: como Entrevistas ya no está a la vista, el botón ☰ lleva un punto rojo además del ⚠️ de dentro del menú.
+- **Medida**: con la barra de 56 px, la lista de un proyecto con descripción y subcarpetas empieza hacia el px 190 (antes, el px 293 sin descripción) y la cabecera fija ocupa el 7 % de la pantalla en lugar del 24 %.
+- **Pruebas**: 94 comprobaciones con Chromium a 390 y 412 px contra el backend local (barra, cifras, menú con Atrás, Escape y tocar fuera, lupa y tira en Notas y Proyectos, «en todos los proyectos», subcarpeta con migas y «Nueva subcarpeta en…», Entrevistas sin lupa, selección desde otra pantalla con ✕, Documentos, Ajustes, tema, sin proyecto elegido), más las regresiones de los informes (38) y de los plegables y el botón ＋. Sin errores de JS ni desbordes.
+
