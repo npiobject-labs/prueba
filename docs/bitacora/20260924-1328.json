@@ -1,0 +1,30 @@
+{
+  "fecha": "2026-09-24T13:28:00+02:00",
+  "titulo": "Mock 20: análisis de notas con varios roles",
+  "objetivo": "Diseñar cómo generar, a partir de las notas elegidas, un informe único hecho por varios roles de IA, con modelo elegible de OpenRouter.",
+  "prompts": [
+    { "texto": "Probado en el móvil y funciona. No, de momento para ti, porque te voy a lanzar otro trabajo." },
+    { "texto": "Aquí está la pantalla de generar: hemos seleccionado todas las notas de un proyecto o un conjunto de ellas y hay que generar un resumen o un documento que formatee esas notas y lo presente bien estructurado. La modificación es la siguiente: a la hora de generar quiero que tengas varios agentes con distintas funcionalidades, por ejemplo un agente crítico, un agente analítico, un agente económico, un agente que mida la parte del marketing, un agente que mire la usabilidad… no sé qué más cosas puede mirar, eso me lo tienes que decir tú. La idea es que pueda seleccionar uno o varios roles de agentes a la hora de generar el documento. Ese resultado ha de tener un icono de copiar para llevarlo a otro sitio y analizar, y también estaría bien descargar. Tienes acceso con OpenRouter a todos los modelos: estaría bien que en Ajustes se pueda seleccionar algún modelo más de OpenRouter para que se haga este análisis de la mejor forma, porque a lo mejor el que tenemos por defecto no es suficiente para generar este informe compactado, formateado y bien estructurado. No hagas nada: dame un resumen corto, ejecutivo, de cómo ves esta mejora.", "nota": "Dictado con captura del modo selección; se quitan las muletillas." },
+    { "texto": "Informe único, dos ambos, tres sí, adelante con el mock.", "nota": "Respuestas a las tres preguntas del resumen: informe único, modelo en Ajustes y en la hoja, y roles propios." }
+  ],
+  "cambios": [
+    "docs/mocks/020-analisis.html (build PR-B1-20260924-028): hoja de Generar con Encargo o Análisis, roles de serie y propios, selector de modelo con precio y contexto, coste estimado, progreso rol a rol, reintento, informe formateado con Copiar, .md y PDF, roles y modelo en Ajustes",
+    "docs/planificacion/plan-analisis.md: decisiones D54 a D67, migración 4, API, fases F25/F26 y preguntas"
+  ],
+  "sha": "b1b2a1e",
+  "sha_completo": "b1b2a1ee89b7534b40f42ec0a9f4ff87130fb595",
+  "run": 35993148077,
+  "mock": "mocks/020-analisis.html",
+  "build": "PR-B1-20260924-028",
+  "pagina": "mocks/020-analisis.html",
+  "fly": null,
+  "pendiente": [
+    "Contestar las cuatro preguntas de la sección 8 de plan-analisis.md.",
+    "F25 (backend) y F26 (app) cuando se dé paso."
+  ],
+  "enlaces": [
+    { "texto": "PR #51", "url": "https://github.com/npiobject-labs/prueba/pull/51" },
+    { "texto": "Plan de análisis", "url": "https://github.com/npiobject-labs/prueba/blob/main/docs/planificacion/plan-analisis.md" }
+  ],
+  "notas": "Continúa la sesión de las 12:43 (plegables y botón ＋). Se leyó el repo público del servicio openrouter para confirmar que deja pasar cualquier modelo y que publica el catálogo con precios. Mock probado con Chromium a 390×844 en claro y oscuro, sin desbordes ni errores de JS; los modelos y precios del mock son de ejemplo."
+}
