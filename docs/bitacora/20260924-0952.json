@@ -1,0 +1,28 @@
+{
+  "fecha": "2026-09-24T09:52:00+02:00",
+  "titulo": "Mock de subcarpetas (subproyectos) en proyectos",
+  "objetivo": "Enseñar cómo quedarían las subcarpetas dentro de cada proyecto, con notas asignables al padre o a una subcarpeta, sin desarrollarlo.",
+  "prompts": [
+    { "texto": "Quiero modificar la parte de proyectos en notas de forma que se puedan añadir subcarpetas a cada de las carpetas del proyecto o dicho de otra forma subproyectos a cada uno de los proyectos que seria lo mismo de forma que luego cada nota se pueda asignar a la carpeta padre o a cualquiera de sus hijos hazme un mock para ver cómo quedaría no desarrolles" }
+  ],
+  "cambios": [
+    "docs/mocks/019-subproyectos.html: mock navegable con datos de ejemplo (tira de carpetas, migas, chips de subcarpeta, árbol en Mover y en el editor, «Dentro de» en la hoja del proyecto)",
+    "docs/planificacion/plan-subproyectos.md: decisiones D43 a D53, migración 3, cambios de API y fases F23/F24"
+  ],
+  "sha": "6c087f0",
+  "sha_completo": "6c087f0800b1d01f7453932e4fce9f81e5e71e6e",
+  "run": 35972007882,
+  "mock": "mocks/019-subproyectos.html",
+  "build": "PR-B1-20260924-025",
+  "pagina": "mocks/019-subproyectos.html",
+  "fly": null,
+  "pendiente": [
+    "Respuestas a las preguntas de la sección 7 del plan: un nivel, qué se ve en el padre, qué pasa al borrar, «subcarpeta» o «subproyecto».",
+    "F23 (backend) y F24 (app) cuando el usuario dé paso."
+  ],
+  "enlaces": [
+    { "texto": "PR #45", "url": "https://github.com/npiobject-labs/prueba/pull/45" },
+    { "texto": "Plan de subcarpetas", "url": "https://github.com/npiobject-labs/prueba/blob/main/docs/planificacion/plan-subproyectos.md" }
+  ],
+  "notas": "Sesión de solo diseño: la app y el backend no cambian. Mock probado con Chromium a 390×844 en claro y oscuro, sin desbordes ni errores de consola."
+}
