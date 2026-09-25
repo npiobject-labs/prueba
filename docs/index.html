@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260925-032">
+  <meta name="build" content="PR-B1-20260925-033">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -70,11 +70,11 @@
     input, textarea, select { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:.6rem .75rem; width:100%; }
     textarea { min-height:45vh; resize:vertical; line-height:1.5; }
     /* Cajas redimensionables (F28): el asa nativa de resize no sale en Chrome de Android ni en Safari de iOS,
-       así que cada textarea lleva una propia, grande para el dedo, montada sobre su esquina inferior derecha. */
+       así que cada textarea lleva debajo una barra a todo lo ancho, con una rayita en el centro, que se arrastra. */
     textarea.conAsa { resize:none; }
-    .asa { display:block; position:relative; width:2rem; height:2rem; margin:-2rem 1px 0 auto; cursor:ns-resize; touch-action:none; user-select:none; -webkit-user-select:none;
-      background:linear-gradient(135deg, transparent 50%, var(--mut) 50% 57%, transparent 57% 70%, var(--mut) 70% 77%, transparent 77%) right 5px bottom 5px / 12px 12px no-repeat; opacity:.7; }
-    .asa.arrastrando { opacity:1; }
+    .asa { display:flex; align-items:center; justify-content:center; height:1.4rem; cursor:ns-resize; touch-action:none; user-select:none; -webkit-user-select:none; }
+    .asa::before { content:''; width:3rem; height:5px; border-radius:999px; background:var(--mut); opacity:.55; transition:width .15s, opacity .15s; }
+    .asa:hover::before, .asa.arrastrando::before { width:4.5rem; opacity:1; background:var(--acc); }
     textarea.hidden + .asa { display:none; }
     .fila { display:flex; gap:.5rem; align-items:center; }
     .chips { display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.5rem; }
@@ -501,7 +501,7 @@
     <div class="acciones"><button class="btn peligro" id="entBorrarAudio" type="button">Borrar audio</button><button class="btn peligro" id="entBorrar" type="button">Borrar</button></div>
   </section>
 
-  <p class="enlaces">Build <code>PR-B1-20260925-032</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
+  <p class="enlaces">Build <code>PR-B1-20260925-033</code> · <a href="bitacora.html">Bitácora</a> · <a href="mocks/">Mocks anteriores</a> · <a href="holamundo.html">Backend</a></p>
 </main>
 
 <div id="confirmar" class="velo hidden" role="dialog" aria-modal="true" aria-labelledby="cTitulo">
@@ -3190,7 +3190,7 @@
   if (grabarAlAbrir) { parametros.delete('grabar'); history.replaceState(null, '', location.pathname + (parametros.toString() ? '?' + parametros : '') + location.hash); }
   pintarPestanaEnt();
 
-  // Cajas redimensionables (F28): cada textarea con id lleva un asa que se arrastra
+  // Cajas redimensionables (F28): cada textarea con id lleva debajo una barra que se arrastra
   // con el dedo o el ratón. La altura se recuerda por id en notas-alturas; dos
   // toques en el asa la devuelven a la de serie.
   const CLAVE_ALTURAS = 'notas-alturas';
