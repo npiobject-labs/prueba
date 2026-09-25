@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="build" content="PR-B1-20260925-033">
+  <meta name="build" content="PR-B1-20260925-034">
   <meta name="fly-app" content="prueba-npiobject-labs">
   <meta name="theme-color" content="#0b6e7a">
   <link rel="manifest" href="manifest.webmanifest">
@@ -2558,7 +2558,7 @@
     estado: 'inactiva', rec: null, stream: null, id: null, n: 0, trozos: [], tipo: '',
     acumulado: 0, t0: 0, tic: null, cuenta: null, proyecto: null, empezada: null,
     escrituras: Promise.resolve(), idbFallo: false, wake: null, ctx: null, raf: null,
-    silencio: null, urlSilencio: null, parado: null
+    silencio: null, urlSilencio: null, parado: null, medios: false
   };
   const segundos = () => (G.acumulado + (G.estado === 'grabando' ? performance.now() - G.t0 : 0)) / 1000;
   const CLAVE_CONSENT = 'notas-consentimiento';
@@ -2578,21 +2578,22 @@
     $('capPausa').innerHTML = e === 'pausada' ? '<span class="ico">▶</span> SEGUIR' : '<span class="ico">⏸</span> PAUSA';
     $('capPausa').disabled = e === 'parando';
     $('capPista').innerHTML = msg || {
-      inactiva: 'Pulsa Grabar. Vibra al empezar, al pausar y al parar.',
+      inactiva: 'Pulsa Grabar, o sin tocar la pantalla: doble toque en la trasera (Quick Tap) o el botón de los auriculares. Vibra al empezar, al pausar y al parar.',
       cuenta: 'Toca en cualquier sitio para cancelar',
-      grabando: 'Pausa y Parar también desde la notificación' + (navigator.mediaSession ? ', y Pausa desde los auriculares' : '') + '.',
+      grabando: 'Pausa y Parar también desde la notificación' + (navigator.mediaSession ? '; Pausa y Seguir con el doble toque trasero o los auriculares' : '') + '.',
       pausada: 'La pausa no se graba.',
       parando: ''
     }[e] || '';
     $('capCrono').textContent = reloj(segundos());
   }
-  function cambiar(e, msg) { G.estado = e; pintarCaptura(msg); if (e === 'grabando' || e === 'pausada') { notificar(); sesionMedios(); } }
+  function cambiar(e, msg) { G.estado = e; pintarCaptura(msg); if (e === 'grabando' || e === 'pausada') notificar(); sesionMedios(); }
 
   function abrirCaptura({ directo = false } = {}) {
     if (G.estado === 'grabando' || G.estado === 'pausada') { $('captura').classList.remove('hidden'); pintarCaptura(); return; }
     G.acumulado = 0; G.proyecto = null; G.estado = 'inactiva';
     $('captura').classList.remove('hidden');
     pintarCaptura();
+    silencioEnMarcha();
     if (directo && consentido()) {
       // Con el permiso ya dado, el acceso directo arranca solo tras 3 s (6.2).
       const pedir = navigator.permissions ? navigator.permissions.query({ name: 'microphone' }).then(p => p.state) : Promise.resolve('prompt');
@@ -2613,6 +2614,7 @@
     cancelarCuenta();
     $('captura').classList.add('hidden');
     if (G.estado === 'sin_permiso') G.estado = 'inactiva';
+    if (G.estado === 'inactiva') soltarMedios();
     if (!$('entrevistas').classList.contains('hidden') || $('entrevista').classList.contains('hidden')) cargarEntrevistas();
   }
 
@@ -2623,13 +2625,17 @@
       else if (e === 'cuenta') { cancelarCuenta(); iniciar(); }
       else if (e === 'grabando' || e === 'pausada') parar();
     } else if (ev === 'pausa') evento(e === 'pausada' ? 'seguir' : 'pausar');
+    else if (ev === 'medios') {
+      // Un solo botón (auriculares, Quick Tap): graba, pausa o sigue según el estado.
+      if (e === 'grabando') evento('pausar');
+      else if (e === 'pausada') evento('seguir');
+      else if ((e === 'inactiva' || e === 'cuenta' || e === 'sin_permiso') && !$('captura').classList.contains('hidden')) evento('principal');
+    }
     else if (ev === 'pausar' && e === 'grabando') {
       G.rec.pause(); G.acumulado += performance.now() - G.t0;
-      if (G.silencio) G.silencio.pause();
       cambiar('pausada'); vibrar([60, 60, 60]);
     } else if (ev === 'seguir' && e === 'pausada') {
       G.rec.resume(); G.t0 = performance.now();
-      if (G.silencio) G.silencio.play().catch(() => {});
       cambiar('grabando'); vibrar(80);
     } else if (ev === 'parar' && (e === 'grabando' || e === 'pausada')) parar();
     else if (ev === 'cerrar') {
@@ -2717,8 +2723,7 @@
     if (G.ctx) { G.ctx.close().catch(() => {}); G.ctx = null; }
     for (const i of $('capNivel').children) i.style.height = '10%';
     if (G.wake) { G.wake.release().catch(() => {}); G.wake = null; }
-    if (G.silencio) { G.silencio.pause(); }
-    if (navigator.mediaSession) { try { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; } catch {} }
+    soltarMedios();
     cerrarNotificacion();
   }
   const extDe = tipo => /mp4/.test(tipo) ? 'm4a' : /ogg/.test(tipo) ? 'ogg' : 'webm';
@@ -2748,42 +2753,56 @@
   });
   window.addEventListener('beforeunload', ev => { if (G.estado === 'grabando' || G.estado === 'pausada') { ev.preventDefault(); ev.returnValue = ''; } });
 
-  // --- D39: auriculares y pantalla de bloqueo por Media Session ---
-  // Para ser «lo que suena», la página reproduce en bucle un segundo de
-  // silencio; con eso el botón del manos libres y la tarjeta de medios llegan
-  // aquí. [SUPUESTO] Chrome en Android la mantiene; si no, queda la notificación.
+  // --- D39/D77: auriculares, Quick Tap y pantalla de bloqueo por Media Session ---
+  // Para ser «lo que suena», la página reproduce en bucle silencio desde que se
+  // abre la grabadora hasta que se para o se cierra, también en pausa: así la
+  // sesión no se suspende y el botón de medios siempre llega aquí. Chrome deja
+  // sin controles a lo que dura 5 s o menos, por eso el WAV dura 10.
+  // Las teclas de volumen y la de encendido no llegan nunca a una web (D77).
+  // [SUPUESTO] Chrome en Android lo mantiene; si no, queda la notificación.
   function silencioEnMarcha() {
     if (!navigator.mediaSession) return;
     try {
       if (!G.urlSilencio) {
-        const sr = 8000, b = new ArrayBuffer(44 + sr), v = new DataView(b);
+        const sr = 8000, n = sr * 10, b = new ArrayBuffer(44 + n), v = new DataView(b);
         const w = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
-        w(0, 'RIFF'); v.setUint32(4, 36 + sr, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true);
+        w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true);
         v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, sr, true); v.setUint32(28, sr, true);
-        v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, sr, true);
+        v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true);
         new Uint8Array(b, 44).fill(128);
         G.urlSilencio = URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
       }
       if (!G.silencio) { G.silencio = new Audio(G.urlSilencio); G.silencio.loop = true; }
       G.silencio.play().catch(() => {});
+      G.medios = true;
       const ms = navigator.mediaSession;
       const accion = (a, f) => { try { ms.setActionHandler(a, f); } catch {} };
-      accion('play', () => evento('seguir'));
-      accion('pause', () => evento('pausar'));
+      // Chrome manda play o pause según lo que crea que suena; da igual cuál:
+      // el estado de la grabadora decide.
+      accion('play', () => evento('medios'));
+      accion('pause', () => evento('medios'));
       accion('stop', () => evento('parar'));
       sesionMedios();
     } catch {}
   }
   function sesionMedios() {
-    if (!navigator.mediaSession || !G.rec) return;
+    if (!navigator.mediaSession || !G.medios) return;
+    const e = G.estado;
+    if (e === 'parando') return;
     try {
+      const p = G.rec ? G.proyecto : (proyectoActivo && proyectoActivo.id ? { nombre: ruta(proyectoActivo) } : null);
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: G.estado === 'pausada' ? 'Entrevista en pausa' : 'Grabando entrevista',
-        artist: G.proyecto ? G.proyecto.nombre : 'Notas',
+        title: e === 'grabando' ? 'Grabando entrevista' : e === 'pausada' ? 'Entrevista en pausa' : 'Listo para grabar',
+        artist: p ? p.nombre : 'Notas',
         artwork: [{ src: 'icono-192.png', sizes: '192x192', type: 'image/png' }]
       });
-      navigator.mediaSession.playbackState = G.estado === 'pausada' ? 'paused' : 'playing';
+      navigator.mediaSession.playbackState = e === 'grabando' ? 'playing' : 'paused';
     } catch {}
+  }
+  function soltarMedios() {
+    G.medios = false;
+    if (G.silencio) G.silencio.pause();
+    if (navigator.mediaSession) { try { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; } catch {} }
   }
 
   // --- D40: notificación con Pausa/Seguir y Parar; el service worker nos pasa el botón ---
