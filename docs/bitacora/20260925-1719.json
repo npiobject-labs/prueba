@@ -1,0 +1,33 @@
+{
+  "fecha": "2026-09-25T17:19:00+02:00",
+  "titulo": "Cajas de texto redimensionables con barra inferior",
+  "objetivo": "Poder cambiar el alto de todas las cajas de texto de la app, también en el móvil.",
+  "prompts": [
+    { "texto": "Convendría que las cajas de texto sean redimensionables, esto es en general para toda la app." },
+    { "texto": "¿Es esto lo que has hecho? ¿Es esta la modificación que te he pedido, en la parte inferior derecha unas tres rayitas para ampliar el cuadro? Porque yo creo que me has hablado de que es de tipo Apple, que es una barra en la parte inferior, ¿no?", "nota": "Con una captura del editor en el móvil, build 032." },
+    { "texto": "Sí funciona, pero hoy mismo me acabas de hacer en otra app lo de la rayita inferior, que también me funciona aquí en Chrome; si es así, ponme la rayita inferior, que es más cómoda que las tres rayitas en la parte inferior derecha." },
+    { "texto": "Probado en el móvil y funciona, cierra la sesión." }
+  ],
+  "cambios": [
+    "docs/index.html: cada textarea con id lleva un asa propia que se arrastra con el dedo o el ratón (pointer events, touch-action:none), porque el resize nativo no sale en Chrome de Android ni en Safari de iOS.",
+    "Primera versión (build 032, PR #60): esquina con rayitas sobre la caja. Segunda (build 033, PR #61): barra a todo lo ancho debajo de la caja, con una rayita centrada que se alarga y toma el color de acento al arrastrar.",
+    "El alto se recuerda por caja en localStorage (notas-alturas); dos toques en la barra vuelven al alto de serie; si la caja está oculta, su barra también.",
+    "CLAUDE.md (F28) y CACHE de sw.js."
+  ],
+  "sha": "7279e33",
+  "sha_completo": "7279e33bb6fb445eb05b387005a4c0a7f1b00955",
+  "run": 36152786353,
+  "mock": null,
+  "build": "PR-B1-20260925-033",
+  "pagina": "index.html",
+  "fly": null,
+  "pendiente": [
+    "Probar un informe con roles con notas reales y un modelo bueno elegido en Ajustes.",
+    "Vigilar si cambiar de sección con dos toques molesta (plan B de D76)."
+  ],
+  "enlaces": [
+    { "texto": "PR #61 (barra inferior)", "url": "https://github.com/npiobject-labs/prueba/pull/61" },
+    { "texto": "PR #60 (cajas redimensionables)", "url": "https://github.com/npiobject-labs/prueba/pull/60" }
+  ],
+  "notas": "Prompts transcritos del dictado con la puntuación arreglada. Sin mock archivado: es un retoque del mock vivo. El backend no cambió, por eso fly es null. Probado por el usuario en el móvil con el build 033."
+}
